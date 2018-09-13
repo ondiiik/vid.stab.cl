@@ -1,3 +1,4 @@
+#pragma once
 /*
  * localmotion2transform.h
  *
@@ -21,14 +22,14 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef __LOCALMOTION2TRANSFORM_H
-#define __LOCALMOTION2TRANSFORM_H
-
-
 #include "transform.h"
 #include "transformtype.h"
 #include "serialize.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /** converts for each frame the localmotions into a transform
@@ -83,4 +84,7 @@ VSArray vsGradientDescent(double (*eval)(VSArray, void*),
                           VSArray params, void* dat,
                           int N, VSArray stepsizes, double threshold, double* residual);
 
+
+#ifdef __cplusplus
+}
 #endif

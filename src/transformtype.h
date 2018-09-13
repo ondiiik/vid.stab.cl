@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transform.h
  *
@@ -20,11 +21,14 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __TRANSFORMTYPE_H
-#define __TRANSFORMTYPE_H
-
 #include <stdio.h>
 #include "vsvector.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /* structure to hold information about frame transformations
    x,y are translations, alpha is a rotation around the center in RAD,
@@ -70,7 +74,11 @@ typedef struct _localmotion
 
 typedef VSVector LocalMotions;
 
+
+#ifdef __cplusplus
+}
 #endif
+
 
 /*
  * Local variables:

@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transform.h
  *
@@ -21,8 +22,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __TRANSFORM_H
-#define __TRANSFORM_H
 
 
 #include <math.h>
@@ -43,9 +42,9 @@ extern "C" {
 struct VSTransformations
 {
     struct VSTransform* ts;         // array of transformations
-    int          current;    // index to current transformation
-    int          len;        // length of trans array
-    short        warned_end; // whether we warned that there is no transform left
+    int                 current;    // index to current transformation
+    int                 len;        // length of trans array
+    short               warned_end; // whether we warned that there is no transform left
 };
 
 
@@ -183,8 +182,12 @@ extern const VSFrameInfo* vsTransformGetSrcFrameInfo(const struct VSTransformDat
 extern const VSFrameInfo* vsTransformGetDestFrameInfo(const struct VSTransformData* td);
 
 
-/// initializes struct VSTransformations structure
+/**
+ * @brief   Initializes transformations instance
+ */
 extern void vsTransformationsInit(struct VSTransformations* trans);
+
+
 /// deletes struct VSTransformations internal memory
 extern void vsTransformationsCleanup(struct VSTransformations* trans);
 
@@ -226,8 +229,6 @@ extern int vsTransformFinish(struct VSTransformData* td);
 }
 #endif
 
-
-#endif
 
 /*
  * Local variables:

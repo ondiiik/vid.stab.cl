@@ -1,3 +1,4 @@
+#pragma once
 /*
  * serialize.h
  *
@@ -21,13 +22,14 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef __SERIALIZE_H
-#define __SERIALIZE_H
-
 #include "transformtype.h"
 #include "motiondetect.h"
 #include "transform.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /// Vector of LocalMotions
@@ -74,4 +76,6 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* lms);
 int vsReadOldTransforms(const struct VSTransformData* td, FILE* f, struct VSTransformations* trans);
 
 
+#ifdef __cplusplus
+}
 #endif

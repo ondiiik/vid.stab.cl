@@ -1,5 +1,5 @@
 /*
- * serialize.c
+ * serialize.cpp
  *
  *  Copyright (C) Georg Martius - January 2013
  *   georg dot martius at web dot de
@@ -309,7 +309,7 @@ int vsReadOldTransforms(const struct VSTransformData* td, FILE* f, struct VSTran
                 s *= 2;
             }
             /* vs_log_info(td->modName, "resize: %i\n", s); */
-            trans->ts = vs_realloc(trans->ts, sizeof(struct VSTransform) * s);
+            trans->ts = (VSTransform*)vs_realloc(trans->ts, sizeof(VSTransform) * s);
             if (!trans->ts)
             {
                 vs_log_error(td->conf.modName, "Cannot allocate memory"

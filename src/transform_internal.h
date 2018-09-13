@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transform_internal.h
  *
@@ -21,15 +22,18 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __TRANSFORM_INTERNAL_H
-#define __TRANSFORM_INTERNAL_H
-
 #include "transform.h"
 
 #include "transformfixedpoint.h"
 #ifdef TESTING
 #include "transformfloat.h"
 #endif
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /// name of the interpolation type
 const char* getInterpolationTypeName(VSInterpolType type);
@@ -43,7 +47,11 @@ int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans);
 int cameraPathGaussian(struct VSTransformData* td, struct VSTransformations* trans);
 int cameraPathOptimalL1(struct VSTransformData* td, struct VSTransformations* trans);
 
+
+#ifdef __cplusplus
+}
 #endif
+
 
 /*
  * Local variables:

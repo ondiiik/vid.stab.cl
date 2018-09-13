@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  motiondetect_internal.h
  *
@@ -24,11 +25,13 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef MOTIONDETECT_INTERNAL_H
-#define MOTIONDETECT_INTERNAL_H
-
 #include "motiondetect.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /* type for a function that calculates the transformation of a certain field
  */
@@ -79,7 +82,11 @@ unsigned int compareSubImg_thr(unsigned char* const I1, unsigned char* const I2,
                                int bytesPerPixel,
                                int d_x, int d_y, unsigned int threshold);
 
-#endif  /* MOTIONDETECT_INTERNAL_H */
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * Local variables:

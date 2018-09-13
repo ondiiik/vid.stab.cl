@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transformtype_operations.h
  *
@@ -20,13 +21,16 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __TRANSFORMTYPE_OPERATIONS_H
-#define __TRANSFORMTYPE_OPERATIONS_H
-
 #include "transformtype.h"
 #include "vidstabdefines.h"
 #include "vsvector.h"
 #include "frameinfo.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /// helper macro to access a localmotion in the VSVector
 #define LMGet(localmotions,index) \
@@ -166,7 +170,11 @@ inline static int myfloor(float x)
     }
 }
 
+
+#ifdef __cplusplus
+}
 #endif
+
 
 /*
  * Local variables:

@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transformfixedpoint.h
  *
@@ -21,11 +22,14 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __TRANSFORMFIXEDPOINT_H
-#define __TRANSFORMFIXEDPOINT_H
-
 #include "transformtype.h"
 #include <stdint.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef int32_t fp8;
 typedef int32_t fp16; // also ncot definition of interpolFun in transform.h
@@ -64,7 +68,11 @@ void interpolateN(uint8_t* rv, fp16 x, fp16 y,
                   int width, int height,
                   uint8_t N, uint8_t channel, uint8_t def);
 
+
+#ifdef __cplusplus
+}
 #endif
+
 
 /*
  * Local variables:

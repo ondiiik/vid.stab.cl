@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  motiondetect.h
  *
@@ -24,10 +25,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef MOTIONDETECT_H
-#define MOTIONDETECT_H
-
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -35,6 +32,12 @@
 #include "vidstabdefines.h"
 #include "vsvector.h"
 #include "frameinfo.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef struct _vsmotiondetectconfig
 {
@@ -140,7 +143,11 @@ void vsMotionDetectGetConfig(VSMotionDetectConfig* conf, const VSMotionDetect* m
 /// returns the frame info
 const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* md);
 
-#endif  /* MOTIONDETECT_H */
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * Local variables:

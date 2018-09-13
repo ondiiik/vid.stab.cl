@@ -126,34 +126,46 @@ static int transform_init(TCModuleInstance* self, uint32_t features)
  * tcmodule-data.h for function details.
  */
 static int transform_configure(TCModuleInstance* self,
-                               const char* options, vob_t* vob)
+                               const char*       options,
+                               vob_t*            vob)
 {
     FilterData* fd = NULL;
-    char* filenamecopy, *filebasename;
-    FILE* f;
+    char*       filenamecopy;
+    char*       filebasename;
+    FILE*       f;
+    
     TC_MODULE_SELF_CHECK(self, "configure");
     
+    
     fd = self->userdata;
+    
     struct VSTransformData* td = &(fd->td);
     
+    
+    
     fd->vob = vob;
+    
     if (!fd->vob)
     {
         return TC_ERROR;    /* cannot happen */
     }
     
-    /**** Initialise private data structure */
     
+    /* Initialise private data structure */
     VSFrameInfo fi_src;
     VSFrameInfo fi_dest;
-    vsFrameInfoInit(&fi_src, fd->vob->ex_v_width, fd->vob->ex_v_height,
+    vsFrameInfoInit(&fi_src,
+                    fd->vob->ex_v_width,
+                    fd->vob->ex_v_height,
                     transcode2ourPF(fd->vob->im_v_codec));
-    vsFrameInfoInit(&fi_dest, fd->vob->ex_v_width, fd->vob->ex_v_height,
+    vsFrameInfoInit(&fi_dest,
+                    fd->vob->ex_v_width,
+                    fd->vob->ex_v_height,
                     transcode2ourPF(fd->vob->im_v_codec));
                     
     struct VSTransformConfig conf = vsTransformGetDefaultConfig(MOD_NAME);
-    conf.verbose = verbose;
-    fd->sharpen  = 0.8;
+    conf.verbose                  = verbose;
+    fd->sharpen                   = 0.8;
     
     
     vsTransformationsInit(&fd->trans);

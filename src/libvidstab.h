@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  libvidstab.h
  *
@@ -21,10 +22,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef LIBVIDSTAB_H
-#define LIBVIDSTAB_H
-
 #define LIBVIDSTAB_VERSION "v1.1 (2015-05-16)"
 
 #include "frameinfo.h"
@@ -34,7 +31,6 @@
 #include "serialize.h"
 #include "localmotion2transform.h"
 
-#endif  /* LIBVIDSTAB_H_ */
 
 /*
  * Local variables:

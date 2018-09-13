@@ -180,8 +180,8 @@ void vsTransformDataCleanup(struct VSTransformData* td)
 
 
 int vsTransformPrepare(struct VSTransformData* td,
-                       const VSFrame*   src,
-                       VSFrame*         dest)
+                       const VSFrame*          src,
+                       VSFrame*                dest)
 {
     // we first copy the frame to td->src and then overwrite the destination
     // with the transformed version
@@ -276,9 +276,9 @@ struct VSTransform vsGetNextTransform(const struct VSTransformData* td, struct V
 
 void vsTransformationsInit(struct VSTransformations* trans)
 {
-    trans->ts = 0;
-    trans->len = 0;
-    trans->current = 0;
+    trans->ts         = 0;
+    trans->len        = 0;
+    trans->current    = 0;
     trans->warned_end = 0;
 }
 
@@ -455,9 +455,9 @@ int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans)
         for (int i = 0; i < trans->len; i++)
         {
             struct VSTransform* ot = ((i - td->conf.smoothing - 1) < 0)
-                               ? &null : &ts2[(i - td->conf.smoothing - 1)];
+                                     ? &null : &ts2[(i - td->conf.smoothing - 1)];
             struct VSTransform* nt = ((i + td->conf.smoothing) >= trans->len)
-                               ? &null : &ts2[(i + td->conf.smoothing)];
+                                     ? &null : &ts2[(i + td->conf.smoothing)];
             s_sum = sub_transforms(&s_sum, ot);
             s_sum = add_transforms(&s_sum, nt);
             
@@ -514,7 +514,8 @@ int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans)
  * Side effects:
  *     td->trans will be modified
  */
-int vsPreprocessTransforms(struct VSTransformData* td, struct VSTransformations* trans)
+int vsPreprocessTransforms(struct VSTransformData*   td,
+                           struct VSTransformations* trans)
 {
     // works inplace on trans
     if (cameraPathOptimization(td, trans) != VS_OK)
@@ -533,16 +534,21 @@ int vsPreprocessTransforms(struct VSTransformData* td, struct VSTransformations*
     
     /* crop at maximal shift */
     if (td->conf.maxShift != -1)
+    {
         for (int i = 0; i < trans->len; i++)
         {
             ts[i].x     = VS_CLAMP(ts[i].x, -td->conf.maxShift, td->conf.maxShift);
             ts[i].y     = VS_CLAMP(ts[i].y, -td->conf.maxShift, td->conf.maxShift);
         }
+    }
+
     if (td->conf.maxAngle != - 1.0)
+    {
         for (int i = 0; i < trans->len; i++)
         {
             ts[i].alpha = VS_CLAMP(ts[i].alpha, -td->conf.maxAngle, td->conf.maxAngle);
         }
+    }
         
     /* Calc optimal zoom (1)
      *  cheap algo is to only consider translations
@@ -634,7 +640,7 @@ int vsPreprocessTransforms(struct VSTransformData* td, struct VSTransformations*
  *     None
  */
 struct VSTransform vsLowPassTransforms(struct VSTransformData* td, struct VSSlidingAvgTrans* mem,
-                                const struct VSTransform* trans)
+                                       const struct VSTransform* trans)
 {
 
     if (!mem->initialized)

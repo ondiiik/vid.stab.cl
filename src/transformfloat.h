@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transformfloat.h
  *
@@ -22,11 +23,14 @@
  *
  *
  */
-#ifndef __TRANSFORMFLOAT_H
-#define __TRANSFORMFLOAT_H
-
 #include "transformtype.h"
 #include <stdint.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #ifdef TESTING
 #define _FLT(n) n ## _float
@@ -79,7 +83,11 @@ void _FLT(interpolateN)(uint8_t* rv, float x, float y,
                         int width, int height,
                         uint8_t N, uint8_t channel, uint8_t def);
 
+
+#ifdef __cplusplus
+}
 #endif
+
 
 /*
  * Local variables:

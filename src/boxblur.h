@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  transformtype.h
  *
@@ -21,10 +22,13 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef __BOXBLUR_H
-#define __BOXBLUR_H
-
 #include "frameinfo.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /** BoxBlurColor     - blur also color channels,
     BoxBlurKeepColor - copy original color channels
@@ -43,4 +47,9 @@ void boxblurPlanar(VSFrame* dest, const VSFrame* src,
                    VSFrame* buffer, const VSFrameInfo* fi,
                    unsigned int size, BoxBlurColorMode colormode);
 
+
+#ifdef __cplusplus
+}
 #endif
+
+

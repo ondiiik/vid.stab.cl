@@ -1,3 +1,4 @@
+#pragma once
 /*
  * vidstabdefines.h
  *
@@ -22,12 +23,14 @@
  *
  *
 */
-
-#ifndef VIDSTABDEFINES_H_
-#define VIDSTABDEFINES_H_
-
 #include <stddef.h>
 #include <stdlib.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #ifdef __GNUC__
 #define likely(x)       __builtin_expect(!!(x), 1)
@@ -94,4 +97,7 @@ extern int VS_OK;
 #define vs_log_msg(tag, format, args...) \
     vs_log(VS_MSG_TYPE, tag, format , ## args)
 
-#endif /* VIDSTABDEFINES_H_ */
+
+#ifdef __cplusplus
+}
+#endif

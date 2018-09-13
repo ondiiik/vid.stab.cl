@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  frameinfo.h
  *
@@ -21,12 +22,15 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef FRAMEINFO_H
-#define FRAMEINFO_H
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <inttypes.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /// pixel formats
 typedef enum {PF_NONE = -1,
@@ -108,7 +112,11 @@ void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi);
 /// frees memory
 void vsFrameFree(VSFrame* frame);
 
-#endif  /* FRAMEINFO_H */
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * Local variables:

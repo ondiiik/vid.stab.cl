@@ -1,3 +1,4 @@
+#pragma once
 /*
  * vsvector.h -- a dynamic array
  * (C) 2011 - Georg Martius
@@ -19,11 +20,14 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef VSVECTOR_H
-#define VSVECTOR_H
-
 #include <stddef.h>
 #include <stdio.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /**
    A vector for arbitrary elements that resizes
@@ -197,7 +201,11 @@ void vs_array_free(VSArray a);
 /** print array to file */
 void vs_array_print(VSArray a, FILE* f);
 
-#endif /* VSVECTOR_H */
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * Local variables:

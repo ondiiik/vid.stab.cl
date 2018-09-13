@@ -1,3 +1,4 @@
+#pragma once
 /*
  *  motiondetect_opt.h
  *
@@ -24,11 +25,13 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
-#ifndef MOTIONDETECT_OPT_H
-#define MOTIONDETECT_OPT_H
-
 #include "motiondetect.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #ifdef USE_SSE2_ASM //enable SSE2 inline asm code
 #define compareSubImg compareSubImg_thr_sse2_asm
@@ -80,7 +83,11 @@ unsigned int compareSubImg_thr_sse2_asm(unsigned char* const I1, unsigned char* 
                                         int d_x, int d_y, unsigned int threshold);
 #endif
 
-#endif  /* MOTIONDETECT_OPT_H */
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /*
  * Local variables:

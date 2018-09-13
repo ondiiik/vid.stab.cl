@@ -32,16 +32,16 @@ include_directories (../src ${TRANSCODE_ROOT}/src ${TRANSCODE_ROOT}/ )
 # Create the stabilize and transform libraries
 add_library (filter_transform SHARED filter_transform.c
   ../src/transformtype.c ../src/libvidstab.c ../src/transform.cpp
-  ../src/transformfixedpoint.c  ../src/vsvector.c ../src/serialize.c ../src/frameinfo.c
+  ../src/transformfixedpoint.c  ../src/vsvector.c ../src/serialize.cpp ../src/frameinfo.c
 	../src/localmotion2transform.c) #  orc/transformorc.c)
 add_library (filter_stabilize SHARED filter_stabilize.c
   ../src/transformtype.c ../src/libvidstab.c ../src/motiondetect.c
 	../src/orc/motiondetectorc.c ../src/motiondetect_opt.c ../src/localmotion2transform.c
-  ../src/boxblur.c ../src/vsvector.c ../src/serialize.c  ../src/frameinfo.c)
+  ../src/boxblur.c ../src/vsvector.c ../src/serialize.cpp  ../src/frameinfo.c)
 add_library (filter_deshake SHARED filter_deshake.c
   ../src/transformtype.c ../src/libvidstab.c ../src/motiondetect.c
   ../src/orc/motiondetectorc.c ../src/boxblur.c ../src/transform.cpp ../src/motiondetect_opt.c
-  ../src/transformfixedpoint.c ../src/vsvector.c ../src/serialize.c ../src/frameinfo.c
+  ../src/transformfixedpoint.c ../src/vsvector.c ../src/serialize.cpp ../src/frameinfo.c
 	../src/localmotion2transform.c)
 
 

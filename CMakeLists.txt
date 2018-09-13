@@ -46,7 +46,7 @@ endif()
 
 set(SOURCES src/frameinfo.c src/transformtype.c src/libvidstab.c
   src/transform.cpp src/transformfixedpoint.c src/motiondetect.c
-  src/motiondetect_opt.c src/serialize.c src/localmotion2transform.c
+  src/motiondetect_opt.c src/serialize.cpp src/localmotion2transform.c
   src/boxblur.c src/vsvector.c src/orc/motiondetectorc.c)
 
 set(HEADERS src/frameinfo.h src/transformtype.h src/libvidstab.h
