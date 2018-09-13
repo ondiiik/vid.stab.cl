@@ -266,13 +266,13 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlms)
  *         number of transforms read
  * Preconditions: f is opened
  */
-int vsReadOldTransforms(const VSTransformData* td, FILE* f, VSTransformations* trans)
+int vsReadOldTransforms(const struct VSTransformData* td, FILE* f, struct VSTransformations* trans)
 {
     char l[1024];
     int s = 0;
     int i = 0;
     int ti; // time (ignored)
-    VSTransform t;
+    struct VSTransform t;
     
     while (fgets(l, sizeof(l), f))
     {
@@ -309,7 +309,7 @@ int vsReadOldTransforms(const VSTransformData* td, FILE* f, VSTransformations* t
                 s *= 2;
             }
             /* vs_log_info(td->modName, "resize: %i\n", s); */
-            trans->ts = vs_realloc(trans->ts, sizeof(VSTransform) * s);
+            trans->ts = vs_realloc(trans->ts, sizeof(struct VSTransform) * s);
             if (!trans->ts)
             {
                 vs_log_error(td->conf.modName, "Cannot allocate memory"

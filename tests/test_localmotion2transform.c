@@ -4,8 +4,8 @@ void test_localmotion2transform(TestData* testdata)
     VSMotionDetect md;
     test_bool(vsMotionDetectInit(&md, &mdconf, &testdata->fi) == VS_OK);
     
-    VSTransformConfig tdconf = vsTransformGetDefaultConfig("test_localmotion2transform-trans");
-    VSTransformData td;
+    struct VSTransformConfig tdconf = vsTransformGetDefaultConfig("test_localmotion2transform-trans");
+    struct VSTransformData td;
     
     test_bool(vsTransformDataInit(&td, &tdconf, &testdata->fi, &testdata->fi) == VS_OK);
     fprintf(stderr, "MotionDetect:\n");
@@ -20,7 +20,7 @@ void test_localmotion2transform(TestData* testdata)
     for (i = 0; i < numruns; i++)
     {
         LocalMotions localmotions;
-        VSTransform t;
+        struct VSTransform t;
         test_bool(vsMotionDetection(&md, &localmotions, &testdata->frames[i]) == VS_OK);
         /* for(k=0; k < vs_vector_size(&localmotions); k++){ */
         /*   localmotion_print(LMGet(&localmotions,k),stderr); */
@@ -30,8 +30,8 @@ void test_localmotion2transform(TestData* testdata)
         vs_vector_del(&localmotions);
         fprintf(stderr, "%i: ", i);
         storeVSTransform(stderr, &t);
-        VSTransform orig = mult_transform_(getTestFrameTransform(i), -1.0);
-        VSTransform diff = sub_transforms(&t, &orig);
+        struct VSTransform orig = mult_transform_(getTestFrameTransform(i), -1.0);
+        struct VSTransform diff = sub_transforms(&t, &orig);
         int tolerance = fabs(diff.x) < 1 && fabs(diff.y) < 1 && fabs(diff.alpha) < 0.001;
         if (!tolerance)
         {

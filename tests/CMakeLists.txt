@@ -14,7 +14,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-add_definitions(-Wall -Wno-pointer-sign -DTESTING -std=gnu99)
+add_definitions(-DTESTING)
 find_package(Orc)
 if(ORC_FOUND)
 add_definitions( -DUSE_ORC ${ORC_DEFINITIONS})
@@ -33,7 +33,7 @@ endif()
 include_directories (../src)
 
 add_executable (tests tests.c testutils.c testframework.c ../src/vsvector.c
-  ../src/transform.c ../src/transformfloat.c ../src/transformfixedpoint.c
+  ../src/transform.cpp ../src/transformfloat.c ../src/transformfixedpoint.c
   ../src/libvidstab.c ../src/transformtype.c ../src/frameinfo.c
   ../src/serialize.c ../src/localmotion2transform.c
   ../src/motiondetect.c ../src/motiondetect_opt.c ../src/orc/motiondetectorc.c ../src/boxblur.c)

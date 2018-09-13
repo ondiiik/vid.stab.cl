@@ -1,5 +1,5 @@
 /*
- *  transform.c
+ *  transform.cpp
  *
  *  Copyright (C) Georg Martius - June 2007 - 2011
  *   georg dot martius at web dot de
@@ -52,9 +52,9 @@ const char* getInterpolationTypeName(VSInterpolType type)
 }
 
 // default initialization: attention the ffmpeg filter cannot call it
-VSTransformConfig vsTransformGetDefaultConfig(const char* modName)
+struct VSTransformConfig vsTransformGetDefaultConfig(const char* modName)
 {
-    VSTransformConfig conf;
+    struct VSTransformConfig conf;
     /* Options */
     conf.maxShift           = -1;
     conf.maxAngle           = -1;
@@ -75,7 +75,7 @@ VSTransformConfig vsTransformGetDefaultConfig(const char* modName)
     return conf;
 }
 
-void vsTransformGetConfig(VSTransformConfig* conf, const VSTransformData* td)
+void vsTransformGetConfig(struct VSTransformConfig* conf, const struct VSTransformData* td)
 {
     if (td && conf)
     {
@@ -83,18 +83,18 @@ void vsTransformGetConfig(VSTransformConfig* conf, const VSTransformData* td)
     }
 }
 
-const VSFrameInfo* vsTransformGetSrcFrameInfo(const VSTransformData* td)
+const VSFrameInfo* vsTransformGetSrcFrameInfo(const struct VSTransformData* td)
 {
     return &td->fiSrc;
 }
 
-const VSFrameInfo* vsTransformGetDestFrameInfo(const VSTransformData* td)
+const VSFrameInfo* vsTransformGetDestFrameInfo(const struct VSTransformData* td)
 {
     return &td->fiDest;
 }
 
 
-int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
+int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConfig* conf,
                         const VSFrameInfo* fi_src, const VSFrameInfo* fi_dest)
 {
     td->conf = *conf;
@@ -158,14 +158,15 @@ int vsTransformDataInit(VSTransformData* td, const VSTransformConfig* conf,
             td->_FLT(interpolate) = &_FLT(interpolateBiCub);
             break;
         default:
-            td->_FLT(interpolate)          = &_FLT(interpolateBiLin);
+            td->_FLT(interpolate) = &_FLT(interpolateBiLin);
     }
     
 #endif
     return VS_OK;
 }
 
-void vsTransformDataCleanup(VSTransformData* td)
+
+void vsTransformDataCleanup(struct VSTransformData* td)
 {
     if (td->srcMalloced && !vsFrameIsNull(&td->src))
     {
@@ -177,7 +178,10 @@ void vsTransformDataCleanup(VSTransformData* td)
     }
 }
 
-int vsTransformPrepare(VSTransformData* td, const VSFrame* src, VSFrame* dest)
+
+int vsTransformPrepare(struct VSTransformData* td,
+                       const VSFrame*   src,
+                       VSFrame*         dest)
 {
     // we first copy the frame to td->src and then overwrite the destination
     // with the transformed version
@@ -223,7 +227,7 @@ int vsTransformPrepare(VSTransformData* td, const VSFrame* src, VSFrame* dest)
     return VS_OK;
 }
 
-int vsDoTransform(VSTransformData* td, VSTransform t)
+int vsDoTransform(struct VSTransformData* td, struct VSTransform t)
 {
     if (td->fiSrc.pFormat < PF_PACKED)
     {
@@ -236,7 +240,7 @@ int vsDoTransform(VSTransformData* td, VSTransform t)
 }
 
 
-int vsTransformFinish(VSTransformData* td)
+int vsTransformFinish(struct VSTransformData* td)
 {
     if (td->conf.crop == VSKeepBorder)
     {
@@ -248,7 +252,7 @@ int vsTransformFinish(VSTransformData* td)
 }
 
 
-VSTransform vsGetNextTransform(const VSTransformData* td, VSTransformations* trans)
+struct VSTransform vsGetNextTransform(const struct VSTransformData* td, struct VSTransformations* trans)
 {
     if (trans->len <= 0 )
     {
@@ -270,7 +274,7 @@ VSTransform vsGetNextTransform(const VSTransformData* td, VSTransformations* tra
     return trans->ts[trans->current - 1];
 }
 
-void vsTransformationsInit(VSTransformations* trans)
+void vsTransformationsInit(struct VSTransformations* trans)
 {
     trans->ts = 0;
     trans->len = 0;
@@ -278,7 +282,7 @@ void vsTransformationsInit(VSTransformations* trans)
     trans->warned_end = 0;
 }
 
-void vsTransformationsCleanup(VSTransformations* trans)
+void vsTransformationsCleanup(struct VSTransformations* trans)
 {
     if (trans->ts)
     {
@@ -292,7 +296,7 @@ void vsTransformationsCleanup(VSTransformations* trans)
  *  This is actually the core algorithm for canceling the jiggle in the
  *  movie. We have different implementations which are patched here.
  */
-int cameraPathOptimization(VSTransformData* td, VSTransformations* trans)
+int cameraPathOptimization(struct VSTransformData* td, struct VSTransformations* trans)
 {
     switch (td->conf.camPathAlgo)
     {
@@ -311,9 +315,9 @@ int cameraPathOptimization(VSTransformData* td, VSTransformations* trans)
  *  This supports slow camera movemen, but in a smooth fasion.
  *  Here we use gaussian filter (gaussian kernel) lowpass filter
  */
-int cameraPathGaussian(VSTransformData* td, VSTransformations* trans)
+int cameraPathGaussian(struct VSTransformData* td, struct VSTransformations* trans)
 {
-    VSTransform* ts = trans->ts;
+    struct VSTransform* ts = trans->ts;
     if (trans->len < 1)
     {
         return VS_ERROR;
@@ -326,7 +330,7 @@ int cameraPathGaussian(VSTransformData* td, VSTransformations* trans)
     /* relative to absolute (integrate transformations) */
     if (td->conf.relative)
     {
-        VSTransform t = ts[0];
+        struct VSTransform t = ts[0];
         for (int i = 1; i < trans->len; i++)
         {
             ts[i] = add_transforms(&ts[i], &t);
@@ -336,8 +340,8 @@ int cameraPathGaussian(VSTransformData* td, VSTransformations* trans)
     
     if (td->conf.smoothing > 0)
     {
-        VSTransform* ts2 = vs_malloc(sizeof(VSTransform) * trans->len);
-        memcpy(ts2, ts, sizeof(VSTransform) * trans->len);
+        VSTransform* ts2 = (VSTransform*)vs_malloc(sizeof(struct VSTransform) * trans->len);
+        memcpy(ts2, ts, sizeof(struct VSTransform) * trans->len);
         int s = td->conf.smoothing * 2 + 1;
         VSArray kernel = vs_array_new(s);
         // initialize gaussian kernel
@@ -353,7 +357,7 @@ int cameraPathGaussian(VSTransformData* td, VSTransformations* trans)
         {
             // make a convolution:
             double weightsum = 0;
-            VSTransform avg = null_transform();
+            struct VSTransform avg = null_transform();
             for (int k = 0; k < s; k++)
             {
                 int idx = i + k - mu;
@@ -404,9 +408,9 @@ int cameraPathGaussian(VSTransformData* td, VSTransformations* trans)
  *  This supports slow camera movement (low frequency), but in a smooth fasion.
  *  Here a simple average based filter
  */
-int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
+int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans)
 {
-    VSTransform* ts = trans->ts;
+    struct VSTransform* ts = trans->ts;
     
     if (trans->len < 1)
     {
@@ -419,8 +423,8 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
     if (td->conf.smoothing > 0)
     {
         /* smoothing */
-        VSTransform* ts2 = vs_malloc(sizeof(VSTransform) * trans->len);
-        memcpy(ts2, ts, sizeof(VSTransform) * trans->len);
+        VSTransform* ts2 = (VSTransform*)vs_malloc(sizeof(struct VSTransform) * trans->len);
+        memcpy(ts2, ts, sizeof(struct VSTransform) * trans->len);
         
         /*  we will do a sliding average with minimal update
          *   \hat x_{n/2} = x_1+x_2 + .. + x_n
@@ -428,20 +432,20 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
          *   avg = \hat x / n
          */
         int s = td->conf.smoothing * 2 + 1;
-        VSTransform null = null_transform();
+        struct VSTransform null = null_transform();
         /* avg is the average over [-smoothing, smoothing] transforms
            around the current point */
-        VSTransform avg;
+        struct VSTransform avg;
         /* avg2 is a sliding average over the filtered signal! (only to past)
          *  with smoothing * 2 horizon to kill offsets */
-        VSTransform avg2 = null_transform();
+        struct VSTransform avg2 = null_transform();
         double tau = 1.0 / (2 * s);
         /* initialise sliding sum with hypothetic sum centered around
          * -1st element. We have two choices:
          * a) assume the camera is not moving at the beginning
          * b) assume that the camera moves and we use the first transforms
          */
-        VSTransform s_sum = null;
+        struct VSTransform s_sum = null;
         for (int i = 0; i < td->conf.smoothing; i++)
         {
             s_sum = add_transforms(&s_sum, i < trans->len ? &ts2[i] : &null);
@@ -450,12 +454,12 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
         
         for (int i = 0; i < trans->len; i++)
         {
-            VSTransform* old = ((i - td->conf.smoothing - 1) < 0)
+            struct VSTransform* ot = ((i - td->conf.smoothing - 1) < 0)
                                ? &null : &ts2[(i - td->conf.smoothing - 1)];
-            VSTransform* new = ((i + td->conf.smoothing) >= trans->len)
+            struct VSTransform* nt = ((i + td->conf.smoothing) >= trans->len)
                                ? &null : &ts2[(i + td->conf.smoothing)];
-            s_sum = sub_transforms(&s_sum, old);
-            s_sum = add_transforms(&s_sum, new);
+            s_sum = sub_transforms(&s_sum, ot);
+            s_sum = add_transforms(&s_sum, nt);
             
             avg = mult_transform(&s_sum, 1.0 / s);
             
@@ -485,7 +489,7 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
     /* relative to absolute */
     if (td->conf.relative)
     {
-        VSTransform t = ts[0];
+        struct VSTransform t = ts[0];
         for (int i = 1; i < trans->len; i++)
         {
             ts[i] = add_transforms(&ts[i], &t);
@@ -510,14 +514,14 @@ int cameraPathAvg(VSTransformData* td, VSTransformations* trans)
  * Side effects:
  *     td->trans will be modified
  */
-int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
+int vsPreprocessTransforms(struct VSTransformData* td, struct VSTransformations* trans)
 {
     // works inplace on trans
     if (cameraPathOptimization(td, trans) != VS_OK)
     {
         return VS_ERROR;
     }
-    VSTransform* ts = trans->ts;
+    struct VSTransform* ts = trans->ts;
     /*  invert? */
     if (td->conf.invert)
     {
@@ -546,7 +550,7 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
      */
     if (td->conf.optZoom == 1 && trans->len > 1)
     {
-        VSTransform min_t, max_t;
+        struct VSTransform min_t, max_t;
         cleanmaxmin_xy_transform(ts, trans->len, 1, &min_t, &max_t);  // 99% of all transformations
         // the zoom value only for x
         double zx = 2 * VS_MAX(max_t.x, fabs(min_t.x)) / td->fiSrc.width;
@@ -629,8 +633,8 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans)
  * Preconditions:
  *     None
  */
-VSTransform vsLowPassTransforms(VSTransformData* td, VSSlidingAvgTrans* mem,
-                                const VSTransform* trans)
+struct VSTransform vsLowPassTransforms(struct VSTransformData* td, struct VSSlidingAvgTrans* mem,
+                                const struct VSTransform* trans)
 {
 
     if (!mem->initialized)
@@ -660,7 +664,7 @@ VSTransform vsLowPassTransforms(VSTransformData* td, VSSlidingAvgTrans* mem,
         /* lowpass filter:
          * meaning high frequency must be transformed away
          */
-        VSTransform newtrans = sub_transforms(trans, &mem->avg);
+        struct VSTransform newtrans = sub_transforms(trans, &mem->avg);
         
         /* relative to absolute */
         if (td->conf.relative)

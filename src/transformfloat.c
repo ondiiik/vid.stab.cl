@@ -209,7 +209,7 @@ void _FLT(interpolateN)(uint8_t* rv, float x, float y,
  /// TODO Add zoom!
  /// Add bytes per pixel usage
  */
-int _FLT(transformPacked)(VSTransformData* td, VSTransform t)
+int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t)
 {
     int x = 0, y = 0, z = 0;
     uint8_t* D_1, *D_2;
@@ -297,7 +297,7 @@ int _FLT(transformPacked)(VSTransformData* td, VSTransform t)
  * Preconditions:
  *  The frame must be in Planar format
  */
-int _FLT(transformPlanar)(VSTransformData* td, VSTransform t)
+int _FLT(transformPlanar)(struct VSTransformData* td, struct VSTransform t)
 {
     int x = 0, y = 0;
     uint8_t* dat_1, *dat_2;

@@ -246,7 +246,7 @@ int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame* frame)
         else
         {
             // calc transformation and perform another scan with small fields
-            VSTransform t = vsSimpleMotionsToTransform(md->fi, md->conf.modName, &motionscoarse);
+            struct VSTransform t = vsSimpleMotionsToTransform(md->fi, md->conf.modName, &motionscoarse);
             md->fieldsfine.offset    = t;
             md->fieldsfine.useOffset = 1;
             LocalMotions motions2;
@@ -1039,18 +1039,18 @@ void drawLine(unsigned char* I, int width, int height, int bytesPerPixel,
 }
 
 
-// void addTrans(VSMotionDetect* md, VSTransform sl) {
+// void addTrans(VSMotionDetect* md, struct VSTransform sl) {
 //   if (!md->transs) {
 //     md->transs = vs_list_new(0);
 //   }
 //   vs_list_append_dup(md->transs, &sl, sizeof(sl));
 // }
 
-// VSTransform getLastVSTransform(VSMotionDetect* md){
+// struct VSTransform getLastVSTransform(VSMotionDetect* md){
 //   if (!md->transs || !md->transs->head) {
 //     return null_transform();
 //   }
-//   return *((VSTransform*)md->transs->tail);
+//   return *((struct VSTransform*)md->transs->tail);
 // }
 
 

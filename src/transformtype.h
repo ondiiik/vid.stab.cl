@@ -31,7 +31,7 @@
    zoom is a percentage to zoom in and
    extra is for additional information like scene cut (unused)
  */
-typedef struct _transform
+struct VSTransform
 {
     double x;
     double y;
@@ -41,7 +41,7 @@ typedef struct _transform
     double rshutter;
     int extra;    /* -1: ignore transform (only internal use);
                      0 for normal trans; 1 for inter scene cut (unused) */
-} VSTransform;
+};
 
 /** stores x y and size of a measurement field */
 typedef struct _field

@@ -35,15 +35,15 @@ void test_transform_implementation(const TestData* testdata)
     vsFrameAllocate(&dest, &fi);
     VSFrame cfinal;
     vsFrameAllocate(&cfinal, &fi);
-    VSTransformData td;
-    VSTransformConfig conf = vsTransformGetDefaultConfig("test_transform_implementation");
+    struct VSTransformData td;
+    struct VSTransformConfig conf = vsTransformGetDefaultConfig("test_transform_implementation");
     
     fprintf(stderr, "--- Validate Interpolations ----\n");
     
     int it;
     int i;
     int sum;
-    VSTransform t;
+    struct VSTransform t;
     t.x = 10;
     t.alpha = 2 * M_PI / (180.0);
     
@@ -89,7 +89,7 @@ void test_transform_performance(const TestData* testdata)
 {
 
 
-    VSTransformConfig conf = vsTransformGetDefaultConfig("test_transform_performance");
+    struct VSTransformConfig conf = vsTransformGetDefaultConfig("test_transform_performance");
     fprintf(stderr, "--- Performance of Transforms ----\n");
     VSFrame dest;
     VSFrame cfinal;
@@ -101,7 +101,7 @@ void test_transform_performance(const TestData* testdata)
     numruns = 5;
     for (it = VS_Zero; it <= VS_BiCubic; it++)
     {
-        VSTransformData td;
+        struct VSTransformData td;
         int i;
         //// Float implementation
         conf.interpolType = it;
@@ -111,7 +111,7 @@ void test_transform_performance(const TestData* testdata)
         start = timeOfDayinMS();
         for (i = 0; i < numruns; i++)
         {
-            VSTransform t = null_transform();
+            struct VSTransform t = null_transform();
             t.x = i * 10 + 10;
             t.alpha = (i + 1) * 2 * M_PI / (180.0);
             t.zoom = 0;
@@ -137,7 +137,7 @@ void test_transform_performance(const TestData* testdata)
         start = timeOfDayinMS();
         for (i = 0; i < numruns; i++)
         {
-            VSTransform t = null_transform();
+            struct VSTransform t = null_transform();
             t.x = i * 10 + 10;
             t.alpha = (i + 1) * 2 * M_PI / (180.0);
             t.zoom = 0;

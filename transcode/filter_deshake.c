@@ -61,8 +61,8 @@ This is a single pass verion of stabilize and transform plugin"
 typedef struct _deshake_data
 {
     VSMotionDetect md;
-    VSTransformData td;
-    VSSlidingAvgTrans avg;
+    struct VSTransformData td;
+    struct VSSlidingAvgTrans avg;
     
     double sharpen;     // amount of sharpening
     vob_t* vob;  // pointer to information structure
@@ -185,7 +185,7 @@ static int deshake_configure(TCModuleInstance* self,
     sizeof(char) * 2 * sd->vob->im_v_height * 2;     */
     
     VSMotionDetect* md = &(sd->md);
-    VSTransformData* td = &(sd->td);
+    struct VSTransformData* td = &(sd->td);
     
     // init VSMotionDetect part
     VSFrameInfo fi;
@@ -193,7 +193,7 @@ static int deshake_configure(TCModuleInstance* self,
                     transcode2ourPF(sd->vob->im_v_codec));
                     
     VSMotionDetectConfig  mdconf = vsMotionDetectGetDefaultConfig(MOD_NAME);
-    VSTransformConfig tdconf     = vsTransformGetDefaultConfig(MOD_NAME);
+    struct VSTransformConfig tdconf     = vsTransformGetDefaultConfig(MOD_NAME);
     tdconf.verbose = verbose;
     
     sd->result = tc_malloc(TC_BUF_LINE);
@@ -254,7 +254,7 @@ static int deshake_configure(TCModuleInstance* self,
     
     if (vsTransformDataInit(td, &tdconf, &fi, &fi_dest) != VS_OK)
     {
-        tc_log_error(MOD_NAME, "initialization of VSTransformData failed");
+        tc_log_error(MOD_NAME, "initialization of struct VSTransformData failed");
         return TC_ERROR;
     }
     vsTransformGetConfig(&tdconf, td);
@@ -311,9 +311,9 @@ static int deshake_filter_video(TCModuleInstance* self,
     
     sd = self->userdata;
     VSMotionDetect* md = &(sd->md);
-    VSTransformData* td = &(sd->td);
+    struct VSTransformData* td = &(sd->td);
     LocalMotions localmotions;
-    VSTransform motion;
+    struct VSTransform motion;
     VSFrame vsFrame;
     vsFrameFillFromBuffer(&vsFrame, frame->video_buf, &md->fi);
     
@@ -333,7 +333,7 @@ static int deshake_filter_video(TCModuleInstance* self,
     
     vsTransformPrepare(td, &vsFrame, &vsFrame);
     
-    VSTransform t = vsLowPassTransforms(td, &sd->avg, &motion);
+    struct VSTransform t = vsLowPassTransforms(td, &sd->avg, &motion);
     /* tc_log_info(MOD_NAME, "Trans: det: %f %f %f \n\t\t act: %f %f %f %f", */
     /*             motion.x, motion.y, motion.alpha, */
     /*             t.x, t.y, t.alpha, t.zoom); */
@@ -398,7 +398,7 @@ static int deshake_inspect(TCModuleInstance* self,
     
     VSMotionDetectConfig mdconf;
     vsMotionDetectGetConfig(&mdconf, &(sd->md));
-    VSTransformConfig tdconf;
+    struct VSTransformConfig tdconf;
     vsTransformGetConfig(&tdconf, &sd->td);
     if (optstr_lookup(param, "help"))
     {

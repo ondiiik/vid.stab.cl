@@ -50,16 +50,48 @@ given in an input file (e.g. translation, rotate) see also filter stabilize"
 
 typedef struct
 {
-    VSTransformData td;
+    struct VSTransformData td;
     vob_t* vob;          // pointer to information structure
     
-    VSTransformations trans; // transformations
+    struct VSTransformations trans; // transformations
     
     
     double sharpen;     // amount of sharpening
     char input[TC_BUF_LINE];
     char conf_str[TC_BUF_MIN];
 } FilterData;
+
+
+static const char vs_transform_help[] = ""
+                                        "Overview\n"
+                                        "    Reads a file with transform information for each frame\n"
+                                        "     and applies them. See also filter stabilize.\n"
+                                        "Options\n"
+                                        "    'input'     path to the file used to read the transforms\n"
+                                        "                (def: inputfile.trf)\n"
+                                        "    'smoothing' number of frames*2 + 1 used for lowpass filtering \n"
+                                        "                used for stabilizing (def: 10)\n"
+                                        "    'maxshift'  maximal number of pixels to translate image\n"
+                                        "                (def: -1 no limit)\n"
+                                        "    'maxangle'  maximal angle in rad to rotate image (def: -1 no limit)\n"
+                                        "    'crop'      0: keep border (def), 1: black background\n"
+                                        "    'invert'    1: invert transforms(def: 0)\n"
+                                        "    'relative'  consider transforms as 0: absolute, 1: relative (def)\n"
+                                        "    'zoom'      percentage to zoom >0: zoom in, <0 zoom out (def: 0)\n"
+                                        "    'optzoom'   0: nothing, 1: determine optimal static zoom (def)\n"
+                                        "                i.e. no (or only little) border should be visible.\n"
+                                        "                2: determine optimal adaptive zoom\n"
+                                        "                Note that the value given at 'zoom' is added to the \n"
+                                        "                here calculated one\n"
+                                        "    'zoomspeed' for adaptive zoom: zoom per frame in percent \n"
+                                        "    'interpol'  type of interpolation: 0: no interpolation, \n"
+                                        "                1: linear (horizontal), 2: bi-linear (def), \n"
+                                        "                3: bi-cubic\n"
+                                        "    'sharpen'   amount of sharpening: 0: no sharpening (def: 0.8)\n"
+                                        "                uses filter unsharp with 5x5 matrix\n"
+                                        "    'tripod'    virtual tripod mode (=relative=0:smoothing=0)\n"
+                                        "    'help'      print this help message\n";
+
 
 /**
  * transform_init:  Initialize this instance of the module.  See
@@ -102,7 +134,7 @@ static int transform_configure(TCModuleInstance* self,
     TC_MODULE_SELF_CHECK(self, "configure");
     
     fd = self->userdata;
-    VSTransformData* td = &(fd->td);
+    struct VSTransformData* td = &(fd->td);
     
     fd->vob = vob;
     if (!fd->vob)
@@ -119,7 +151,7 @@ static int transform_configure(TCModuleInstance* self,
     vsFrameInfoInit(&fi_dest, fd->vob->ex_v_width, fd->vob->ex_v_height,
                     transcode2ourPF(fd->vob->im_v_codec));
                     
-    VSTransformConfig conf = vsTransformGetDefaultConfig(MOD_NAME);
+    struct VSTransformConfig conf = vsTransformGetDefaultConfig(MOD_NAME);
     conf.verbose = verbose;
     fd->sharpen  = 0.8;
     
@@ -171,7 +203,7 @@ static int transform_configure(TCModuleInstance* self,
     
     if (vsTransformDataInit(td, &conf, &fi_src, &fi_dest) != VS_OK)
     {
-        tc_log_error(MOD_NAME, "initialization of VSTransformData failed");
+        tc_log_error(MOD_NAME, "initialization of struct VSTransformData failed");
         return TC_ERROR;
     }
     vsTransformGetConfig(&conf, td);
@@ -270,7 +302,7 @@ static int transform_filter_video(TCModuleInstance* self,
     
     vsTransformPrepare(&fd->td, &vsFrame,  &vsFrame);
     
-    VSTransform t = vsGetNextTransform(&fd->td, &fd->trans);
+    struct VSTransform t = vsGetNextTransform(&fd->td, &fd->trans);
     
     vsDoTransform(&fd->td, t);
     
@@ -335,7 +367,7 @@ static int transform_inspect(TCModuleInstance* self,
     {
         *value = vs_transform_help;
     }
-    VSTransformConfig conf;
+    struct VSTransformConfig conf;
     vsTransformGetConfig(&conf, &fd->td);
     CHECKPARAM("maxshift", "maxshift=%d",  conf.maxShift);
     CHECKPARAM("maxangle", "maxangle=%f",  conf.maxAngle);

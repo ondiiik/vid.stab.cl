@@ -8,6 +8,6 @@ workspace vidstab {
 	project transform {
 		ipath "../../../transcode"
 		ipath "../../../transcode/src"
-		file filter_transform.c transformtype.c transform.c libdeshake.c dslist.c
+		file filter_transform.c transformtype.c transform.cpp libdeshake.c dslist.c
 	}
 }

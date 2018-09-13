@@ -30,17 +30,17 @@
 typedef int32_t fp8;
 typedef int32_t fp16; // also ncot definition of interpolFun in transform.h
 
-struct _VSTransformData;
+struct VSTransformData;
 
 /// does the actual transformation in Packed space
-int transformPacked(struct _VSTransformData* td, VSTransform t);
+int transformPacked(struct VSTransformData* td, struct VSTransform t);
 
 /// does the actual transformation in Planar space
-int transformPlanar(struct _VSTransformData* td, VSTransform t);
+int transformPlanar(struct VSTransformData* td, struct VSTransform t);
 
 // testing
 /// does the actual transformation in Planar space
-int transformPlanar_orc(struct _VSTransformData* td, VSTransform t);
+int transformPlanar_orc(struct VSTransformData* td, struct VSTransform t);
 
 
 /* forward deklarations, please see .c file for documentation*/

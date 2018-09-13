@@ -33,9 +33,9 @@
 
 /** converts for each frame the localmotions into a transform
  */
-int vsLocalmotions2Transforms(VSTransformData* td,
+int vsLocalmotions2Transforms(struct VSTransformData* td,
                               const VSManyLocalMotions* motions,
-                              VSTransformations* trans );
+                              struct VSTransformations* trans );
 
 /** calculates rotation angle for the given transform and
  * field with respect to the given center-point
@@ -51,7 +51,7 @@ double vsCalcAngle(const LocalMotion* lm, int center_x, int center_y);
     calculate rotation angle as cleaned mean of all angles
     compensate for possibly off-center rotation
 */
-VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modname,
+struct VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modname,
                                        const LocalMotions* motions);
 
 
@@ -60,7 +60,7 @@ VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modname,
     Outliers are removed by repeated gaussianizing error distribution.
     (File for exporting transforms)
 */
-VSTransform vsMotionsToTransform(VSTransformData* td,
+struct VSTransform vsMotionsToTransform(struct VSTransformData* td,
                                  const LocalMotions* motions,
                                  FILE* f);
 

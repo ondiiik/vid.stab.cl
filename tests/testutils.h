@@ -11,7 +11,7 @@ typedef struct _test_data
 } TestData;
 
 
-VSTransform getTestFrameTransform(int i);
+struct VSTransform getTestFrameTransform(int i);
 
 void fillArrayWithNoise(unsigned char* buffer, int length, float corr);
 

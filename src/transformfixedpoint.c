@@ -281,7 +281,7 @@ inline void interpolateN(uint8_t* rv, fp16 x, fp16 y,
  * Preconditions:
  *  The frame must be in Packed format
  */
-int transformPacked(VSTransformData* td, VSTransform t)
+int transformPacked(struct VSTransformData* td, struct VSTransform t)
 {
     int x = 0, y = 0, k = 0;
     uint8_t* D_1, *D_2;
@@ -344,7 +344,7 @@ int transformPacked(VSTransformData* td, VSTransform t)
  *  for angle and zoom we use val<<16
  *
  */
-int transformPlanar(VSTransformData* td, VSTransform t)
+int transformPlanar(struct VSTransformData* td, struct VSTransform t)
 {
     int32_t x = 0, y = 0;
     uint8_t* dat_1, *dat_2;
@@ -433,7 +433,7 @@ int transformPlanar(VSTransformData* td, VSTransform t)
 /*  *  for angle and zoom we use val<<16 */
 /*  * */
 /*  *\/ */
-/* int transformPlanar_orc(VSTransformData* td, VSTransform t) */
+/* int transformPlanar_orc(struct VSTransformData* td, struct VSTransform t) */
 /* { */
 /*     int32_t x = 0, y = 0; */
 /*     uint8_t *Y_1, *Y_2, *Cb_1, *Cb_2, *Cr_1, *Cr_2; */

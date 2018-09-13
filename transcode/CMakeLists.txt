@@ -11,7 +11,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-add_definitions(-Wall -Wno-pointer-sign -DTRANSCODE -std=gnu99)
+add_definitions(-DTRANSCODE)
 # I tried it with 0.4.14
 #  0.4.10 did not work (not all opcode implemented)
 # find_package(Orc)  // it actually not used by any active code
@@ -31,7 +31,7 @@ include_directories (../src ${TRANSCODE_ROOT}/src ${TRANSCODE_ROOT}/ )
 
 # Create the stabilize and transform libraries
 add_library (filter_transform SHARED filter_transform.c
-  ../src/transformtype.c ../src/libvidstab.c ../src/transform.c
+  ../src/transformtype.c ../src/libvidstab.c ../src/transform.cpp
   ../src/transformfixedpoint.c  ../src/vsvector.c ../src/serialize.c ../src/frameinfo.c
 	../src/localmotion2transform.c) #  orc/transformorc.c)
 add_library (filter_stabilize SHARED filter_stabilize.c
@@ -40,7 +40,7 @@ add_library (filter_stabilize SHARED filter_stabilize.c
   ../src/boxblur.c ../src/vsvector.c ../src/serialize.c  ../src/frameinfo.c)
 add_library (filter_deshake SHARED filter_deshake.c
   ../src/transformtype.c ../src/libvidstab.c ../src/motiondetect.c
-  ../src/orc/motiondetectorc.c ../src/boxblur.c ../src/transform.c ../src/motiondetect_opt.c
+  ../src/orc/motiondetectorc.c ../src/boxblur.c ../src/transform.cpp ../src/motiondetect_opt.c
   ../src/transformfixedpoint.c ../src/vsvector.c ../src/serialize.c ../src/frameinfo.c
 	../src/localmotion2transform.c)
 

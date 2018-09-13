@@ -33,10 +33,10 @@
  */
 
 /* create an initialized transform*/
-VSTransform new_transform(double x, double y, double alpha,
+struct VSTransform new_transform(double x, double y, double alpha,
                           double zoom, double barrel, double rshutter, int extra)
 {
-    VSTransform t;
+    struct VSTransform t;
     t.x        = x;
     t.y        = y;
     t.alpha    = alpha;
@@ -48,15 +48,15 @@ VSTransform new_transform(double x, double y, double alpha,
 }
 
 /* create a zero initialized transform*/
-VSTransform null_transform(void)
+struct VSTransform null_transform(void)
 {
     return new_transform(0, 0, 0, 0, 0, 0, 0);
 }
 
 /* adds two transforms */
-VSTransform add_transforms(const VSTransform* t1, const VSTransform* t2)
+struct VSTransform add_transforms(const struct VSTransform* t1, const struct VSTransform* t2)
 {
-    VSTransform t;
+    struct VSTransform t;
     t.x        = t1->x + t2->x;
     t.y        = t1->y + t2->y;
     t.alpha    = t1->alpha + t2->alpha;
@@ -68,15 +68,15 @@ VSTransform add_transforms(const VSTransform* t1, const VSTransform* t2)
 }
 
 /* like add_transform but with non-pointer signature */
-VSTransform add_transforms_(const VSTransform t1, const VSTransform t2)
+struct VSTransform add_transforms_(const struct VSTransform t1, const struct VSTransform t2)
 {
     return add_transforms(&t1, &t2);
 }
 
 /* subtracts two transforms */
-VSTransform sub_transforms(const VSTransform* t1, const VSTransform* t2)
+struct VSTransform sub_transforms(const struct VSTransform* t1, const struct VSTransform* t2)
 {
-    VSTransform t;
+    struct VSTransform t;
     t.x        = t1->x - t2->x;
     t.y        = t1->y - t2->y;
     t.alpha    = t1->alpha - t2->alpha;
@@ -88,9 +88,9 @@ VSTransform sub_transforms(const VSTransform* t1, const VSTransform* t2)
 }
 
 /* multiplies a transforms with a scalar */
-VSTransform mult_transform(const VSTransform* t1, double f)
+struct VSTransform mult_transform(const struct VSTransform* t1, double f)
 {
-    VSTransform t;
+    struct VSTransform t;
     t.x        = t1->x        * f;
     t.y        = t1->y        * f;
     t.alpha    = t1->alpha    * f;
@@ -102,18 +102,18 @@ VSTransform mult_transform(const VSTransform* t1, double f)
 }
 
 /* like mult_transform but with non-pointer signature */
-VSTransform mult_transform_(const VSTransform t1, double f)
+struct VSTransform mult_transform_(const struct VSTransform t1, double f)
 {
     return mult_transform(&t1, f);
 }
 
-void storeVSTransform(FILE* f, const VSTransform* t)
+void storeVSTransform(FILE* f, const struct VSTransform* t)
 {
     fprintf(f, "Trans %lf %lf %lf %lf %i\n", t->x, t->y, t->alpha, t->zoom, t->extra);
 }
 
 
-PreparedTransform prepare_transform(const VSTransform* t, const VSFrameInfo* fi)
+PreparedTransform prepare_transform(const struct VSTransform* t, const VSFrameInfo* fi)
 {
     PreparedTransform pt;
     pt.t = t;
@@ -160,22 +160,22 @@ Vec field_to_vec(Field f)
 /* compares a transform with respect to x (for sort function) */
 int cmp_trans_x(const void* t1, const void* t2)
 {
-    double a = ((VSTransform*)t1)->x;
-    double b = ((VSTransform*)t2)->x;
+    double a = ((struct VSTransform*)t1)->x;
+    double b = ((struct VSTransform*)t2)->x;
     return a < b ? -1 : ( a > b ? 1 : 0 );
 }
 
 /* compares a transform with respect to y (for sort function) */
 int cmp_trans_y(const void* t1, const void* t2)
 {
-    double a = ((VSTransform*)t1)->y;
-    double b = ((VSTransform*)t2)->y;
+    double a = ((struct VSTransform*)t1)->y;
+    double b = ((struct VSTransform*)t2)->y;
     return a < b ? -1 : ( a > b ? 1 : 0 );
 }
 
 /* static int cmp_trans_alpha(const void *t1, const void* t2){ */
-/*   double a = ((VSTransform*)t1)->alpha; */
-/*   double b = ((VSTransform*)t2)->alpha; */
+/*   double a = ((struct VSTransform*)t1)->alpha; */
+/*   double b = ((struct VSTransform*)t2)->alpha; */
 /*   return a < b ? -1 : ( a > b ? 1 : 0 ); */
 /* } */
 
@@ -211,15 +211,15 @@ int cmp_int(const void* t1, const void* t2)
  * Side effects:
  *     None
  */
-VSTransform median_xy_transform(const VSTransform* transforms, int len)
+struct VSTransform median_xy_transform(const struct VSTransform* transforms, int len)
 {
-    VSTransform* ts = vs_malloc(sizeof(VSTransform) * len);
-    VSTransform t   = null_transform();
-    memcpy(ts, transforms, sizeof(VSTransform)*len );
+    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
+    struct VSTransform t   = null_transform();
+    memcpy(ts, transforms, sizeof(struct VSTransform)*len );
     int half = len / 2;
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_x);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
     t.x = len % 2 == 0 ? ts[half].x : (ts[half].x + ts[half + 1].x) / 2;
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_y);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_y);
     t.y = len % 2 == 0 ? ts[half].y : (ts[half].y + ts[half + 1].y) / 2;
     vs_free(ts);
     return t;
@@ -241,18 +241,18 @@ VSTransform median_xy_transform(const VSTransform* transforms, int len)
  * Side effects:
  *     None
  */
-VSTransform cleanmean_xy_transform(const VSTransform* transforms, int len)
+struct VSTransform cleanmean_xy_transform(const struct VSTransform* transforms, int len)
 {
-    VSTransform* ts = vs_malloc(sizeof(VSTransform) * len);
-    VSTransform t = null_transform();
+    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
+    struct VSTransform t = null_transform();
     int i, cut = len / 5;
-    memcpy(ts, transforms, sizeof(VSTransform) * len);
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_x);
+    memcpy(ts, transforms, sizeof(struct VSTransform) * len);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
     for (i = cut; i < len - cut; i++)  // all but cutted
     {
         t.x += ts[i].x;
     }
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_y);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_y);
     for (i = cut; i < len - cut; i++)  // all but cutted
     {
         t.y += ts[i].y;
@@ -280,17 +280,17 @@ VSTransform cleanmean_xy_transform(const VSTransform* transforms, int len)
  * Side effects:
  *     only on min and max
  */
-void cleanmaxmin_xy_transform(const VSTransform* transforms, int len,
+void cleanmaxmin_xy_transform(const struct VSTransform* transforms, int len,
                               int percentil,
-                              VSTransform* min, VSTransform* max)
+                              struct VSTransform* min, struct VSTransform* max)
 {
-    VSTransform* ts = vs_malloc(sizeof(VSTransform) * len);
+    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
     int cut = len * percentil / 100;
-    memcpy(ts, transforms, sizeof(VSTransform) * len);
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_x);
+    memcpy(ts, transforms, sizeof(struct VSTransform) * len);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
     min->x = ts[cut].x;
     max->x = ts[len - cut - 1].x;
-    qsort(ts, len, sizeof(VSTransform), cmp_trans_y);
+    qsort(ts, len, sizeof(struct VSTransform), cmp_trans_y);
     min->y = ts[cut].y;
     max->y = ts[len - cut - 1].y;
     vs_free(ts);
@@ -298,7 +298,7 @@ void cleanmaxmin_xy_transform(const VSTransform* transforms, int len,
 
 /* calculates the required zoom value to have no borders visible
  */
-double transform_get_required_zoom(const VSTransform* transform, int width, int height)
+double transform_get_required_zoom(const struct VSTransform* transform, int width, int height)
 {
     return 100.0 * (2.0 * VS_MAX(fabs(transform->x) / width, fabs(transform->y) / height) // translation part
                     + fabs(sin(transform->alpha)));          // rotation part

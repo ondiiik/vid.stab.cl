@@ -34,12 +34,12 @@
 #define _FLT(n) n
 #endif
 
-struct _VSTransformData;
+struct VSTransformData;
 
 /// does the actual transformation in Packed space
-int _FLT(transformPacked)(struct _VSTransformData* td, VSTransform t);
+int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t);
 /// does the actual transformation in Planar space
-int _FLT(transformPlanar)(struct _VSTransformData* td, VSTransform t);
+int _FLT(transformPlanar)(struct VSTransformData* td, struct VSTransform t);
 
 /**
  * interpolate: general interpolation function pointer for one channel image data

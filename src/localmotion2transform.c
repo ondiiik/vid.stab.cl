@@ -34,13 +34,13 @@
 /*   return t.tv_sec*1000 + t.tv_usec/1000; */
 /* } */
 
-int vsLocalmotions2Transforms(VSTransformData* td,
+int vsLocalmotions2Transforms(struct VSTransformData* td,
                               const VSManyLocalMotions* motions,
-                              VSTransformations* trans )
+                              struct VSTransformations* trans )
 {
     int len = vs_vector_size(motions);
     assert(trans->len == 0 && trans->ts == 0);
-    trans->ts = vs_malloc(sizeof(VSTransform) * len );
+    trans->ts = vs_malloc(sizeof(struct VSTransform) * len );
     /* long start= timeOfDayinMS(); */
     FILE* f = 0;
     if (td->conf.storeTransforms)
@@ -74,7 +74,7 @@ int vsLocalmotions2Transforms(VSTransformData* td,
     return VS_OK;
 }
 
-VSArray vsTransformToArray(const VSTransform* t)
+VSArray vsTransformToArray(const struct VSTransform* t)
 {
     VSArray a = vs_array_new(4);
     a.dat[0] = t->x;
@@ -84,14 +84,14 @@ VSArray vsTransformToArray(const VSTransform* t)
     return a;
 }
 
-VSTransform vsArrayToTransform(VSArray a)
+struct VSTransform vsArrayToTransform(VSArray a)
 {
     return new_transform(a.dat[0], a.dat[1], a.dat[2], a.dat[3], 0, 0, 0);
 }
 
 struct VSGradientDat
 {
-    VSTransformData* td;
+    struct VSTransformData* td;
     const LocalMotions* motions;
     VSArray missmatches; // if negative then local motion is ignored
 };
@@ -101,7 +101,7 @@ double calcTransformQuality(VSArray params, void* dat)
     struct VSGradientDat* gd = (struct VSGradientDat*) dat;
     const LocalMotions* motions = gd->motions;
     int num_motions = vs_vector_size(motions);
-    VSTransform t = vsArrayToTransform(params);
+    struct VSTransform t = vsArrayToTransform(params);
     double error = 0;
     
     PreparedTransform pt = prepare_transform(&t, &gd->td->fiSrc);
@@ -137,12 +137,12 @@ double intMean(const int* ds, int len)
 }
 
 // only calcates means transform to initialise gradient descent
-VSTransform meanMotions(VSTransformData* td, const LocalMotions* motions)
+struct VSTransform meanMotions(struct VSTransformData* td, const LocalMotions* motions)
 {
     int len = vs_vector_size(motions);
     int* xs = localmotions_getx(motions);
     int* ys = localmotions_gety(motions);
-    VSTransform t = null_transform();
+    struct VSTransform t = null_transform();
     if (motions == 0 || len == 0)
     {
         t.extra = 1; // prob. blank frame or too low contrast, ignore later
@@ -181,11 +181,11 @@ int disableFields(VSArray mask, VSArray missqualities, double stddevs)
     return cnt;
 }
 
-VSTransform vsMotionsToTransform(VSTransformData* td,
+struct VSTransform vsMotionsToTransform(struct VSTransformData* td,
                                  const LocalMotions* motions,
                                  FILE* f)
 {
-    VSTransform t = meanMotions(td, motions);
+    struct VSTransform t = meanMotions(td, motions);
     if (motions == 0 || vs_vector_size(motions) == 0)
     {
         if (f)
@@ -329,12 +329,12 @@ double vsCalcAngle(const LocalMotion* lm, int center_x, int center_y)
 }
 
 
-VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modName,
+struct VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modName,
                                        const LocalMotions* motions)
 {
     int center_x = 0;
     int center_y = 0;
-    VSTransform t = null_transform();
+    struct VSTransform t = null_transform();
     if (motions == 0)
     {
         return t;

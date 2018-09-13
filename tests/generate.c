@@ -25,16 +25,16 @@ void generateFrames(TestData* testdata, int num)
                        
     }
     
-    VSTransformConfig conf = vsTransformGetDefaultConfig("test_generate");
+    struct VSTransformConfig conf = vsTransformGetDefaultConfig("test_generate");
     conf.interpolType = VS_Zero;
-    VSTransformData td;
+    struct VSTransformData td;
     test_bool(vsTransformDataInit(&td, &conf, &testdata->fi, &testdata->fi) == VS_OK);
     
     fprintf(stderr, "testframe transforms\n");
     
     for (i = 1; i < num; i++)
     {
-        VSTransform t = getTestFrameTransform(i);
+        struct VSTransform t = getTestFrameTransform(i);
         fprintf(stderr, "%i: ", i);
         storeVSTransform(stderr, &t);
         

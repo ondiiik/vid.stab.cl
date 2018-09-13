@@ -38,21 +38,21 @@
  * but useful when cascading calculations like
  * add_transforms_(mult_transform(&t1, 5.0), &t2)
  */
-VSTransform null_transform(void);
-VSTransform new_transform(double x, double y, double alpha,
+struct VSTransform null_transform(void);
+struct VSTransform new_transform(double x, double y, double alpha,
                           double zoom, double barrel, double rshutter, int extra);
-VSTransform add_transforms(const VSTransform* t1, const VSTransform* t2);
-VSTransform add_transforms_(const VSTransform t1, const VSTransform t2);
-VSTransform sub_transforms(const VSTransform* t1, const VSTransform* t2);
-VSTransform mult_transform(const VSTransform* t1, double f);
-VSTransform mult_transform_(const VSTransform t1, double f);
+struct VSTransform add_transforms(const struct VSTransform* t1, const struct VSTransform* t2);
+struct VSTransform add_transforms_(const struct VSTransform t1, const struct VSTransform t2);
+struct VSTransform sub_transforms(const struct VSTransform* t1, const struct VSTransform* t2);
+struct VSTransform mult_transform(const struct VSTransform* t1, double f);
+struct VSTransform mult_transform_(const struct VSTransform t1, double f);
 
-void storeVSTransform(FILE* f, const VSTransform* t);
+void storeVSTransform(FILE* f, const struct VSTransform* t);
 
 
 typedef struct _preparedtransform
 {
-    const VSTransform* t;
+    const struct VSTransform* t;
     double zcos_a;
     double zsin_a;
     double c_x;
@@ -60,7 +60,7 @@ typedef struct _preparedtransform
 } PreparedTransform;
 
 // transforms vector
-PreparedTransform prepare_transform(const VSTransform* t, const VSFrameInfo* fi);
+PreparedTransform prepare_transform(const struct VSTransform* t, const VSFrameInfo* fi);
 // transforms vector (attention, only integer)
 Vec transform_vec(const PreparedTransform* t, const Vec* v);
 void transform_vec_double(double* x, double* y, const PreparedTransform* t, const Vec* v);
@@ -89,7 +89,7 @@ double sqr(double x);
 /* calculates the median of an array of transforms,
  * considering only x and y
  */
-VSTransform median_xy_transform(const VSTransform* transforms, int len);
+struct VSTransform median_xy_transform(const struct VSTransform* transforms, int len);
 /* median of a double array */
 double median(double* ds, int len);
 /* mean of a double array */
@@ -103,19 +103,19 @@ double cleanmean(double* ds, int len, double* minimum, double* maximum);
 /* calulcates the cleaned mean of an array of transforms,
  * considerung only x and y
  */
-VSTransform cleanmean_xy_transform(const VSTransform* transforms, int len);
+struct VSTransform cleanmean_xy_transform(const struct VSTransform* transforms, int len);
 
 /* calculates the cleaned (cutting of x-th percentil)
  * maximum and minimum of an array of transforms,
  * considerung only x and y
  */
-void cleanmaxmin_xy_transform(const VSTransform* transforms, int len,
+void cleanmaxmin_xy_transform(const struct VSTransform* transforms, int len,
                               int percentil,
-                              VSTransform* min, VSTransform* max);
+                              struct VSTransform* min, struct VSTransform* max);
 
 /* calculates the required zoom value to have no borders visible
  */
-double transform_get_required_zoom(const VSTransform* transform, int width, int height);
+double transform_get_required_zoom(const struct VSTransform* transform, int width, int height);
 
 /* helper function to work with local motions */
 

@@ -21,7 +21,7 @@ option(BUILD_SHARED_LIBS "build shared libraries instead of static libraries"
 
 option(USE_OMP "use parallelization use OMP" ON)
 
-add_definitions(-Wall -Wno-pointer-sign -fPIC -std=gnu99)
+add_definitions(-fPIC)
 
 ### ORC is not used in any active code at the moment  ###
 # I tried it with 0.4.14
@@ -45,7 +45,7 @@ add_definitions(-fopenmp -DUSE_OMP)
 endif()
 
 set(SOURCES src/frameinfo.c src/transformtype.c src/libvidstab.c
-  src/transform.c src/transformfixedpoint.c src/motiondetect.c
+  src/transform.cpp src/transformfixedpoint.c src/motiondetect.c
   src/motiondetect_opt.c src/serialize.c src/localmotion2transform.c
   src/boxblur.c src/vsvector.c src/orc/motiondetectorc.c)
 

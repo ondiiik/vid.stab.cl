@@ -65,7 +65,7 @@ typedef struct _vsmotiondetectfields
     int fieldRows;                // number of rows
     Field* fields;                // measurement fields
     short useOffset;              // if true then the offset us used
-    VSTransform offset;           // offset for detection (e.g. known from coarse scan)
+    struct VSTransform offset;           // offset for detection (e.g. known from coarse scan)
 } VSMotionDetectFields;
 
 /** data structure for motion detection part of deshaking*/
