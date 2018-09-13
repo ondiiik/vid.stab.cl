@@ -80,7 +80,7 @@ VSTransform vsMotionsToTransform(VSTransformData* td,
  *     Optimized parameters
  */
 VSArray vsGradientDescent(double (*eval)(VSArray, void*),
-                         VSArray params, void* dat,
-                         int N, VSArray stepsizes, double threshold, double* residual);
+                          VSArray params, void* dat,
+                          int N, VSArray stepsizes, double threshold, double* residual);
 
 #endif

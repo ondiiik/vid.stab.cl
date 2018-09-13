@@ -47,9 +47,26 @@ typedef unsigned long orc_uint64;
 #define ORC_UINT64_C(x) (x##UL)
 #endif
 #endif
-typedef union { orc_int16 i; orc_int8 x2[2]; } orc_union16;
-typedef union { orc_int32 i; float f; orc_int16 x2[2]; orc_int8 x4[4]; } orc_union32;
-typedef union { orc_int64 i; double f; orc_int32 x2[2]; float x2f[2]; orc_int16 x4[4]; } orc_union64;
+typedef union
+{
+    orc_int16 i;
+    orc_int8 x2[2];
+} orc_union16;
+typedef union
+{
+    orc_int32 i;
+    float f;
+    orc_int16 x2[2];
+    orc_int8 x4[4];
+} orc_union32;
+typedef union
+{
+    orc_int64 i;
+    double f;
+    orc_int32 x2[2];
+    float x2f[2];
+    orc_int16 x4[4];
+} orc_union64;
 #endif
 #ifndef ORC_RESTRICT
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
@@ -64,10 +81,10 @@ typedef union { orc_int64 i; double f; orc_int32 x2[2]; float x2f[2]; orc_int16 
 #ifndef DISABLE_ORC
 #include <orc/orc.h>
 #endif
-void image_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int n, int m);
-void image_line_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n);
-void image_sum_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int n, int m);
-void image_variance_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int p2, int n, int m);
+void image_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, const orc_uint8* ORC_RESTRICT s2, int s2_stride, int n, int m);
+void image_line_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, const orc_uint8* ORC_RESTRICT s2, int n);
+void image_sum_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int n, int m);
+void image_variance_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int p2, int n, int m);
 
 
 /* begin Orc C target preamble */
@@ -117,108 +134,115 @@ void image_variance_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_REST
 /* image_difference_optimized */
 #ifdef DISABLE_ORC
 void
-image_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int n, int m){
-  int i;
-  int j;
-  const orc_int8 * ORC_RESTRICT ptr4;
-  const orc_int8 * ORC_RESTRICT ptr5;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
-    ptr5 = ORC_PTR_OFFSET(s2, s2_stride * j);
-
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var32 = ptr4[i];
-      /* 1: loadb */
-      var33 = ptr5[i];
-      /* 2: accsadubl */
-      var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+image_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, const orc_uint8* ORC_RESTRICT s2, int s2_stride, int n, int m)
+{
+    int i;
+    int j;
+    const orc_int8* ORC_RESTRICT ptr4;
+    const orc_int8* ORC_RESTRICT ptr5;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
+        ptr5 = ORC_PTR_OFFSET(s2, s2_stride * j);
+        
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var32 = ptr4[i];
+            /* 1: loadb */
+            var33 = ptr5[i];
+            /* 2: accsadubl */
+            var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        }
     }
-  }
-  *a1 = var12.i;
-
+    *a1 = var12.i;
+    
 }
 
 #else
 static void
-_backup_image_difference_optimized (OrcExecutor * ORC_RESTRICT ex)
+_backup_image_difference_optimized (OrcExecutor* ORC_RESTRICT ex)
 {
-  int i;
-  int j;
-  int n = ex->n;
-  int m = ex->params[ORC_VAR_A1];
-  const orc_int8 * ORC_RESTRICT ptr4;
-  const orc_int8 * ORC_RESTRICT ptr5;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
-    ptr5 = ORC_PTR_OFFSET(ex->arrays[5], ex->params[5] * j);
-
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var32 = ptr4[i];
-      /* 1: loadb */
-      var33 = ptr5[i];
-      /* 2: accsadubl */
-      var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+    int i;
+    int j;
+    int n = ex->n;
+    int m = ex->params[ORC_VAR_A1];
+    const orc_int8* ORC_RESTRICT ptr4;
+    const orc_int8* ORC_RESTRICT ptr5;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
+        ptr5 = ORC_PTR_OFFSET(ex->arrays[5], ex->params[5] * j);
+        
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var32 = ptr4[i];
+            /* 1: loadb */
+            var33 = ptr5[i];
+            /* 2: accsadubl */
+            var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        }
     }
-  }
-  ex->accumulators[0] = var12.i;
-
+    ex->accumulators[0] = var12.i;
+    
 }
 
 void
-image_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, const orc_uint8 * ORC_RESTRICT s2, int s2_stride, int n, int m)
+image_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, const orc_uint8* ORC_RESTRICT s2, int s2_stride, int n, int m)
 {
-  OrcExecutor _ex, *ex = &_ex;
-  static int p_inited = 0;
-  static OrcCode *c = 0;
-  void (*func) (OrcExecutor *);
-
-  if (!p_inited) {
-    orc_once_mutex_lock ();
-    if (!p_inited) {
-      OrcProgram *p;
-
-      p = orc_program_new ();
-      orc_program_set_2d (p);
-      orc_program_set_name (p, "image_difference_optimized");
-      orc_program_set_backup_function (p, _backup_image_difference_optimized);
-      orc_program_add_source (p, 1, "s1");
-      orc_program_add_source (p, 1, "s2");
-      orc_program_add_accumulator (p, 4, "a1");
-
-      orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_S2, ORC_VAR_D1);
-
-      orc_program_compile (p);
-      c = orc_program_take_code (p);
-      orc_program_free (p);
+    OrcExecutor _ex, *ex = &_ex;
+    static int p_inited = 0;
+    static OrcCode* c = 0;
+    void (*func) (OrcExecutor*);
+    
+    if (!p_inited)
+    {
+        orc_once_mutex_lock ();
+        if (!p_inited)
+        {
+            OrcProgram* p;
+            
+            p = orc_program_new ();
+            orc_program_set_2d (p);
+            orc_program_set_name (p, "image_difference_optimized");
+            orc_program_set_backup_function (p, _backup_image_difference_optimized);
+            orc_program_add_source (p, 1, "s1");
+            orc_program_add_source (p, 1, "s2");
+            orc_program_add_accumulator (p, 4, "a1");
+            
+            orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_S2, ORC_VAR_D1);
+            
+            orc_program_compile (p);
+            c = orc_program_take_code (p);
+            orc_program_free (p);
+        }
+        p_inited = TRUE;
+        orc_once_mutex_unlock ();
     }
-    p_inited = TRUE;
-    orc_once_mutex_unlock ();
-  }
-  ex->arrays[ORC_VAR_A2] = c;
-  ex->program = 0;
-
-  ex->n = n;
-  ORC_EXECUTOR_M(ex) = m;
-  ex->arrays[ORC_VAR_S1] = (void *)s1;
-  ex->params[ORC_VAR_S1] = s1_stride;
-  ex->arrays[ORC_VAR_S2] = (void *)s2;
-  ex->params[ORC_VAR_S2] = s2_stride;
-
-  func = c->exec;
-  func (ex);
-  *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
+    ex->arrays[ORC_VAR_A2] = c;
+    ex->program = 0;
+    
+    ex->n = n;
+    ORC_EXECUTOR_M(ex) = m;
+    ex->arrays[ORC_VAR_S1] = (void*)s1;
+    ex->params[ORC_VAR_S1] = s1_stride;
+    ex->arrays[ORC_VAR_S2] = (void*)s2;
+    ex->params[ORC_VAR_S2] = s2_stride;
+    
+    func = c->exec;
+    func (ex);
+    *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
 }
 #endif
 
@@ -226,97 +250,102 @@ image_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_
 /* image_line_difference_optimized */
 #ifdef DISABLE_ORC
 void
-image_line_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n){
-  int i;
-  const orc_int8 * ORC_RESTRICT ptr4;
-  const orc_int8 * ORC_RESTRICT ptr5;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  ptr4 = (orc_int8 *)s1;
-  ptr5 = (orc_int8 *)s2;
-
-
-  for (i = 0; i < n; i++) {
-    /* 0: loadb */
-    var32 = ptr4[i];
-    /* 1: loadb */
-    var33 = ptr5[i];
-    /* 2: accsadubl */
-    var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
-  }
-  *a1 = var12.i;
-
+image_line_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, const orc_uint8* ORC_RESTRICT s2, int n)
+{
+    int i;
+    const orc_int8* ORC_RESTRICT ptr4;
+    const orc_int8* ORC_RESTRICT ptr5;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    ptr4 = (orc_int8*)s1;
+    ptr5 = (orc_int8*)s2;
+    
+    
+    for (i = 0; i < n; i++)
+    {
+        /* 0: loadb */
+        var32 = ptr4[i];
+        /* 1: loadb */
+        var33 = ptr5[i];
+        /* 2: accsadubl */
+        var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+    }
+    *a1 = var12.i;
+    
 }
 
 #else
 static void
-_backup_image_line_difference_optimized (OrcExecutor * ORC_RESTRICT ex)
+_backup_image_line_difference_optimized (OrcExecutor* ORC_RESTRICT ex)
 {
-  int i;
-  int n = ex->n;
-  const orc_int8 * ORC_RESTRICT ptr4;
-  const orc_int8 * ORC_RESTRICT ptr5;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  ptr4 = (orc_int8 *)ex->arrays[4];
-  ptr5 = (orc_int8 *)ex->arrays[5];
-
-
-  for (i = 0; i < n; i++) {
-    /* 0: loadb */
-    var32 = ptr4[i];
-    /* 1: loadb */
-    var33 = ptr5[i];
-    /* 2: accsadubl */
-    var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
-  }
-  ex->accumulators[0] = var12.i;
-
+    int i;
+    int n = ex->n;
+    const orc_int8* ORC_RESTRICT ptr4;
+    const orc_int8* ORC_RESTRICT ptr5;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    ptr4 = (orc_int8*)ex->arrays[4];
+    ptr5 = (orc_int8*)ex->arrays[5];
+    
+    
+    for (i = 0; i < n; i++)
+    {
+        /* 0: loadb */
+        var32 = ptr4[i];
+        /* 1: loadb */
+        var33 = ptr5[i];
+        /* 2: accsadubl */
+        var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+    }
+    ex->accumulators[0] = var12.i;
+    
 }
 
 void
-image_line_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, const orc_uint8 * ORC_RESTRICT s2, int n)
+image_line_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, const orc_uint8* ORC_RESTRICT s2, int n)
 {
-  OrcExecutor _ex, *ex = &_ex;
-  static int p_inited = 0;
-  static OrcCode *c = 0;
-  void (*func) (OrcExecutor *);
-
-  if (!p_inited) {
-    orc_once_mutex_lock ();
-    if (!p_inited) {
-      OrcProgram *p;
-
-      p = orc_program_new ();
-      orc_program_set_name (p, "image_line_difference_optimized");
-      orc_program_set_backup_function (p, _backup_image_line_difference_optimized);
-      orc_program_add_source (p, 1, "s1");
-      orc_program_add_source (p, 1, "s2");
-      orc_program_add_accumulator (p, 4, "a1");
-
-      orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_S2, ORC_VAR_D1);
-
-      orc_program_compile (p);
-      c = orc_program_take_code (p);
-      orc_program_free (p);
+    OrcExecutor _ex, *ex = &_ex;
+    static int p_inited = 0;
+    static OrcCode* c = 0;
+    void (*func) (OrcExecutor*);
+    
+    if (!p_inited)
+    {
+        orc_once_mutex_lock ();
+        if (!p_inited)
+        {
+            OrcProgram* p;
+            
+            p = orc_program_new ();
+            orc_program_set_name (p, "image_line_difference_optimized");
+            orc_program_set_backup_function (p, _backup_image_line_difference_optimized);
+            orc_program_add_source (p, 1, "s1");
+            orc_program_add_source (p, 1, "s2");
+            orc_program_add_accumulator (p, 4, "a1");
+            
+            orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_S2, ORC_VAR_D1);
+            
+            orc_program_compile (p);
+            c = orc_program_take_code (p);
+            orc_program_free (p);
+        }
+        p_inited = TRUE;
+        orc_once_mutex_unlock ();
     }
-    p_inited = TRUE;
-    orc_once_mutex_unlock ();
-  }
-  ex->arrays[ORC_VAR_A2] = c;
-  ex->program = 0;
-
-  ex->n = n;
-  ex->arrays[ORC_VAR_S1] = (void *)s1;
-  ex->arrays[ORC_VAR_S2] = (void *)s2;
-
-  func = c->exec;
-  func (ex);
-  *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
+    ex->arrays[ORC_VAR_A2] = c;
+    ex->program = 0;
+    
+    ex->n = n;
+    ex->arrays[ORC_VAR_S1] = (void*)s1;
+    ex->arrays[ORC_VAR_S2] = (void*)s2;
+    
+    func = c->exec;
+    func (ex);
+    *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
 }
 #endif
 
@@ -324,111 +353,118 @@ image_line_difference_optimized (orc_uint32 * ORC_RESTRICT a1, const orc_uint8 *
 /* image_sum_optimized */
 #ifdef DISABLE_ORC
 void
-image_sum_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int n, int m){
-  int i;
-  int j;
-  const orc_int8 * ORC_RESTRICT ptr4;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var34;
-  orc_union16 var35;
-  orc_union32 var36;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
-
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var34 = ptr4[i];
-      /* 1: convubw */
-      var35.i = (orc_uint8)var34;
-      /* 2: convuwl */
-      var36.i = (orc_uint16)var35.i;
-      /* 3: accl */
-      var12.i = var12.i + var36.i;
+image_sum_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int n, int m)
+{
+    int i;
+    int j;
+    const orc_int8* ORC_RESTRICT ptr4;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var34;
+    orc_union16 var35;
+    orc_union32 var36;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
+        
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var34 = ptr4[i];
+            /* 1: convubw */
+            var35.i = (orc_uint8)var34;
+            /* 2: convuwl */
+            var36.i = (orc_uint16)var35.i;
+            /* 3: accl */
+            var12.i = var12.i + var36.i;
+        }
     }
-  }
-  *a1 = var12.i;
-
+    *a1 = var12.i;
+    
 }
 
 #else
 static void
-_backup_image_sum_optimized (OrcExecutor * ORC_RESTRICT ex)
+_backup_image_sum_optimized (OrcExecutor* ORC_RESTRICT ex)
 {
-  int i;
-  int j;
-  int n = ex->n;
-  int m = ex->params[ORC_VAR_A1];
-  const orc_int8 * ORC_RESTRICT ptr4;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var34;
-  orc_union16 var35;
-  orc_union32 var36;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
-
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var34 = ptr4[i];
-      /* 1: convubw */
-      var35.i = (orc_uint8)var34;
-      /* 2: convuwl */
-      var36.i = (orc_uint16)var35.i;
-      /* 3: accl */
-      var12.i = var12.i + var36.i;
+    int i;
+    int j;
+    int n = ex->n;
+    int m = ex->params[ORC_VAR_A1];
+    const orc_int8* ORC_RESTRICT ptr4;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var34;
+    orc_union16 var35;
+    orc_union32 var36;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
+        
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var34 = ptr4[i];
+            /* 1: convubw */
+            var35.i = (orc_uint8)var34;
+            /* 2: convuwl */
+            var36.i = (orc_uint16)var35.i;
+            /* 3: accl */
+            var12.i = var12.i + var36.i;
+        }
     }
-  }
-  ex->accumulators[0] = var12.i;
-
+    ex->accumulators[0] = var12.i;
+    
 }
 
 void
-image_sum_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int n, int m)
+image_sum_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int n, int m)
 {
-  OrcExecutor _ex, *ex = &_ex;
-  static int p_inited = 0;
-  static OrcCode *c = 0;
-  void (*func) (OrcExecutor *);
-
-  if (!p_inited) {
-    orc_once_mutex_lock ();
-    if (!p_inited) {
-      OrcProgram *p;
-
-      p = orc_program_new ();
-      orc_program_set_2d (p);
-      orc_program_set_name (p, "image_sum_optimized");
-      orc_program_set_backup_function (p, _backup_image_sum_optimized);
-      orc_program_add_source (p, 1, "s1");
-      orc_program_add_accumulator (p, 4, "a1");
-      orc_program_add_temporary (p, 2, "t1");
-      orc_program_add_temporary (p, 4, "t2");
-
-      orc_program_append_2 (p, "convubw", 0, ORC_VAR_T1, ORC_VAR_S1, ORC_VAR_D1, ORC_VAR_D1);
-      orc_program_append_2 (p, "convuwl", 0, ORC_VAR_T2, ORC_VAR_T1, ORC_VAR_D1, ORC_VAR_D1);
-      orc_program_append_2 (p, "accl", 0, ORC_VAR_A1, ORC_VAR_T2, ORC_VAR_D1, ORC_VAR_D1);
-
-      orc_program_compile (p);
-      c = orc_program_take_code (p);
-      orc_program_free (p);
+    OrcExecutor _ex, *ex = &_ex;
+    static int p_inited = 0;
+    static OrcCode* c = 0;
+    void (*func) (OrcExecutor*);
+    
+    if (!p_inited)
+    {
+        orc_once_mutex_lock ();
+        if (!p_inited)
+        {
+            OrcProgram* p;
+            
+            p = orc_program_new ();
+            orc_program_set_2d (p);
+            orc_program_set_name (p, "image_sum_optimized");
+            orc_program_set_backup_function (p, _backup_image_sum_optimized);
+            orc_program_add_source (p, 1, "s1");
+            orc_program_add_accumulator (p, 4, "a1");
+            orc_program_add_temporary (p, 2, "t1");
+            orc_program_add_temporary (p, 4, "t2");
+            
+            orc_program_append_2 (p, "convubw", 0, ORC_VAR_T1, ORC_VAR_S1, ORC_VAR_D1, ORC_VAR_D1);
+            orc_program_append_2 (p, "convuwl", 0, ORC_VAR_T2, ORC_VAR_T1, ORC_VAR_D1, ORC_VAR_D1);
+            orc_program_append_2 (p, "accl", 0, ORC_VAR_A1, ORC_VAR_T2, ORC_VAR_D1, ORC_VAR_D1);
+            
+            orc_program_compile (p);
+            c = orc_program_take_code (p);
+            orc_program_free (p);
+        }
+        p_inited = TRUE;
+        orc_once_mutex_unlock ();
     }
-    p_inited = TRUE;
-    orc_once_mutex_unlock ();
-  }
-  ex->arrays[ORC_VAR_A2] = c;
-  ex->program = 0;
-
-  ex->n = n;
-  ORC_EXECUTOR_M(ex) = m;
-  ex->arrays[ORC_VAR_S1] = (void *)s1;
-  ex->params[ORC_VAR_S1] = s1_stride;
-
-  func = c->exec;
-  func (ex);
-  *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
+    ex->arrays[ORC_VAR_A2] = c;
+    ex->program = 0;
+    
+    ex->n = n;
+    ORC_EXECUTOR_M(ex) = m;
+    ex->arrays[ORC_VAR_S1] = (void*)s1;
+    ex->params[ORC_VAR_S1] = s1_stride;
+    
+    func = c->exec;
+    func (ex);
+    *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
 }
 #endif
 
@@ -436,103 +472,110 @@ image_sum_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, i
 /* image_variance_optimized */
 #ifdef DISABLE_ORC
 void
-image_variance_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int p2, int n, int m){
-  int i;
-  int j;
-  const orc_int8 * ORC_RESTRICT ptr4;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
-
-      /* 1: loadpb */
+image_variance_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int p2, int n, int m)
+{
+    int i;
+    int j;
+    const orc_int8* ORC_RESTRICT ptr4;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(s1, s1_stride * j);
+        
+        /* 1: loadpb */
         var33 = p2;
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var32 = ptr4[i];
-      /* 2: accsadubl */
-      var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var32 = ptr4[i];
+            /* 2: accsadubl */
+            var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        }
     }
-  }
-  *a1 = var12.i;
-
+    *a1 = var12.i;
+    
 }
 
 #else
 static void
-_backup_image_variance_optimized (OrcExecutor * ORC_RESTRICT ex)
+_backup_image_variance_optimized (OrcExecutor* ORC_RESTRICT ex)
 {
-  int i;
-  int j;
-  int n = ex->n;
-  int m = ex->params[ORC_VAR_A1];
-  const orc_int8 * ORC_RESTRICT ptr4;
-  orc_union32 var12 =  { 0 };
-  orc_int8 var32;
-  orc_int8 var33;
-
-  for (j = 0; j < m; j++) {
-    ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
-
-      /* 1: loadpb */
+    int i;
+    int j;
+    int n = ex->n;
+    int m = ex->params[ORC_VAR_A1];
+    const orc_int8* ORC_RESTRICT ptr4;
+    orc_union32 var12 =  { 0 };
+    orc_int8 var32;
+    orc_int8 var33;
+    
+    for (j = 0; j < m; j++)
+    {
+        ptr4 = ORC_PTR_OFFSET(ex->arrays[4], ex->params[4] * j);
+        
+        /* 1: loadpb */
         var33 = ex->params[25];
-
-    for (i = 0; i < n; i++) {
-      /* 0: loadb */
-      var32 = ptr4[i];
-      /* 2: accsadubl */
-      var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        
+        for (i = 0; i < n; i++)
+        {
+            /* 0: loadb */
+            var32 = ptr4[i];
+            /* 2: accsadubl */
+            var12.i = var12.i + ORC_ABS((orc_int32)(orc_uint8)var32 - (orc_int32)(orc_uint8)var33);
+        }
     }
-  }
-  ex->accumulators[0] = var12.i;
-
+    ex->accumulators[0] = var12.i;
+    
 }
 
 void
-image_variance_optimized (int * ORC_RESTRICT a1, const orc_uint8 * ORC_RESTRICT s1, int s1_stride, int p2, int n, int m)
+image_variance_optimized (int* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, int p2, int n, int m)
 {
-  OrcExecutor _ex, *ex = &_ex;
-  static int p_inited = 0;
-  static OrcCode *c = 0;
-  void (*func) (OrcExecutor *);
-
-  if (!p_inited) {
-    orc_once_mutex_lock ();
-    if (!p_inited) {
-      OrcProgram *p;
-
-      p = orc_program_new ();
-      orc_program_set_2d (p);
-      orc_program_set_name (p, "image_variance_optimized");
-      orc_program_set_backup_function (p, _backup_image_variance_optimized);
-      orc_program_add_source (p, 1, "s1");
-      orc_program_add_accumulator (p, 4, "a1");
-      orc_program_add_parameter (p, 1, "p2");
-
-      orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_P2, ORC_VAR_D1);
-
-      orc_program_compile (p);
-      c = orc_program_take_code (p);
-      orc_program_free (p);
+    OrcExecutor _ex, *ex = &_ex;
+    static int p_inited = 0;
+    static OrcCode* c = 0;
+    void (*func) (OrcExecutor*);
+    
+    if (!p_inited)
+    {
+        orc_once_mutex_lock ();
+        if (!p_inited)
+        {
+            OrcProgram* p;
+            
+            p = orc_program_new ();
+            orc_program_set_2d (p);
+            orc_program_set_name (p, "image_variance_optimized");
+            orc_program_set_backup_function (p, _backup_image_variance_optimized);
+            orc_program_add_source (p, 1, "s1");
+            orc_program_add_accumulator (p, 4, "a1");
+            orc_program_add_parameter (p, 1, "p2");
+            
+            orc_program_append_2 (p, "accsadubl", 0, ORC_VAR_A1, ORC_VAR_S1, ORC_VAR_P2, ORC_VAR_D1);
+            
+            orc_program_compile (p);
+            c = orc_program_take_code (p);
+            orc_program_free (p);
+        }
+        p_inited = TRUE;
+        orc_once_mutex_unlock ();
     }
-    p_inited = TRUE;
-    orc_once_mutex_unlock ();
-  }
-  ex->arrays[ORC_VAR_A2] = c;
-  ex->program = 0;
-
-  ex->n = n;
-  ORC_EXECUTOR_M(ex) = m;
-  ex->arrays[ORC_VAR_S1] = (void *)s1;
-  ex->params[ORC_VAR_S1] = s1_stride;
-  ex->params[ORC_VAR_P2] = p2;
-
-  func = c->exec;
-  func (ex);
-  *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
+    ex->arrays[ORC_VAR_A2] = c;
+    ex->program = 0;
+    
+    ex->n = n;
+    ORC_EXECUTOR_M(ex) = m;
+    ex->arrays[ORC_VAR_S1] = (void*)s1;
+    ex->params[ORC_VAR_S1] = s1_stride;
+    ex->params[ORC_VAR_P2] = p2;
+    
+    func = c->exec;
+    func (ex);
+    *a1 = orc_executor_get_accumulator (ex, ORC_VAR_A1);
 }
 #endif
 

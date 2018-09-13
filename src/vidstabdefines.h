@@ -46,12 +46,12 @@
 
 /// pixel in single layer image
 #define PIXEL(img, linesize, x, y, w, h, def) \
-  (((x) < 0 || (y) < 0 || (x) >= (w) || (y) >= (h)) ? (def) : img[(x) + (y) * (linesize)])
+    (((x) < 0 || (y) < 0 || (x) >= (w) || (y) >= (h)) ? (def) : img[(x) + (y) * (linesize)])
 /// pixel in single layer image without rangecheck
 #define PIX(img, linesize, x, y) (img[(x) + (y) * (linesize)])
 /// pixel in N-channel image. channel in {0..N-1}
 #define PIXELN(img, linesize, x, y, w, h, N, channel, def) \
-  (((x) < 0 || (y) < 0 || (x) >= (w) || (y) >= (h)) ? (def) : img[((x) + (y) * (linesize))*(N) + (channel)])
+    (((x) < 0 || (y) < 0 || (x) >= (w) || (y) >= (h)) ? (def) : img[((x) + (y) * (linesize))*(N) + (channel)])
 /// pixel in N-channel image without rangecheck. channel in {0..N-1}
 #define PIXN(img, linesize, x, y, N, channel) (img[((x) + (y) * (linesize))*(N) + (channel)])
 

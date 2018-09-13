@@ -47,9 +47,9 @@ double contrastSubImg1_SSE(unsigned char* const I, const Field* field,
 
 #ifdef USE_ORC
 double contrastSubImg_variance_orc(unsigned char* const I, const Field* field,
-                          int width, int height);
+                                   int width, int height);
 double contrastSubImg_variance_C(unsigned char* const I, const Field* field,
-                        int width, int height);
+                                 int width, int height);
 
 #endif
 

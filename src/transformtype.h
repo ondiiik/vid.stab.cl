@@ -31,7 +31,8 @@
    zoom is a percentage to zoom in and
    extra is for additional information like scene cut (unused)
  */
-typedef struct _transform {
+typedef struct _transform
+{
     double x;
     double y;
     double alpha;
@@ -43,21 +44,24 @@ typedef struct _transform {
 } VSTransform;
 
 /** stores x y and size of a measurement field */
-typedef struct _field {
-  int x;     // middle position x
-  int y;     // middle position y
-  int size;  // size of field
+typedef struct _field
+{
+    int x;     // middle position x
+    int y;     // middle position y
+    int size;  // size of field
 } Field;
 
 /** stores x y coordinates (integer) */
-typedef struct _vec {
-  int x;     // middle position x
-  int y;     // middle position y
+typedef struct _vec
+{
+    int x;     // middle position x
+    int y;     // middle position y
 } Vec;
 
 /* structure to hold information about local motion.
  */
-typedef struct _localmotion {
+typedef struct _localmotion
+{
     Vec v;
     Field f;
     double contrast; // local contrast of the measurement field

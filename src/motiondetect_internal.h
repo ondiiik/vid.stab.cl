@@ -50,7 +50,7 @@ double contrastSubImg(unsigned char* const I, const Field* field,
                       int width, int height, int bytesPerPixel);
 
 
-int cmp_contrast_idx(const void *ci1, const void* ci2);
+int cmp_contrast_idx(const void* ci1, const void* ci2);
 VSVector selectfields(VSMotionDetect* md, VSMotionDetectFields* fields,
                       contrastSubImgFunc contrastfunc);
 

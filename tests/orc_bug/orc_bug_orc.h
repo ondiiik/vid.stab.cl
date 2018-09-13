@@ -53,9 +53,26 @@ typedef unsigned long orc_uint64;
 #define ORC_UINT64_C(x) (x##UL)
 #endif
 #endif
-typedef union { orc_int16 i; orc_int8 x2[2]; } orc_union16;
-typedef union { orc_int32 i; float f; orc_int16 x2[2]; orc_int8 x4[4]; } orc_union32;
-typedef union { orc_int64 i; double f; orc_int32 x2[2]; float x2f[2]; orc_int16 x4[4]; } orc_union64;
+typedef union
+{
+    orc_int16 i;
+    orc_int8 x2[2];
+} orc_union16;
+typedef union
+{
+    orc_int32 i;
+    float f;
+    orc_int16 x2[2];
+    orc_int8 x4[4];
+} orc_union32;
+typedef union
+{
+    orc_int64 i;
+    double f;
+    orc_int32 x2[2];
+    float x2f[2];
+    orc_int16 x4[4];
+} orc_union64;
 #endif
 #ifndef ORC_RESTRICT
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
@@ -66,7 +83,7 @@ typedef union { orc_int64 i; double f; orc_int32 x2[2]; float x2f[2]; orc_int16 
 #define ORC_RESTRICT
 #endif
 #endif
-void test_orc (orc_int32 * ORC_RESTRICT d1, orc_int32 * ORC_RESTRICT d2, const orc_int32 * ORC_RESTRICT s1, int p1, int p2, int p3, int p4, int p5, int p6, int n);
+void test_orc (orc_int32* ORC_RESTRICT d1, orc_int32* ORC_RESTRICT d2, const orc_int32* ORC_RESTRICT s1, int p1, int p2, int p3, int p4, int p5, int p6, int n);
 
 #ifdef __cplusplus
 }

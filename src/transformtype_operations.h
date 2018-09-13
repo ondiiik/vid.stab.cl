@@ -50,19 +50,20 @@ VSTransform mult_transform_(const VSTransform t1, double f);
 void storeVSTransform(FILE* f, const VSTransform* t);
 
 
-typedef struct _preparedtransform {
-  const VSTransform* t;
-  double zcos_a;
-  double zsin_a;
-  double c_x;
-  double c_y;
+typedef struct _preparedtransform
+{
+    const VSTransform* t;
+    double zcos_a;
+    double zsin_a;
+    double c_x;
+    double c_y;
 } PreparedTransform;
 
 // transforms vector
 PreparedTransform prepare_transform(const VSTransform* t, const VSFrameInfo* fi);
 // transforms vector (attention, only integer)
 Vec transform_vec(const PreparedTransform* t, const Vec* v);
-void transform_vec_double(double *x, double* y, const PreparedTransform* t, const Vec* v);
+void transform_vec_double(double* x, double* y, const PreparedTransform* t, const Vec* v);
 
 // subtract two vectors
 Vec sub_vec(Vec v1, Vec v2);
@@ -71,15 +72,15 @@ Vec add_vec(Vec v1, Vec v2);
 Vec field_to_vec(Field f);
 
 /* compares a transform with respect to x (for sort function) */
-int cmp_trans_x(const void *t1, const void* t2);
+int cmp_trans_x(const void* t1, const void* t2);
 /* compares a transform with respect to y (for sort function) */
-int cmp_trans_y(const void *t1, const void* t2);
+int cmp_trans_y(const void* t1, const void* t2);
 /* static int cmp_trans_alpha(const void *t1, const void* t2); */
 
 /* compares two double values (for sort function)*/
-int cmp_double(const void *t1, const void* t2);
+int cmp_double(const void* t1, const void* t2);
 /* compares two int values (for sort function)*/
-int cmp_int(const void *t1, const void* t2);
+int cmp_int(const void* t1, const void* t2);
 
 
 /** square of a number */
@@ -136,11 +137,16 @@ VSArray localmotionsGetMatch(const LocalMotions* localmotions);
 /* helper functions */
 
 /* optimized round function */
-inline static int myround(float x) {
-    if(x>0)
+inline static int myround(float x)
+{
+    if (x > 0)
+    {
         return x + 0.5;
+    }
     else
+    {
         return x - 0.5;
+    }
 }
 
 
@@ -148,11 +154,16 @@ inline static int myround(float x) {
    This does not give the correct value for negative integer values like -1.0. In this case
    it will produce -2.0.
 */
-inline static int myfloor(float x) {
-    if(x<0)
+inline static int myfloor(float x)
+{
+    if (x < 0)
+    {
         return x - 1;
+    }
     else
+    {
         return x;
+    }
 }
 
 #endif

@@ -31,14 +31,17 @@
 /**** default values for memory and logging ****/
 
 /// memory allocation with zero initialization
-void* _zalloc(size_t size){
-    return memset(malloc(size),0,size);
+void* _zalloc(size_t size)
+{
+    return memset(malloc(size), 0, size);
 }
 
 /// logging function
-int _vs_log(int type, const char* tag, const char* format, ...){
-    if(vs_log_level >= type){
-        fprintf(stderr,"%s (%s):",
+int _vs_log(int type, const char* tag, const char* format, ...)
+{
+    if (vs_log_level >= type)
+    {
+        fprintf(stderr, "%s (%s):",
                 type == VS_ERROR_TYPE ? "Error: " :
                 type == VS_WARN_TYPE  ? "Warn:  " :
                 type == VS_INFO_TYPE  ? "Info:  " :
@@ -48,7 +51,7 @@ int _vs_log(int type, const char* tag, const char* format, ...){
         va_start (ap, format);
         vfprintf (stderr, format, ap);
         va_end (ap);
-        fprintf(stderr,"\n");
+        fprintf(stderr, "\n");
     }
     return 0;
 }

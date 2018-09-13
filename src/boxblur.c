@@ -44,62 +44,75 @@ void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
 */
 
 void boxblurPlanar(VSFrame* dest, const VSFrame* src,
-    VSFrame* buffer, const VSFrameInfo* fi,
-    unsigned int size, BoxBlurColorMode colormode){
-  int localbuffer=0;
-  int size2;
-  if(size<2){
-    if(dest!=src)
-      vsFrameCopy(dest,src,fi);
-    return;
-  }
-  VSFrame buf;
-  if(buffer==0){
-    vsFrameAllocate(&buf,fi);
-    localbuffer=1;
-  }else{
-    buf = *buffer;
-  }
-  // odd and larger than 2 and maximally half of smaller image dimension
-  size  = VS_CLAMP((size/2)*2+1,3,VS_MIN(fi->height/2,fi->width/2));
-  //printf("%i\n",size);
-
-  // luminance
-  boxblur_hori_C(buf.data[0],  src->data[0],
-                 fi->width, fi->height, buf.linesize[0],src->linesize[0], size);
-  boxblur_vert_C(dest->data[0], buf.data[0],
-                 fi->width, fi->height, dest->linesize[0], buf.linesize[0], size);
-
-  size2 = size/2+1;   // odd and larger than 0
-  int plane;
-  switch (colormode){
-  case BoxBlurColor:
-    // color
-    if(size2>1){
-      for(plane=1; plane<fi->planes; plane++){
-        boxblur_hori_C(buf.data[plane], src->data[plane],
-                       fi->width  >> vsGetPlaneWidthSubS(fi,plane),
-                       fi->height >> vsGetPlaneHeightSubS(fi,plane),
-                       buf.linesize[plane], src->linesize[plane], size2);
-        boxblur_vert_C(dest->data[plane], buf.data[plane],
-                       fi->width  >> vsGetPlaneWidthSubS(fi,plane),
-                       fi->height >> vsGetPlaneHeightSubS(fi,plane),
-                       dest->linesize[plane], buf.linesize[plane], size2);
-      }
+                   VSFrame* buffer, const VSFrameInfo* fi,
+                   unsigned int size, BoxBlurColorMode colormode)
+{
+    int localbuffer = 0;
+    int size2;
+    if (size < 2)
+    {
+        if (dest != src)
+        {
+            vsFrameCopy(dest, src, fi);
+        }
+        return;
     }
-    break;
-  case BoxBlurKeepColor:
-    // copy both color channels
-    for(plane=1; plane<fi->planes; plane++){
-      vsFrameCopyPlane(dest, src, fi, plane);
+    VSFrame buf;
+    if (buffer == 0)
+    {
+        vsFrameAllocate(&buf, fi);
+        localbuffer = 1;
     }
-  case BoxBlurNoColor: // do nothing
-  default:
-    break;
-  }
-
-  if(localbuffer)
-    vsFrameFree(&buf);
+    else
+    {
+        buf = *buffer;
+    }
+    // odd and larger than 2 and maximally half of smaller image dimension
+    size  = VS_CLAMP((size / 2) * 2 + 1, 3, VS_MIN(fi->height / 2, fi->width / 2));
+    //printf("%i\n",size);
+    
+    // luminance
+    boxblur_hori_C(buf.data[0],  src->data[0],
+                   fi->width, fi->height, buf.linesize[0], src->linesize[0], size);
+    boxblur_vert_C(dest->data[0], buf.data[0],
+                   fi->width, fi->height, dest->linesize[0], buf.linesize[0], size);
+                   
+    size2 = size / 2 + 1; // odd and larger than 0
+    int plane;
+    switch (colormode)
+    {
+        case BoxBlurColor:
+            // color
+            if (size2 > 1)
+            {
+                for (plane = 1; plane < fi->planes; plane++)
+                {
+                    boxblur_hori_C(buf.data[plane], src->data[plane],
+                                   fi->width  >> vsGetPlaneWidthSubS(fi, plane),
+                                   fi->height >> vsGetPlaneHeightSubS(fi, plane),
+                                   buf.linesize[plane], src->linesize[plane], size2);
+                    boxblur_vert_C(dest->data[plane], buf.data[plane],
+                                   fi->width  >> vsGetPlaneWidthSubS(fi, plane),
+                                   fi->height >> vsGetPlaneHeightSubS(fi, plane),
+                                   dest->linesize[plane], buf.linesize[plane], size2);
+                }
+            }
+            break;
+        case BoxBlurKeepColor:
+            // copy both color channels
+            for (plane = 1; plane < fi->planes; plane++)
+            {
+                vsFrameCopyPlane(dest, src, fi, plane);
+            }
+        case BoxBlurNoColor: // do nothing
+        default:
+            break;
+    }
+    
+    if (localbuffer)
+    {
+        vsFrameFree(&buf);
+    }
 }
 
 /* /\* */
@@ -130,59 +143,79 @@ void boxblurPlanar(VSFrame* dest, const VSFrame* src,
 
 
 void boxblur_hori_C(unsigned char* dest, const unsigned char* src,
-                    int width, int height, int dest_strive, int src_strive, int size){
+                    int width, int height, int dest_strive, int src_strive, int size)
+{
 
-  int i,j,k;
-  unsigned int acc;
-  const unsigned char *start, *end; // start and end of kernel
-  unsigned char *current;     // current destination pixel
-  int size2 = size/2; // size of one side of the kernel without center
-  // #pragma omp parallel for private(acc),schedule(guided,2) (no speedup)
-  for(j=0; j< height; j++){
-    //  for(j=100; j< 101; j++){
-    start = end = src + j*src_strive;
-    current = dest + j*dest_strive;
-    // initialize accumulator
-    acc= (*start)*(size2+1); // left half of kernel with first pixel
-    for(k=0; k<size2; k++){  // right half of kernel
-      acc+=(*end);
-      end++;
+    int i, j, k;
+    unsigned int acc;
+    const unsigned char* start, *end; // start and end of kernel
+    unsigned char* current;     // current destination pixel
+    int size2 = size / 2; // size of one side of the kernel without center
+    // #pragma omp parallel for private(acc),schedule(guided,2) (no speedup)
+    for (j = 0; j < height; j++)
+    {
+        //  for(j=100; j< 101; j++){
+        start = end = src + j * src_strive;
+        current = dest + j * dest_strive;
+        // initialize accumulator
+        acc = (*start) * (size2 + 1); // left half of kernel with first pixel
+        for (k = 0; k < size2; k++) // right half of kernel
+        {
+            acc += (*end);
+            end++;
+        }
+        // go through the image
+        for (i = 0; i < width; i++)
+        {
+            acc = acc + (*end) - (*start);
+            if (i > size2)
+            {
+                start++;
+            }
+            if (i < width - size2 - 1)
+            {
+                end++;
+            }
+            (*current) = acc / size;
+            current++;
+        }
     }
-    // go through the image
-    for(i=0; i< width; i++){
-      acc = acc + (*end) - (*start);
-      if(i > size2) start++;
-      if(i < width - size2 - 1) end++;
-      (*current) = acc/size;
-      current++;
-    }
-  }
 }
 
 void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
-        int width, int height, int dest_strive, int src_strive, int size){
+                    int width, int height, int dest_strive, int src_strive, int size)
+{
 
-  int i,j,k;
-  int acc;
-  const unsigned char *start, *end; // start and end of kernel
-  unsigned char *current;     // current destination pixel
-  int size2 = size/2; // size of one side of the kernel without center
-  for(i=0; i< width; i++){
-    start = end = src + i;
-    current = dest + i;
-    // initialize accumulator
-    acc= (*start)*(size2+1); // left half of kernel with first pixel
-    for(k=0; k<size2; k++){  // right half of kernel
-      acc+=(*end);
-      end+=src_strive;
+    int i, j, k;
+    int acc;
+    const unsigned char* start, *end; // start and end of kernel
+    unsigned char* current;     // current destination pixel
+    int size2 = size / 2; // size of one side of the kernel without center
+    for (i = 0; i < width; i++)
+    {
+        start = end = src + i;
+        current = dest + i;
+        // initialize accumulator
+        acc = (*start) * (size2 + 1); // left half of kernel with first pixel
+        for (k = 0; k < size2; k++) // right half of kernel
+        {
+            acc += (*end);
+            end += src_strive;
+        }
+        // go through the image
+        for (j = 0; j < height; j++)
+        {
+            acc = acc - (*start) + (*end);
+            if (j > size2)
+            {
+                start += src_strive;
+            }
+            if (j < height - size2 - 1)
+            {
+                end += src_strive;
+            }
+            *current = acc / size;
+            current += dest_strive;
+        }
     }
-    // go through the image
-    for(j=0; j< height; j++){
-      acc = acc - (*start) + (*end);
-      if(j > size2) start+=src_strive;
-      if(j < height - size2 - 1) end+=src_strive;
-      *current = acc/size;
-      current+=dest_strive;
-    }
-  }
 }

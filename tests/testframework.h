@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <features.h>
 
-int contains(char **list, int len,  const char *str, const char* descr);
+int contains(char** list, int len,  const char* str, const char* descr);
 void unittest_init();
 int unittest_summary();
 void unittest_help_mode();
@@ -13,20 +13,20 @@ long timeOfDayinMS();
 
 
 #define test_bool(expr)   \
-  ((expr)                 \
-   ? tests_success++     \
-   : test_fails (__STRING(expr), __FILE__, __LINE__, ___FUNCTION))
+    ((expr)                 \
+     ? tests_success++     \
+     : test_fails (__STRING(expr), __FILE__, __LINE__, ___FUNCTION))
 
 #define UNIT(func)                                                               \
-  if(!help_mode){tests_init();                                              \
-   fprintf(stderr,"\033[1;34m*** UNIT TEST %s ***\033[0m\n",__STRING(func));     \
-   (func);                                                                       \
-   fprintf(stderr,"---->\t");                                                     \
-   if(test_summary()){ fprintf(stderr, "\t\t\033[1;32m PASSED\033[0m\n");         \
-     units_success++; }                                                           \
-   else { fprintf(stderr, "\t\t\033[1;31m FAILED\033[0m !!!!!\n");               \
-     units_failed++;  }                                                           \
-   }
+    if(!help_mode){tests_init();                                              \
+        fprintf(stderr,"\033[1;34m*** UNIT TEST %s ***\033[0m\n",__STRING(func));     \
+        (func);                                                                       \
+        fprintf(stderr,"---->\t");                                                     \
+        if(test_summary()){ fprintf(stderr, "\t\t\033[1;32m PASSED\033[0m\n");         \
+            units_success++; }                                                           \
+        else { fprintf(stderr, "\t\t\033[1;31m FAILED\033[0m !!!!!\n");               \
+            units_failed++;  }                                                           \
+    }
 
 #if defined __STDC_VERSION__ && __STDC_VERSION__ >= 199901L
 # define ___FUNCTION  __func__
@@ -47,8 +47,8 @@ void tests_init();
 
 int test_summary();
 
-void test_fails (__const char *__assertion, __const char *__file,
-                 unsigned int __line, __const char *__function);
+void test_fails (__const char* __assertion, __const char* __file,
+                 unsigned int __line, __const char* __function);
 
 
 

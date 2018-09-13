@@ -43,25 +43,27 @@ typedef enum {PF_NONE = -1,
               PF_BGR24,     ///< packed RGB 8:8:8, 24bpp, BGRBGR...
               PF_RGBA,      ///< packed RGBA 8:8:8:8, 32bpp, RGBARGBA...
               PF_NUMBER     ///< number of pixel formats
-} VSPixelFormat;
+             } VSPixelFormat;
 
 /** frame information for deshaking lib
     This only works for planar image formats
  */
-typedef struct vsframeinfo {
-  int width, height;
-  int planes;        // number of planes (1 luma, 2,3 chroma, 4 alpha)
-  int log2ChromaW; // subsampling of width in chroma planes
-  int log2ChromaH; // subsampling of height in chroma planes
-  VSPixelFormat pFormat;
-  int bytesPerPixel; // number of bytes per pixel (for packed formats)
+typedef struct vsframeinfo
+{
+    int width, height;
+    int planes;        // number of planes (1 luma, 2,3 chroma, 4 alpha)
+    int log2ChromaW; // subsampling of width in chroma planes
+    int log2ChromaH; // subsampling of height in chroma planes
+    VSPixelFormat pFormat;
+    int bytesPerPixel; // number of bytes per pixel (for packed formats)
 } VSFrameInfo;
 
 /** frame data according to frameinfo
  */
-typedef struct vsframe {
-  uint8_t* data[4]; // data in planes. For packed data everthing is in plane 0
-  int linesize[4]; // line size of each line in a the planes
+typedef struct vsframe
+{
+    uint8_t* data[4]; // data in planes. For packed data everthing is in plane 0
+    int linesize[4]; // line size of each line in a the planes
 } VSFrame;
 
 // use it to calculate the CHROMA sizes (rounding is correct)
@@ -84,7 +86,7 @@ void vsFrameNull(VSFrame* frame);
 int vsFrameIsNull(const VSFrame* frame);
 
 /// compares two frames for identity (based in data[0])
-int vsFramesEqual(const VSFrame* frame1,const VSFrame* frame2);
+int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
 
 /// allocates memory for a frame
 void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi);
@@ -92,7 +94,7 @@ void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi);
 
 /// copies the given plane number from src to dest
 void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
-                    const VSFrameInfo* fi, int plane);
+                      const VSFrameInfo* fi, int plane);
 
 /// copies src to dest
 void vsFrameCopy(VSFrame* dest, const VSFrame* src, const VSFrameInfo* fi);

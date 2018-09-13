@@ -34,14 +34,16 @@
 #endif
 
 
-typedef struct _vstransformations {
+typedef struct _vstransformations
+{
     VSTransform* ts; // array of transformations
     int current;   // index to current transformation
     int len;       // length of trans array
     short warned_end; // whether we warned that there is no transform left
 } VSTransformations;
 
-typedef struct _vsslidingavgtrans {
+typedef struct _vsslidingavgtrans
+{
     VSTransform avg; // average transformation
     VSTransform accum; // accumulator for relative to absolute conversion
     double zoomavg;     // average zoom value
@@ -71,11 +73,12 @@ typedef enum { VSOptimalL1 = 0, VSGaussian, VSAvg } VSCamPathAlgo;
  *            def: default value if coordinates are out of range
  * Return value:  None
  */
-typedef void (*vsInterpolateFun)(uint8_t *rv, int32_t x, int32_t y,
-                                 const uint8_t *img, int linesize,
+typedef void (*vsInterpolateFun)(uint8_t* rv, int32_t x, int32_t y,
+                                 const uint8_t* img, int linesize,
                                  int width, int height, uint8_t def);
 
-typedef struct _VSTransformConfig {
+typedef struct _VSTransformConfig
+{
 
     /* whether to consider transforms as relative (to previous frame)
      * or absolute transforms
@@ -101,58 +104,59 @@ typedef struct _VSTransformConfig {
     VSCamPathAlgo  camPathAlgo;  // algorithm to use for camera path optimization
 } VSTransformConfig;
 
-typedef struct _VSTransformData {
+typedef struct _VSTransformData
+{
     VSFrameInfo fiSrc;
     VSFrameInfo fiDest;
-
+    
     VSFrame src;         // copy of the current frame buffer
     VSFrame destbuf;     // pointer to an additional buffer or
-                         // to the destination buffer (depending on crop)
+    // to the destination buffer (depending on crop)
     VSFrame dest;        // pointer to the destination buffer
-
+    
     short srcMalloced;   // 1 if the source buffer was internally malloced
-
+    
     vsInterpolateFun interpolate; // pointer to interpolation function
 #ifdef TESTING
     _FLT(vsInterpolateFun) _FLT(interpolate);
 #endif
-
+    
     /* Options */
     VSTransformConfig conf;
-
+    
     int initialized; // 1 if initialized and 2 if configured
 } VSTransformData;
 
 
 static const char vs_transform_help[] = ""
-    "Overview\n"
-    "    Reads a file with transform information for each frame\n"
-    "     and applies them. See also filter stabilize.\n"
-    "Options\n"
-    "    'input'     path to the file used to read the transforms\n"
-    "                (def: inputfile.trf)\n"
-    "    'smoothing' number of frames*2 + 1 used for lowpass filtering \n"
-    "                used for stabilizing (def: 10)\n"
-    "    'maxshift'  maximal number of pixels to translate image\n"
-    "                (def: -1 no limit)\n"
-    "    'maxangle'  maximal angle in rad to rotate image (def: -1 no limit)\n"
-    "    'crop'      0: keep border (def), 1: black background\n"
-    "    'invert'    1: invert transforms(def: 0)\n"
-    "    'relative'  consider transforms as 0: absolute, 1: relative (def)\n"
-    "    'zoom'      percentage to zoom >0: zoom in, <0 zoom out (def: 0)\n"
-    "    'optzoom'   0: nothing, 1: determine optimal static zoom (def)\n"
-    "                i.e. no (or only little) border should be visible.\n"
-    "                2: determine optimal adaptive zoom\n"
-    "                Note that the value given at 'zoom' is added to the \n"
-    "                here calculated one\n"
-    "    'zoomspeed' for adaptive zoom: zoom per frame in percent \n"
-    "    'interpol'  type of interpolation: 0: no interpolation, \n"
-    "                1: linear (horizontal), 2: bi-linear (def), \n"
-    "                3: bi-cubic\n"
-    "    'sharpen'   amount of sharpening: 0: no sharpening (def: 0.8)\n"
-    "                uses filter unsharp with 5x5 matrix\n"
-    "    'tripod'    virtual tripod mode (=relative=0:smoothing=0)\n"
-    "    'help'      print this help message\n";
+                                        "Overview\n"
+                                        "    Reads a file with transform information for each frame\n"
+                                        "     and applies them. See also filter stabilize.\n"
+                                        "Options\n"
+                                        "    'input'     path to the file used to read the transforms\n"
+                                        "                (def: inputfile.trf)\n"
+                                        "    'smoothing' number of frames*2 + 1 used for lowpass filtering \n"
+                                        "                used for stabilizing (def: 10)\n"
+                                        "    'maxshift'  maximal number of pixels to translate image\n"
+                                        "                (def: -1 no limit)\n"
+                                        "    'maxangle'  maximal angle in rad to rotate image (def: -1 no limit)\n"
+                                        "    'crop'      0: keep border (def), 1: black background\n"
+                                        "    'invert'    1: invert transforms(def: 0)\n"
+                                        "    'relative'  consider transforms as 0: absolute, 1: relative (def)\n"
+                                        "    'zoom'      percentage to zoom >0: zoom in, <0 zoom out (def: 0)\n"
+                                        "    'optzoom'   0: nothing, 1: determine optimal static zoom (def)\n"
+                                        "                i.e. no (or only little) border should be visible.\n"
+                                        "                2: determine optimal adaptive zoom\n"
+                                        "                Note that the value given at 'zoom' is added to the \n"
+                                        "                here calculated one\n"
+                                        "    'zoomspeed' for adaptive zoom: zoom per frame in percent \n"
+                                        "    'interpol'  type of interpolation: 0: no interpolation, \n"
+                                        "                1: linear (horizontal), 2: bi-linear (def), \n"
+                                        "                3: bi-cubic\n"
+                                        "    'sharpen'   amount of sharpening: 0: no sharpening (def: 0.8)\n"
+                                        "                uses filter unsharp with 5x5 matrix\n"
+                                        "    'tripod'    virtual tripod mode (=relative=0:smoothing=0)\n"
+                                        "    'help'      print this help message\n";
 
 /** returns the default config
  */
@@ -196,7 +200,7 @@ int vsPreprocessTransforms(VSTransformData* td, VSTransformations* trans);
  * vsLowPassTransforms: single step smoothing of transforms, using only the past.
  *  see also vsPreprocessTransforms. */
 VSTransform vsLowPassTransforms(VSTransformData* td, VSSlidingAvgTrans* mem,
-                            const VSTransform* trans);
+                                const VSTransform* trans);
 
 /** call this function to prepare for a next transformation (transformPacked/transformPlanar)
     and supply the src frame buffer and the frame to write to. These can be the same pointer
