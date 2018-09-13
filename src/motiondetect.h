@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 
-typedef struct _vsmotiondetectconfig
+typedef struct VSMotionDetectConfig
 {
     /* meta parameter for maxshift and fieldsize between 1 and 15 */
     int         shakiness;
@@ -53,10 +53,12 @@ typedef struct _vsmotiondetectconfig
     double      contrastThreshold;
     const char* modName;          // module name (used for logging)
     int         numThreads;       // number of threads to use (automatically set if 0)
-} VSMotionDetectConfig;
+}
+VSMotionDetectConfig;
+
 
 /** structure for motion detection fields */
-typedef struct _vsmotiondetectfields
+typedef struct VSMotionDetectFields
 {
     /* maximum number of pixels we expect the shift of subsequent frames */
     int maxShift;
@@ -69,10 +71,16 @@ typedef struct _vsmotiondetectfields
     Field* fields;                // measurement fields
     short useOffset;              // if true then the offset us used
     struct VSTransform offset;           // offset for detection (e.g. known from coarse scan)
-} VSMotionDetectFields;
+}
+VSMotionDetectFields;
 
-/** data structure for motion detection part of deshaking*/
-typedef struct _vsmotiondetect
+
+/**
+ * @brief   Data structure for motion detection part of deshaking
+ * @note    Structure must be also type because is used in C
+ *          in ffmpeg
+ */
+typedef struct VSMotionDetect
 {
     VSFrameInfo fi;
     
@@ -89,7 +97,9 @@ typedef struct _vsmotiondetect
     int initialized;              // 1 if initialized and 2 if configured
     
     int frameNum;
-} VSMotionDetect;
+}
+VSMotionDetect;
+
 
 static const char vs_motiondetect_help[] = ""
                                            "Overview:\n"

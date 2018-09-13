@@ -52,7 +52,7 @@ typedef enum {PF_NONE = -1,
 /** frame information for deshaking lib
     This only works for planar image formats
  */
-typedef struct vsframeinfo
+typedef struct VSFrameInfo
 {
     int width, height;
     int planes;        // number of planes (1 luma, 2,3 chroma, 4 alpha)

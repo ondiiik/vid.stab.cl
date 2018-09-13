@@ -39,44 +39,57 @@ extern "C" {
 #endif
 
 
-struct VSTransformations
+typedef struct VSTransformations
 {
     struct VSTransform* ts;         // array of transformations
     int                 current;    // index to current transformation
     int                 len;        // length of trans array
     short               warned_end; // whether we warned that there is no transform left
-};
+}
+VSTransformations;
 
 
-struct VSSlidingAvgTrans
+typedef struct VSSlidingAvgTrans
 {
     struct VSTransform avg;         // average transformation
     struct VSTransform accum;       // accumulator for relative to absolute conversion
     double      zoomavg;     // average zoom value
     short       initialized; // whether it was initialized or not
-};
+}
+VSSlidingAvgTrans;
 
 
 /// interpolation types
-typedef enum { VS_Zero, VS_Linear, VS_BiLinear, VS_BiCubic, VS_NBInterPolTypes} VSInterpolType;
+typedef enum VSInterpolType
+{
+    VS_Zero,
+    VS_Linear,
+    VS_BiLinear,
+    VS_BiCubic,
+    VS_NBInterPolTypes
+}
+VSInterpolType;
+
 
 /// returns a name for the interpolation type
 const char* getInterpolationTypeName(VSInterpolType type);
 
 
-enum VSBorderType
+typedef enum VSBorderType
 {
     VSKeepBorder,
     VSCropBorder
-};
+}
+VSBorderType;
 
 
-enum VSCamPathAlgo
+typedef enum VSCamPathAlgo
 {
     VSOptimalL1,
     VSGaussian,
     VSAvg
-};
+}
+VSCamPathAlgo;
 
 
 /**
@@ -102,7 +115,7 @@ typedef void (*vsInterpolateFun)(uint8_t*       rv,
                                  uint8_t        def);
                                  
                                  
-struct VSTransformConfig
+typedef struct VSTransformConfig
 {
     /* whether to consider transforms as relative (to previous frame)
      * or absolute transforms
@@ -116,7 +129,7 @@ struct VSTransformConfig
     double              zoom;        // percentage to zoom: 0->no zooming 10:zoom in 10%
     int                 optZoom;     // 2: optimal adaptive zoom 1: optimal static zoom, 0: nothing
     double              zoomSpeed;   // for adaptive zoom: zoom per frame in percent
-    VSInterpolType      interpolType; // type of interpolation: 0->Zero,1->Lin,2->BiLin,3->Sqr
+    enum VSInterpolType interpolType; // type of interpolation: 0->Zero,1->Lin,2->BiLin,3->Sqr
     int                 maxShift;    // maximum number of pixels we will shift
     double              maxAngle;    // maximum angle in rad
     const char*         modName;     // module name (used for logging)
@@ -126,10 +139,16 @@ struct VSTransformConfig
     int                 storeTransforms; // stores calculated transforms to file
     int                 smoothZoom;   // if 1 the zooming is also smoothed. Typically not recommended.
     enum VSCamPathAlgo  camPathAlgo;  // algorithm to use for camera path optimization
-};
+}
+VSTransformConfig;
 
 
-struct VSTransformData
+/**
+ * @brief   Transformation data
+ * @note    Type is used also in C implementation of ffmpeg filter,
+ *          therefore it must be declared also as typedef.
+ */
+typedef struct VSTransformData
 {
     VSFrameInfo              fiSrc;
     VSFrameInfo              fiDest;
@@ -150,7 +169,8 @@ struct VSTransformData
     struct VSTransformConfig conf;
     
     int initialized; // 1 if initialized and 2 if configured
-};
+}
+VSTransformData;
 
 
 /** returns the default config

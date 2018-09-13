@@ -56,9 +56,9 @@
 
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
     This is used by many other interpolation methods at and outsize the border, see interpolate */
-inline void interpolateBiLinBorder(uint8_t* rv, fp16 x, fp16 y,
-                                   const uint8_t* img, int img_linesize,
-                                   int32_t width, int32_t height, uint8_t def)
+void interpolateBiLinBorder(uint8_t* rv, fp16 x, fp16 y,
+                            const uint8_t* img, int img_linesize,
+                            int32_t width, int32_t height, uint8_t def)
 {
     int32_t ix_f = fp16ToI(x);
     int32_t iy_f = fp16ToI(y);
@@ -123,9 +123,9 @@ inline static short bicub_kernel(fp16 t, short a0, short a1, short a2, short a3)
 }
 
 /** interpolateBiCub: bi-cubic interpolation function using 4x4 pixel, see interpolate */
-inline void interpolateBiCub(uint8_t* rv, fp16 x, fp16 y,
-                             const uint8_t* img, int img_linesize,
-                             int width, int height, uint8_t def)
+void interpolateBiCub(uint8_t* rv, fp16 x, fp16 y,
+                      const uint8_t* img, int img_linesize,
+                      int width, int height, uint8_t def)
 {
     // do a simple linear interpolation at the border
     int32_t ix_f = fp16ToI(x);
@@ -166,9 +166,9 @@ inline void interpolateBiCub(uint8_t* rv, fp16 x, fp16 y,
 
 
 /** interpolateBiLin: bi-linear interpolation function, see interpolate */
-inline void interpolateBiLin(uint8_t* rv, fp16 x, fp16 y,
-                             const uint8_t* img, int img_linesize,
-                             int32_t width, int32_t height, uint8_t def)
+void interpolateBiLin(uint8_t* rv, fp16 x, fp16 y,
+                      const uint8_t* img, int img_linesize,
+                      int32_t width, int32_t height, uint8_t def)
 {
     int32_t ix_f = fp16ToI(x);
     int32_t iy_f = fp16ToI(y);
@@ -197,9 +197,9 @@ inline void interpolateBiLin(uint8_t* rv, fp16 x, fp16 y,
 }
 
 /** interpolateLin: linear (only x) interpolation function, see interpolate */
-inline void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
-                           const uint8_t* img, int img_linesize,
-                           int width, int height, uint8_t def)
+void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
+                    const uint8_t* img, int img_linesize,
+                    int width, int height, uint8_t def)
 {
     int32_t ix_f = fp16ToI(x);
     int32_t ix_c = ix_f + 1;
@@ -215,9 +215,9 @@ inline void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
 }
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
-inline void interpolateZero(uint8_t* rv, fp16 x, fp16 y,
-                            const uint8_t* img, int img_linesize,
-                            int width, int height, uint8_t def)
+void interpolateZero(uint8_t* rv, fp16 x, fp16 y,
+                     const uint8_t* img, int img_linesize,
+                     int width, int height, uint8_t def)
 {
     int32_t ix_n = fp16ToIRound(x);
     int32_t iy_n = fp16ToIRound(y);
@@ -240,11 +240,11 @@ inline void interpolateZero(uint8_t* rv, fp16 x, fp16 y,
  *            def: default value if coordinates are out of range
  * Return value:  None
  */
-inline void interpolateN(uint8_t* rv, fp16 x, fp16 y,
-                         const uint8_t* img, int img_linesize,
-                         int width, int height,
-                         uint8_t N, uint8_t channel,
-                         uint8_t def)
+void interpolateN(uint8_t* rv, fp16 x, fp16 y,
+                  const uint8_t* img, int img_linesize,
+                  int width, int height,
+                  uint8_t N, uint8_t channel,
+                  uint8_t def)
 {
     int32_t ix_f = fp16ToI(x);
     int32_t iy_f = fp16ToI(y);
