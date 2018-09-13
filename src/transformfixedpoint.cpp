@@ -1,7 +1,7 @@
 /*
- *  transformfixedpoint.c
+ *  transformfixedpoint.cpp
  *
- *  Fixed point implementation of image transformations (see also transformfloat.c/h)
+ *  Fixed point implementation of image transformations (see also transformfloat.cpp/h)
  *
  *  Copyright (C) Georg Martius - June 2011
  *   georg dot martius at web dot de

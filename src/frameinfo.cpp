@@ -1,5 +1,5 @@
 /*
- *  frameinfo.c
+ *  frameinfo.cpp
  *
  *  Copyright (C) Georg Martius - Feb - 2013
  *   georg dot martius at web dot de
@@ -79,7 +79,7 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
             fi->planes = 0;
             break;
         default:
-            fi->pFormat = 0;
+            fi->pFormat = PF_GRAY8;
             return 0;
     }
     return 1;
@@ -123,7 +123,7 @@ void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi)
         {
             int w = fi->width  >> vsGetPlaneWidthSubS(fi, i);
             int h = fi->height >> vsGetPlaneHeightSubS(fi, i);
-            frame->data[i] = vs_zalloc(w * h * sizeof(uint8_t));
+            frame->data[i] = (uint8_t*)vs_zalloc(w * h * sizeof(uint8_t));
             frame->linesize[i] = w;
             if (frame->data[i] == 0)
             {
@@ -136,7 +136,7 @@ void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi)
         assert(fi->planes == 1);
         int w = fi->width;
         int h = fi->height;
-        frame->data[0] = vs_zalloc(w * h * sizeof(uint8_t) * fi->bytesPerPixel);
+        frame->data[0] = (uint8_t*)vs_zalloc(w * h * sizeof(uint8_t) * fi->bytesPerPixel);
         frame->linesize[0] = w * fi->bytesPerPixel;
         if (frame->data[0] == 0)
         {
@@ -207,15 +207,3 @@ void vsFrameFree(VSFrame* frame)
         frame->linesize[plane] = 0;
     }
 }
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

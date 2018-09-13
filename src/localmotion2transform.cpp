@@ -1,5 +1,5 @@
 /*
- * localmotion2transform.c
+ * localmotion2transform.cpp
  *
  *  Copyright (C) Georg Martius - January 2013
  *   georg dot martius at web dot de
@@ -40,7 +40,7 @@ int vsLocalmotions2Transforms(struct VSTransformData* td,
 {
     int len = vs_vector_size(motions);
     assert(trans->len == 0 && trans->ts == 0);
-    trans->ts = vs_malloc(sizeof(struct VSTransform) * len );
+    trans->ts = (VSTransform*)vs_malloc(sizeof(struct VSTransform) * len );
     /* long start= timeOfDayinMS(); */
     FILE* f = 0;
     if (td->conf.storeTransforms)

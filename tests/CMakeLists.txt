@@ -32,11 +32,11 @@ endif()
 # Make sure the compiler can find include files from transcode
 include_directories (../src)
 
-add_executable (tests tests.c testutils.c testframework.c ../src/vsvector.c
-  ../src/transform.cpp ../src/transformfloat.c ../src/transformfixedpoint.c
-  ../src/libvidstab.c ../src/transformtype.c ../src/frameinfo.c
-  ../src/serialize.cpp ../src/localmotion2transform.c
-  ../src/motiondetect.c ../src/motiondetect_opt.c ../src/orc/motiondetectorc.c ../src/boxblur.c)
+add_executable (tests tests.c testutils.c testframework.c ../src/vsvector.cpp
+  ../src/transform.cpp ../src/transformfloat.cpp ../src/transformfixedpoint.cpp
+  ../src/libvidstab.cpp ../src/transformtype.cpp ../src/frameinfo.cpp
+  ../src/serialize.cpp ../src/localmotion2transform.cpp
+  ../src/motiondetect.cpp ../src/motiondetect_opt.cpp ../src/orc/motiondetectorc.c ../src/boxblur.cpp)
 
 target_link_libraries(tests m)
 if(ORC_FOUND)

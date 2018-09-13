@@ -1,5 +1,5 @@
 /*
- *  transformfloat.c
+ *  transformfloat.cpp
  *
  *  Floating point image transformations
  *

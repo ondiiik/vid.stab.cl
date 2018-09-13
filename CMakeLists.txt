@@ -44,10 +44,10 @@ if(USE_OMP)
 add_definitions(-fopenmp -DUSE_OMP)
 endif()
 
-set(SOURCES src/frameinfo.c src/transformtype.c src/libvidstab.c
-  src/transform.cpp src/transformfixedpoint.c src/motiondetect.c
-  src/motiondetect_opt.c src/serialize.cpp src/localmotion2transform.c
-  src/boxblur.c src/vsvector.c src/orc/motiondetectorc.c)
+set(SOURCES src/frameinfo.cpp src/transformtype.cpp src/libvidstab.cpp
+  src/transform.cpp src/transformfixedpoint.cpp src/motiondetect.cpp
+  src/motiondetect_opt.cpp src/serialize.cpp src/localmotion2transform.cpp
+  src/boxblur.cpp src/vsvector.cpp src/orc/motiondetectorc.c)
 
 set(HEADERS src/frameinfo.h src/transformtype.h src/libvidstab.h
   src/transform.h src/motiondetect.h src/serialize.h

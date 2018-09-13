@@ -1,5 +1,5 @@
-/*
- *  transformtype.c
+/**
+ *  transformtype.cpp
  *
  *  Copyright (C) Georg Martius - June 2007
  *
@@ -20,12 +20,17 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#include <vector>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include "transformtype.h"
 #include "transformtype_operations.h"
 #include "vidstabdefines.h"
+
+
+using namespace std;
+
 
 /***********************************************************************
  * helper functions to create and operate with transforms.
@@ -129,7 +134,7 @@ Vec transform_vec(const PreparedTransform* pt, const Vec* v)
 {
     double x, y;
     transform_vec_double(&x, &y, pt, v);
-    Vec res = {x, y};
+    Vec res {int(x), int(y)};
     return res;
 }
 
@@ -213,9 +218,9 @@ int cmp_int(const void* t1, const void* t2)
  */
 struct VSTransform median_xy_transform(const struct VSTransform* transforms, int len)
 {
-    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
-    struct VSTransform t   = null_transform();
-    memcpy(ts, transforms, sizeof(struct VSTransform)*len );
+    VSTransform* ts = (VSTransform*)vs_malloc(sizeof(struct VSTransform) * len);
+    VSTransform  t  = null_transform();
+    memcpy(ts, transforms, sizeof(struct VSTransform) * len);
     int half = len / 2;
     qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
     t.x = len % 2 == 0 ? ts[half].x : (ts[half].x + ts[half + 1].x) / 2;
@@ -243,8 +248,8 @@ struct VSTransform median_xy_transform(const struct VSTransform* transforms, int
  */
 struct VSTransform cleanmean_xy_transform(const struct VSTransform* transforms, int len)
 {
-    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
-    struct VSTransform t = null_transform();
+    VSTransform* ts = (VSTransform*)vs_malloc(sizeof(VSTransform) * len);
+    VSTransform  t  = null_transform();
     int i, cut = len / 5;
     memcpy(ts, transforms, sizeof(struct VSTransform) * len);
     qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
@@ -284,7 +289,7 @@ void cleanmaxmin_xy_transform(const struct VSTransform* transforms, int len,
                               int percentil,
                               struct VSTransform* min, struct VSTransform* max)
 {
-    struct VSTransform* ts = vs_malloc(sizeof(struct VSTransform) * len);
+    VSTransform* ts = (VSTransform*)vs_malloc(sizeof(VSTransform) * len);
     int cut = len * percentil / 100;
     memcpy(ts, transforms, sizeof(struct VSTransform) * len);
     qsort(ts, len, sizeof(struct VSTransform), cmp_trans_x);
@@ -423,7 +428,7 @@ LocalMotion null_localmotion()
 int* localmotions_getx(const LocalMotions* localmotions)
 {
     int len = vs_vector_size(localmotions);
-    int* xs = vs_malloc(sizeof(int) * len);
+    int* xs = (int*)vs_malloc(sizeof(int) * len);
     int i;
     for (i = 0; i < len; i++)
     {
@@ -435,7 +440,7 @@ int* localmotions_getx(const LocalMotions* localmotions)
 int* localmotions_gety(const LocalMotions* localmotions)
 {
     int len = vs_vector_size(localmotions);
-    int* ys = vs_malloc(sizeof(int) * len);
+    int* ys = (int*)vs_malloc(sizeof(int) * len);
     int i;
     for (i = 0; i < len; i++)
     {

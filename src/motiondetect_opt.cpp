@@ -1,5 +1,5 @@
 /*
- * motiondetect_opt.c
+ * motiondetect_opt.cpp
  *
  *  Copyright (C) Georg Martius - February 1007-2012
  *   georg dot martius at web dot de

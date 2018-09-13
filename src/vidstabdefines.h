@@ -58,7 +58,7 @@ extern "C" {
 /// pixel in N-channel image without rangecheck. channel in {0..N-1}
 #define PIXN(img, linesize, x, y, N, channel) (img[((x) + (y) * (linesize))*(N) + (channel)])
 
-/**** Configurable memory and logging functions. Defined in libvidstab.c ****/
+/**** Configurable memory and logging functions. Defined in libvidstab.cpp ****/
 
 typedef void* (*vs_malloc_t) (size_t size);
 typedef void* (*vs_realloc_t) (void* ptr, size_t size);

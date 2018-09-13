@@ -1,5 +1,5 @@
 /*
- * libvidstab.c
+ * libvidstab.cpp
  *
  *  Created on: Feb 21, 2011
  *  Copyright (C) Georg Martius - February 2011

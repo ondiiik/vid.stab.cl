@@ -1,5 +1,5 @@
 /*
- * motiondetect.c
+ * motiondetect.cpp
  *
  *  Copyright (C) Georg Martius - February 1007-2011
  *   georg dot martius at web dot de
