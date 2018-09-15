@@ -523,7 +523,7 @@ namespace VidStab
             throw _vsMdException("Allocation failed!");
         }
         
-        vsFrameNull(&curr);
+        vsFrameNull(&currPrep);
         vsFrameNull(&currorig);
         vsFrameNull(&currtmp);
         
@@ -563,8 +563,8 @@ namespace VidStab
         _initFields(&fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
         _initFields(&fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
         
-        vsFrameAllocate(&curr,    &fi);
-        vsFrameAllocate(&currtmp, &fi);
+        vsFrameAllocate(&currPrep, &fi);
+        vsFrameAllocate(&currtmp,  &fi);
     }
     
     
@@ -583,7 +583,7 @@ namespace VidStab
         }
         
         vsFrameFree(&prev);
-        vsFrameFree(&curr);
+        vsFrameFree(&currPrep);
         vsFrameFree(&currtmp);
     }
     
@@ -704,7 +704,7 @@ namespace VidStab
             /*
              * For tripod we keep a certain reference frame
              */
-            vsFrameCopy(&prev, &curr, &fi);
+            vsFrameCopy(&prev, curr, &fi);
         }
         
         frameNum++;
@@ -713,6 +713,8 @@ namespace VidStab
     
     void VSMD::_blur(const VSFrame* aFrame)
     {
+        int stepSize;
+        
         if (fi.pFormat > PF_PACKED)
         {
             /*
@@ -720,7 +722,7 @@ namespace VidStab
              * the PLANAR stuff afterwards so far smoothing is
              * not needed.
              */
-            vsFrameCopy(&curr, aFrame, &fi);
+            stepSize = 1;
         }
         else
         {
@@ -728,34 +730,25 @@ namespace VidStab
              * Box-kernel smoothing (plain average of pixels),
              * which is fine for us.
              */
-            boxblurPlanar(&curr, aFrame, &currtmp, &fi, conf.stepSize, BoxBlurNoColor);
+            stepSize = conf.stepSize;
         }
+        
+        curr = boxblurPlanar(currPrep, *aFrame, currtmp, fi, stepSize, BoxBlurNoColor);
     }
     
     
     void VSMD::_detect(LocalMotions*  aMotions,
                        const VSFrame* aFrame)
     {
-        LocalMotions motionscoarse;
         LocalMotions motionsfine;
-        
-        vs_vector_init(&motionsfine, 0);
-        
-        if (fi.pFormat > PF_PACKED)
-        {
-            motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
-        }
-        else
-        {
-            motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
-        }
-        
-        int num_motions = vs_vector_size(&motionscoarse);
+        LocalMotions motionscoarse;
+        int          num_motions = _detectContrast(motionscoarse);
         
         if (num_motions < 1)
         {
+            vs_vector_init(&motionsfine, 0);
             vs_log_warn(conf.modName,
-                        "too low contrast. (no translations are detected in frame %i)\n",
+                        "Too low contrast. (no translations are detected in frame %i)\n",
                         frameNum);
         }
         else
@@ -783,7 +776,8 @@ namespace VidStab
              */
             VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
             double  meanMatch       = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
-            motionsfine             = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
+            
+            motionsfine = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
         }
         
         
@@ -799,6 +793,24 @@ namespace VidStab
         
         *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
     }
+    
+    
+    int VSMD::_detectContrast(LocalMotions& aMotionscoarse)
+    {
+        vs_vector_init(&aMotionscoarse, 0);
+        
+        if (fi.pFormat > PF_PACKED)
+        {
+            aMotionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+        }
+        else
+        {
+            aMotionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+        }
+        
+        return vs_vector_size(&aMotionscoarse);
+    }
+    
     
     void VSMD::_draw(int           num_motions,
                      LocalMotions& motionscoarse,
@@ -1011,14 +1023,14 @@ namespace VidStab
         int         tx = 0;
         int         ty = 0;
         
-        uint8_t* I_c = md->curr.data[0], *I_p = md->prev.data[0];
-        int width1 = md->curr.linesize[0] / 3; // linesize in pixels
-        int width2 = md->prev.linesize[0] / 3; // linesize in pixels
+        uint8_t* I_c = md->curr->data[0], *I_p = md->prev.data[0];
+        int width1   = md->curr->linesize[0] / 3; // linesize in pixels
+        int width2   = md->prev.linesize[0] / 3; // linesize in pixels
         int i, j;
         int stepSize = fs->stepSize;
         int maxShift = fs->maxShift;
         
-        Vec offset = { 0, 0};
+        Vec offset     = { 0, 0};
         LocalMotion lm = null_localmotion();
         if (fs->useOffset)
         {
@@ -1107,8 +1119,8 @@ namespace VidStab
         int         tx = 0;
         int         ty = 0;
         
-        uint8_t* Y_c = md->curr.data[0], *Y_p = md->prev.data[0];
-        int linesize_c = md->curr.linesize[0], linesize_p = md->prev.linesize[0];
+        uint8_t* Y_c = md->curr->data[0], *Y_p = md->prev.data[0];
+        int linesize_c = md->curr->linesize[0], linesize_p = md->prev.linesize[0];
         // we only use the luminance part of the image
         int i, j;
         int stepSize = fs->stepSize;
@@ -1268,8 +1280,8 @@ namespace VidStab
     double visitor_contrastSubImgPacked(VSMD*        md,
                                         const Field* field)
     {
-        unsigned char* const I         = md->curr.data[0];
-        int                  linesize2 = md->curr.linesize[0] / 3; // linesize in pixels
+        unsigned char* const I         = md->curr->data[0];
+        int                  linesize2 = md->curr->linesize[0] / 3; // linesize in pixels
         
         return (contrastSubImg(I + 0, field, linesize2, md->fi.height, 3) +
                 contrastSubImg(I + 1, field, linesize2, md->fi.height, 3) +
@@ -1281,9 +1293,9 @@ namespace VidStab
                                         const Field* field)
     {
 #ifdef USE_SSE2
-        return contrastSubImg1_SSE(md->curr.data[0], field, md->curr.linesize[0], md->fi.height);
+        return contrastSubImg1_SSE(md->curr->data[0], field, md->curr->linesize[0], md->fi.height);
 #else
-        return contrastSubImg(md->curr.data[0], field, md->curr.linesize[0], md->fi.height, 1);
+        return contrastSubImg(md->curr->data[0], field, md->curr->linesize[0], md->fi.height, 1);
 #endif
     }
 }

@@ -24,97 +24,116 @@
 
 #include "boxblur.h"
 #include "vidstabdefines.h"
+#include <iostream> // DBG
+using namespace std; // DBG
 
 
-void boxblur_hori_C(unsigned char* dest, const unsigned char* src,
-                    int width, int height, int dest_strive, int src_strive, int size);
-void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
-                    int width, int height, int dest_strive, int src_strive, int size);
+void boxblur_hori_C(unsigned char*       dest,
+                    const unsigned char* src,
+                    int                  width,
+                    int                  height,
+                    int                  dest_strive,
+                    int                  src_strive,
+                    int                  size);
 
-/*
-  The algorithm:
-  box filter: kernel has only 1's
-  a good blur is obtained for multiple runs of boxblur
-  - 2 runs: tent kernel,  infinity -> gaussian
-  but for our purposes is the tent kernel enough.
+void boxblur_vert_C(unsigned char*       dest,
+                    const unsigned char* src,
+                    int                  width,
+                    int                  height,
+                    int                  dest_strive,
+                    int                  src_strive,
+                    int                  size);
 
-  horizontal and vertical 1D boxfilters can be used
 
-  accumulator: acc = acc + new - old, pixel = acc/size
-*/
-void boxblurPlanar(VSFrame*           dest,
-                   const VSFrame*     src,
-                   VSFrame*           buffer,
-                   const VSFrameInfo* fi,
-                   unsigned int       size,
-                   BoxBlurColorMode   colormode)
+const VSFrame* boxblurPlanar(VSFrame&           aDst,
+                             const VSFrame&     aSrc,
+                             VSFrame&           aBuffer,
+                             const VSFrameInfo& aFi,
+                             unsigned int       aStepSize,
+                             BoxBlurColorMode   aColormode)
 {
-    int localbuffer = 0;
-    int size2;
-    if (size < 2)
+    
+    if (aStepSize < 2)
     {
-        if (dest != src)
-        {
-            vsFrameCopy(dest, src, fi);
-        }
-        return;
+        return &aSrc;
     }
+    
+    
     VSFrame buf;
-    if (buffer == 0)
+    int     localbuffer = 0;
+    
+    if (&aBuffer == nullptr)
     {
-        vsFrameAllocate(&buf, fi);
+        vsFrameAllocate(&buf, &aFi);
         localbuffer = 1;
     }
     else
     {
-        buf = *buffer;
+        buf = aBuffer;
     }
-    // odd and larger than 2 and maximally half of smaller image dimension
-    size  = VS_CLAMP((int(size) / 2) * 2 + 1, 3, VS_MIN(fi->height / 2, fi->width / 2));
-    //printf("%i\n",size);
     
-    // luminance
+    
+    // odd and larger than 2 and maximally half of smaller image dimension
+    aStepSize  = VS_CLAMP(aStepSize | 1U,
+                          3,
+                          unsigned(VS_MIN(aFi.height / 2, aFi.width / 2)));
+                          
     boxblur_hori_C(buf.data[0],
-                   src->data[0],
-                   fi->width,
-                   fi->height,
+                   aSrc.data[0],
+                   aFi.width,
+                   aFi.height,
                    buf.linesize[0],
-                   src->linesize[0],
-                   size);
-    boxblur_vert_C(dest->data[0], buf.data[0],
-                   fi->width, fi->height, dest->linesize[0], buf.linesize[0], size);
+                   aSrc.linesize[0],
+                   aStepSize);
                    
-    size2 = size / 2 + 1; // odd and larger than 0
-    int plane;
-    switch (colormode)
+    boxblur_vert_C(aDst.data[0],
+                   buf.data[0],
+                   aFi.width,
+                   aFi.height,
+                   aDst.linesize[0],
+                   buf.linesize[0],
+                   aStepSize);
+                   
+                   
+    int size2 = aStepSize / 2 + 1; // odd and larger than 0
+    
+    switch (aColormode)
     {
         case BoxBlurColor:
             // color
             if (size2 > 1)
             {
-                for (plane = 1; plane < fi->planes; plane++)
+                for (int plane = 1; plane < aFi.planes; ++plane)
                 {
                     boxblur_hori_C(buf.data[plane],
-                                   src->data[plane],
-                                   fi->width  >> vsGetPlaneWidthSubS(fi, plane),
-                                   fi->height >> vsGetPlaneHeightSubS(fi, plane),
+                                   aSrc.data[plane],
+                                   aFi.width  >> vsGetPlaneWidthSubS(&aFi, plane),
+                                   aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
                                    buf.linesize[plane],
-                                   src->linesize[plane],
+                                   aSrc.linesize[plane],
                                    size2);
-                    boxblur_vert_C(dest->data[plane], buf.data[plane],
-                                   fi->width  >> vsGetPlaneWidthSubS(fi, plane),
-                                   fi->height >> vsGetPlaneHeightSubS(fi, plane),
-                                   dest->linesize[plane], buf.linesize[plane], size2);
+                                   
+                    boxblur_vert_C(aDst.data[plane],
+                                   buf.data[plane],
+                                   aFi.width  >> vsGetPlaneWidthSubS(&aFi, plane),
+                                   aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
+                                   aDst.linesize[plane],
+                                   buf.linesize[plane],
+                                   size2);
                 }
             }
             break;
+            
+            
         case BoxBlurKeepColor:
             // copy both color channels
-            for (plane = 1; plane < fi->planes; plane++)
+            for (int plane = 1; plane < aFi.planes; plane++)
             {
-                vsFrameCopyPlane(dest, src, fi, plane);
+                vsFrameCopyPlane(&aDst, &aSrc, &aFi, plane);
             }
-        case BoxBlurNoColor: // do nothing
+            break;
+            
+            
         default:
             break;
     }
@@ -123,7 +142,10 @@ void boxblurPlanar(VSFrame*           dest,
     {
         vsFrameFree(&buf);
     }
+
+    return &aDst;
 }
+
 
 /* /\* */
 /*   The algorithm: */

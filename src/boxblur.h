@@ -40,7 +40,7 @@ typedef enum BoxBlurColorMode
     BoxBlurKeepColor,
     BoxBlurNoColor
 }
-BoxBlurColorMode ;
+BoxBlurColorMode;
 
 
 /** performs a boxblur operation on src and stores results in dest.
@@ -49,15 +49,17 @@ BoxBlurColorMode ;
  *            If 0 then it is locally malloced
  * @param size of bluring kernel, (min 3 and it is made odd)
  * @param onlyLumincance if true color planes stay untouched
+ *
+ * @return  Blured frame
  */
-void boxblurPlanar(VSFrame*           dest,
-                   const VSFrame*     src,
-                   VSFrame*           buffer,
-                   const VSFrameInfo* fi,
-                   unsigned int       size,
-                   BoxBlurColorMode   colormode);
-                   
-                   
+const VSFrame* boxblurPlanar(VSFrame&           aDst,
+                             const VSFrame&     aSrc,
+                             VSFrame&           aBuffer,
+                             const VSFrameInfo& aFi,
+                             unsigned int       aSize,
+                             BoxBlurColorMode   aColormode);
+                             
+                             
 #ifdef __cplusplus
 }
 #endif

@@ -64,18 +64,19 @@ namespace VidStab
         /**
          * @brief   Reference to parent C instance
          */
-        VSFrameInfo& fi;
+        VSFrameInfo&         fi;
         
         VSMotionDetectConfig conf;
         
         VSMotionDetectFields fieldscoarse;
         VSMotionDetectFields fieldsfine;
         
-        VSFrame curr;                 // blurred version of current frame buffer
-        VSFrame currorig;             // current frame buffer (original) (only pointer)
-        VSFrame currtmp;              // temporary buffer for blurring
-        VSFrame prev;                 // frame buffer for last frame (copied)
-        bool    firstFrame;      // true if we have a valid previous frame
+        const VSFrame*       curr;       // Current pre-processed frame
+        VSFrame              currPrep;   // Current pre-processed frame
+        VSFrame              currorig;   // current frame buffer (original) (only pointer)
+        VSFrame              currtmp;    // temporary buffer for blurring
+        VSFrame              prev;       // frame buffer for last frame (copied)
+        bool                 firstFrame; // true if we have a valid previous frame
         
         int frameNum;
         
@@ -126,6 +127,14 @@ namespace VidStab
          */
         void _detect(LocalMotions*  aMotions,
                      const VSFrame* aFrame);
+
+
+        /**
+         * @brief   Detect motion - contrast part
+         * @param   aMotionscoarse    Coarse motion results
+         * @return  Number of detected motions
+         */
+        int _detectContrast(LocalMotions& aMotionscoarse);
 
 
         /**
