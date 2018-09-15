@@ -75,8 +75,7 @@ namespace VidStab
         VSFrame currorig;             // current frame buffer (original) (only pointer)
         VSFrame currtmp;              // temporary buffer for blurring
         VSFrame prev;                 // frame buffer for last frame (copied)
-        bool    hasSeenOneFrame;      // true if we have a valid previous frame
-        int     initialized;          // 1 if initialized and 2 if configured
+        bool    firstFrame;      // true if we have a valid previous frame
         
         int frameNum;
         
@@ -106,6 +105,27 @@ namespace VidStab
         LocalMotions _calcTransFields(VSMotionDetectFields* fields,
                                       calcFieldTransFunc    fieldfunc,
                                       contrastSubImgFunc    contrastfunc);
+
+
+        /**
+         * @brief   Smoothen image to do better motion detection
+         *
+         * Larger step size or eventually gradient descent
+         * (need higher resolution).
+         *
+         * @param   aFrame  Current frame
+         */
+        void _blur(const VSFrame* aFrame);
+
+
+        /**
+         * @brief       Detect motion
+         *
+         * @param[out]  aMotions    Motions vector
+         * @param[in]   aFrame      Current frame
+         */
+        void _detect(LocalMotions*  aMotions,
+                     const VSFrame* aFrame);
 
 
         /**

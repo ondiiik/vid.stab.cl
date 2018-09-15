@@ -42,7 +42,6 @@ void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
 
   accumulator: acc = acc + new - old, pixel = acc/size
 */
-
 void boxblurPlanar(VSFrame*           dest,
                    const VSFrame*     src,
                    VSFrame*           buffer,

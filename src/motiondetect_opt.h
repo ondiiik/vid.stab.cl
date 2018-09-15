@@ -70,10 +70,16 @@ unsigned int compareSubImg_thr_orc(unsigned char* const I1, unsigned char* const
 #endif
 
 #ifdef USE_SSE2
-unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* const I2,
-                                    const Field* field, int width1, int width2, int height,
-                                    int bytesPerPixel, int d_x, int d_y,
-                                    unsigned int threshold);
+unsigned int compareSubImg_thr_sse2(unsigned char* const I1,
+                                    unsigned char* const I2,
+                                    const Field*         field,
+                                    int                  width1,
+                                    int                  width2,
+                                    int                  height,
+                                    int                  bytesPerPixel,
+                                    int                  d_x,
+                                    int                  d_y,
+                                    unsigned int         threshold);
 #endif
 
 #ifdef USE_SSE2_ASM

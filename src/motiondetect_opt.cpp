@@ -38,62 +38,65 @@
 #endif
 
 #ifdef USE_SSE2
+namespace
+{
+    unsigned char _full[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+}
+
+
 /**
    \see contrastSubImg using SSE2 optimization, Planar (1 byte per channel) only
 */
-double contrastSubImg1_SSE(unsigned char* const I, const Field* field,
-                           int width, int height)
+double contrastSubImg1_SSE(unsigned char* const I,
+                           const Field*         field,
+                           int                  width,
+                           int                  height)
 {
-    int k, j;
-    unsigned char* p = NULL;
-    int s2 = field->size / 2;
+    int            s2   = field->size / 2;
+    unsigned char* p    = I + ((field->x - s2) + (field->y - s2) * width);
     
-    static unsigned char full[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    __m128i        mmin = _mm_loadu_si128((__m128i const*)_full);
+    __m128i        mmax = _mm_setzero_si128();
     
-    p = I + ((field->x - s2) + (field->y - s2) * width);
     
-    __m128i mmin, mmax;
-    
-    mmin = _mm_loadu_si128((__m128i const*)full);
-    mmax = _mm_setzero_si128();
-    
-    for (j = 0; j < field->size; j++)
+    for (int j = 0; j < field->size; j++)
     {
-        for (k = 0; k < field->size; k += 16)
+        for (int k = 0; k < field->size; k += 16)
         {
-            __m128i xmm0;
-            xmm0 = _mm_loadu_si128((__m128i const*)p);
-            mmin = _mm_min_epu8(mmin, xmm0);
-            mmax = _mm_max_epu8(mmax, xmm0);
-            p += 16;
+            __m128i xmm0 = _mm_loadu_si128((__m128i const*)p);
+            mmin         = _mm_min_epu8(mmin, xmm0);
+            mmax         = _mm_max_epu8(mmax, xmm0);
+            p           += 16;
         }
+        
         p += (width - field->size);
     }
     
-    __m128i xmm1;
-    xmm1 = _mm_srli_si128(mmin, 8);
-    mmin = _mm_min_epu8(mmin, xmm1);
-    xmm1 = _mm_srli_si128(mmin, 4);
-    mmin = _mm_min_epu8(mmin, xmm1);
-    xmm1 = _mm_srli_si128(mmin, 2);
-    mmin = _mm_min_epu8(mmin, xmm1);
-    xmm1 = _mm_srli_si128(mmin, 1);
-    mmin = _mm_min_epu8(mmin, xmm1);
+    __m128i xmm1       = _mm_srli_si128(mmin, 8);
+    mmin               = _mm_min_epu8(mmin, xmm1);
+    xmm1               = _mm_srli_si128(mmin, 4);
+    mmin               = _mm_min_epu8(mmin, xmm1);
+    xmm1               = _mm_srli_si128(mmin, 2);
+    mmin               = _mm_min_epu8(mmin, xmm1);
+    xmm1               = _mm_srli_si128(mmin, 1);
+    mmin               = _mm_min_epu8(mmin, xmm1);
     unsigned char mini = (unsigned char)_mm_extract_epi16(mmin, 0);
     
-    xmm1 = _mm_srli_si128(mmax, 8);
-    mmax = _mm_max_epu8(mmax, xmm1);
-    xmm1 = _mm_srli_si128(mmax, 4);
-    mmax = _mm_max_epu8(mmax, xmm1);
-    xmm1 = _mm_srli_si128(mmax, 2);
-    mmax = _mm_max_epu8(mmax, xmm1);
-    xmm1 = _mm_srli_si128(mmax, 1);
-    mmax = _mm_max_epu8(mmax, xmm1);
+    xmm1               = _mm_srli_si128(mmax, 8);
+    mmax               = _mm_max_epu8(mmax, xmm1);
+    xmm1               = _mm_srli_si128(mmax, 4);
+    mmax               = _mm_max_epu8(mmax, xmm1);
+    xmm1               = _mm_srli_si128(mmax, 2);
+    mmax               = _mm_max_epu8(mmax, xmm1);
+    xmm1               = _mm_srli_si128(mmax, 1);
+    mmax               = _mm_max_epu8(mmax, xmm1);
     unsigned char maxi = (unsigned char)_mm_extract_epi16(mmax, 0);
     
     return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to avoid division by 0
 }
 #endif
+
 
 #ifdef USE_ORC
 /**
@@ -228,50 +231,53 @@ unsigned int compareSubImg_orc(unsigned char* const I1, unsigned char* const I2,
 }
 #endif
 
+
 #ifdef USE_SSE2
-unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* const I2,
-                                    const Field* field,
-                                    int width1, int width2, int height,
-                                    int bytesPerPixel, int d_x, int d_y,
-                                    unsigned int treshold)
+unsigned int compareSubImg_thr_sse2(unsigned char* const I1,
+                                    unsigned char* const I2,
+                                    const Field*         field,
+                                    int                  width1,
+                                    int                  width2,
+                                    int                  height,
+                                    int                  bytesPerPixel,
+                                    int                  d_x,
+                                    int                  d_y,
+                                    unsigned int         treshold)
 {
-    int k, j;
-    unsigned char* p1 = NULL;
-    unsigned char* p2 = NULL;
-    int s2 = field->size / 2;
-    unsigned int sum = 0;
-    
-    static unsigned char mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-    unsigned char row = 0;
+
 #ifndef USE_SSE2_CMP_HOR
     unsigned char summes[16];
     int i;
 #endif
-    __m128i xmmsum, xmmmask;
-    xmmsum = _mm_setzero_si128();
-    xmmmask = _mm_loadu_si128((__m128i const*)mask);
     
-    p1 = I1 + ((field->x - s2) + (field->y - s2) * width1) * bytesPerPixel;
-    p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
-    for (j = 0; j < field->size; j++)
+    
+    __m128i        xmmsum  = _mm_setzero_si128();
+    __m128i        xmmmask = _mm_loadu_si128((__m128i const*)_mask);
+    
+    int            s2      = field->size / 2;
+    unsigned char* p1      = I1 + ((field->x - s2) + (field->y - s2) * width1) * bytesPerPixel;
+    unsigned char* p2      = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
+    unsigned int   sum     = 0;
+    unsigned char  row     = 0;
+    
+    for (int j = 0; j < field->size; j++)
     {
-        for (k = 0; k < field->size * bytesPerPixel; k += 16)
+        for (int k = 0; k < field->size * bytesPerPixel; k += 16)
         {
             {
-                __m128i xmm0, xmm1, xmm2;
-                xmm0 = _mm_loadu_si128((__m128i const*)p1);
-                xmm1 = _mm_loadu_si128((__m128i const*)p2);
+                __m128i xmm0 = _mm_loadu_si128((__m128i const*)p1);
+                __m128i xmm1 = _mm_loadu_si128((__m128i const*)p2);
                 
-                xmm2 = _mm_subs_epu8(xmm0, xmm1);
-                xmm0 = _mm_subs_epu8(xmm1, xmm0);
-                xmm0 = _mm_adds_epu8(xmm0, xmm2);
+                __m128i xmm2 = _mm_subs_epu8(xmm0, xmm1);
+                xmm0         = _mm_subs_epu8(xmm1, xmm0);
+                xmm0         = _mm_adds_epu8(xmm0, xmm2);
                 
-                xmm1 = _mm_and_si128(xmm0, xmmmask);
-                xmm0 = _mm_srli_si128(xmm0, 1);
-                xmm0 = _mm_and_si128(xmm0, xmmmask);
+                xmm1         = _mm_and_si128(xmm0, xmmmask);
+                xmm0         = _mm_srli_si128(xmm0, 1);
+                xmm0         = _mm_and_si128(xmm0, xmmmask);
                 
-                xmmsum = _mm_adds_epu16(xmmsum, xmm0);
-                xmmsum = _mm_adds_epu16(xmmsum, xmm1);
+                xmmsum       = _mm_adds_epu16(xmmsum, xmm0);
+                xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
             }
             
             p1 += 16;
@@ -283,21 +289,20 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* cons
                 row = 0;
 #ifdef USE_SSE2_CMP_HOR
                 {
-                    __m128i xmm1;
+                    __m128i xmm1 = _mm_srli_si128(xmmsum, 8);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
                     
-                    xmm1 = _mm_srli_si128(xmmsum, 8);
-                    xmmsum = _mm_adds_epu16(xmmsum, xmm1);
+                    xmm1         = _mm_srli_si128(xmmsum, 4);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
                     
-                    xmm1 = _mm_srli_si128(xmmsum, 4);
-                    xmmsum = _mm_adds_epu16(xmmsum, xmm1);
+                    xmm1         = _mm_srli_si128(xmmsum, 2);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
                     
-                    xmm1 = _mm_srli_si128(xmmsum, 2);
-                    xmmsum = _mm_adds_epu16(xmmsum, xmm1);
-                    
-                    sum += _mm_extract_epi16(xmmsum, 0);
+                    sum         += _mm_extract_epi16(xmmsum, 0);
                 }
 #else
                 _mm_storeu_si128((__m128i*)summes, xmmsum);
+                
                 for (i = 0; i < 16; i += 2)
                 {
                     sum += summes[i] + summes[i + 1] * 256;
@@ -306,33 +311,36 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* cons
                 xmmsum = _mm_setzero_si128();
             }
         }
+        
         if (sum > treshold)
         {
             break;
         }
+        
         p1 += (width1 - field->size) * bytesPerPixel;
         p2 += (width2 - field->size) * bytesPerPixel;
     }
     
-#if (SSE2_CMP_SUM_ROWS != 1) && (SSE2_CMP_SUM_ROWS != 2) && (SSE2_CMP_SUM_ROWS != 4) \
-  && (SSE2_CMP_SUM_ROWS != 8) && (SSE2_CMP_SUM_ROWS != 16)
+#if (SSE2_CMP_SUM_ROWS != 1) && \
+    (SSE2_CMP_SUM_ROWS != 2) && \
+    (SSE2_CMP_SUM_ROWS != 4) && \
+    (SSE2_CMP_SUM_ROWS != 8) && \
+    (SSE2_CMP_SUM_ROWS != 16)
     //process all data left unprocessed
     //this part can be safely ignored if
     //SSE_SUM_ROWS = {1, 2, 4, 8, 16}
 #ifdef USE_SSE2_CMP_HOR
     {
-        __m128i xmm1;
+        __m128i xmm1 = _mm_srli_si128(xmmsum, 8);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
         
-        xmm1 = _mm_srli_si128(xmmsum, 8);
-        xmmsum = _mm_adds_epu16(xmmsum, xmm1);
+        xmm1         = _mm_srli_si128(xmmsum, 4);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
         
-        xmm1 = _mm_srli_si128(xmmsum, 4);
-        xmmsum = _mm_adds_epu16(xmmsum, xmm1);
+        xmm1         = _mm_srli_si128(xmmsum, 2);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
         
-        xmm1 = _mm_srli_si128(xmmsum, 2);
-        xmmsum = _mm_adds_epu16(xmmsum, xmm1);
-        
-        sum += _mm_extract_epi16(xmmsum, 0);
+        sum         += _mm_extract_epi16(xmmsum, 0);
     }
 #else
     _mm_storeu_si128((__m128i*)summes, xmmsum);
@@ -346,6 +354,7 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1, unsigned char* cons
     return sum;
 }
 #endif // USE_SSE2
+
 
 #ifdef USE_SSE2_ASM
 unsigned int compareSubImg_thr_sse2_asm(unsigned char* const I1, unsigned char* const I2,

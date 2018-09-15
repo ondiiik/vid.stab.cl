@@ -273,24 +273,24 @@ double contrastSubImg(unsigned char* const I,
                       int                  height,
                       int                  bytesPerPixel)
 {
-    int k, j;
-    unsigned char* p = NULL;
-    int s2 = field->size / 2;
-    unsigned char mini = 255;
-    unsigned char maxi = 0;
+    int            s2   = field->size / 2;
+    unsigned char  mini = 255;
+    unsigned char  maxi = 0;
+    unsigned char* p    = I + ((field->x - s2) + (field->y - s2) * width) * bytesPerPixel;
     
-    p = I + ((field->x - s2) + (field->y - s2) * width) * bytesPerPixel;
-    for (j = 0; j < field->size; j++)
+    for (int j = 0; j < field->size; ++j)
     {
-        for (k = 0; k < field->size; k++)
+        for (int k = 0; k < field->size; ++k)
         {
             mini = (mini < *p) ? mini : *p;
             maxi = (maxi > *p) ? maxi : *p;
             p += bytesPerPixel;
         }
+        
         p += (width - field->size) * bytesPerPixel;
     }
-    return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to avoid division by 0
+    
+    return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to prevent from division by 0
 }
 
 
@@ -477,7 +477,8 @@ namespace VidStab
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fi { aMd->fi }
+        fi         { aMd->fi },
+        firstFrame { true    }
     {
         /*
          * First of all check inputs before we use them
@@ -526,7 +527,6 @@ namespace VidStab
         vsFrameNull(&currorig);
         vsFrameNull(&currtmp);
         
-        hasSeenOneFrame = false;
         frameNum        = 0;
         
         conf.shakiness  = VS_MIN(10, VS_MAX(1, conf.shakiness));
@@ -565,8 +565,6 @@ namespace VidStab
         
         vsFrameAllocate(&curr,    &fi);
         vsFrameAllocate(&currtmp, &fi);
-        
-        initialized = 2;
     }
     
     
@@ -587,8 +585,6 @@ namespace VidStab
         vsFrameFree(&prev);
         vsFrameFree(&curr);
         vsFrameFree(&currtmp);
-        
-        initialized = 0;
     }
     
     
@@ -688,122 +684,121 @@ namespace VidStab
     }
     
     
-    
-    
     void VSMD::operator ()(LocalMotions*  aMotions,
                            const VSFrame* aFrame)
     {
-        if (initialized != 2)
-        {
-            throw _vsMdException("Not initialized!");
-        }
+        _blur(aFrame);
         
-        
-        /*
-         * Smoothen image to do better motion detection.
-         * Larger step size or eventually gradient descent
-         * (need higher resolution)
-         */
-        if (fi.pFormat > PF_PACKED)
+        if (!firstFrame)
         {
-            /*
-             * We could calculate a grayscale version and use the PLANAR stuff afterwards
-             * so far smoothing is only implemented for PLANAR
-             */
-            vsFrameCopy(&curr, aFrame, &fi);
-        }
-        else
-        {
-            /*
-             *  box-kernel smoothing (plain average of pixels), which is fine for us
-             */
-            boxblurPlanar(&curr, aFrame, &currtmp, &fi, conf.stepSize, BoxBlurNoColor);
-        }
-        
-        
-        if (hasSeenOneFrame)
-        {
-            LocalMotions motionscoarse;
-            LocalMotions motionsfine;
-            
-            vs_vector_init(&motionsfine, 0);
-            
-            if (fi.pFormat > PF_PACKED)
-            {
-                motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
-            }
-            else
-            {
-                motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
-            }
-            
-            int num_motions = vs_vector_size(&motionscoarse);
-            
-            if (num_motions < 1)
-            {
-                vs_log_warn(conf.modName,
-                            "too low contrast. (no translations are detected in frame %i)\n",
-                            frameNum);
-            }
-            else
-            {
-                /*
-                 * Calculates transformation and perform another scan with small fields
-                 */
-                VSTransform        t = vsSimpleMotionsToTransform(fi, conf.modName, &motionscoarse);
-                fieldsfine.offset    = t;
-                fieldsfine.useOffset = 1;
-                
-                LocalMotions motions2;
-                
-                if (fi.pFormat > PF_PACKED)
-                {
-                    motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
-                }
-                else // PLANAR
-                {
-                    motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
-                }
-                
-                /*
-                 * Through out those with bad match (worse than mean of coarse scan)
-                 */
-                VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
-                double  meanMatch       = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
-                motionsfine             = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
-            }
-            
-            
-            /*
-             * Draw fields and transforms into frame.
-             * Make a copy of current frame so we can modify it
-             */
-            if (conf.show)
-            {
-                currorig = *aFrame;
-                _draw(num_motions, motionscoarse, motionsfine);
-            }
-            
-            *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
+            _detect(aMotions, aFrame);
         }
         else
         {
             vs_vector_init(aMotions, 1);
-            hasSeenOneFrame = true;
+            firstFrame = false;
         }
         
-        /*
-         * For tripod we keep a certain reference frame
-         */
-        if ((conf.virtualTripod < 1) ||
-            (frameNum           < conf.virtualTripod))
+        if ((conf.virtualTripod < 1) || (frameNum < conf.virtualTripod))
         {
+            /*
+             * For tripod we keep a certain reference frame
+             */
             vsFrameCopy(&prev, &curr, &fi);
         }
         
         frameNum++;
     }
     
+    
+    void VSMD::_blur(const VSFrame* aFrame)
+    {
+        if (fi.pFormat > PF_PACKED)
+        {
+            /*
+             * We could calculate a gray-scale version and use
+             * the PLANAR stuff afterwards so far smoothing is
+             * not needed.
+             */
+            vsFrameCopy(&curr, aFrame, &fi);
+        }
+        else
+        {
+            /*
+             * Box-kernel smoothing (plain average of pixels),
+             * which is fine for us.
+             */
+            boxblurPlanar(&curr, aFrame, &currtmp, &fi, conf.stepSize, BoxBlurNoColor);
+        }
+    }
+    
+    
+    void VSMD::_detect(LocalMotions*  aMotions,
+                       const VSFrame* aFrame)
+    {
+        LocalMotions motionscoarse;
+        LocalMotions motionsfine;
+        
+        vs_vector_init(&motionsfine, 0);
+        
+        if (fi.pFormat > PF_PACKED)
+        {
+            motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+        }
+        else
+        {
+            motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+        }
+        
+        int num_motions = vs_vector_size(&motionscoarse);
+        
+        if (num_motions < 1)
+        {
+            vs_log_warn(conf.modName,
+                        "too low contrast. (no translations are detected in frame %i)\n",
+                        frameNum);
+        }
+        else
+        {
+            /*
+             * Calculates transformation and perform another scan with small fields
+             */
+            VSTransform        t = vsSimpleMotionsToTransform(fi, conf.modName, &motionscoarse);
+            fieldsfine.offset    = t;
+            fieldsfine.useOffset = 1;
+            
+            LocalMotions motions2;
+            
+            if (fi.pFormat > PF_PACKED)
+            {
+                motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+            }
+            else
+            {
+                motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+            }
+            
+            /*
+             * Through out those with bad match (worse than mean of coarse scan)
+             */
+            VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
+            double  meanMatch       = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
+            motionsfine             = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
+        }
+        
+        
+        /*
+         * Draw fields and transforms into frame.
+         * Make a copy of current frame so we can modify it
+         */
+        if (conf.show)
+        {
+            currorig = *aFrame;
+            _draw(num_motions, motionscoarse, motionsfine);
+        }
+        
+        *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
+    }
     
     void VSMD::_draw(int           num_motions,
                      LocalMotions& motionscoarse,
@@ -903,8 +898,7 @@ namespace VidStab
     VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
                                  contrastSubImgFunc    contrastfunc)
     {
-        VSVector      goodflds;
-        
+        VSVector        goodflds;
         vs_vector_init(&goodflds, fs->fieldNum);
         
         
@@ -941,7 +935,7 @@ namespace VidStab
         vector<contrast_idx> ci_segms { ci.begin(), ci.end()         };
         int                  numsegms { fs->fieldRows + 1            };
         int                  segmlen  { fs->fieldNum  / numsegms + 1 };
-
+        
         for (int i = 0; i < numsegms; i++)
         {
             int startindex = segmlen * i;
@@ -953,7 +947,7 @@ namespace VidStab
              */
             auto b = ci_segms.begin() + startindex;
             auto e = b +    (endindex - startindex);
-            sort(b, e, _cmp_Contrast);
+            sort(b,  e, _cmp_Contrast);
             
             /*
              * Take maxfields / numsegms
@@ -984,7 +978,7 @@ namespace VidStab
          * Check whether enough fields are selected.
          */
         int remaining = fs->maxFields - vs_vector_size(&goodflds);
-
+        
         if (remaining > 0)
         {
             /*
@@ -1001,7 +995,7 @@ namespace VidStab
                 }
             }
         }
-
+        
         return goodflds;
     }
     
@@ -1274,11 +1268,12 @@ namespace VidStab
     double visitor_contrastSubImgPacked(VSMD*        md,
                                         const Field* field)
     {
-        unsigned char* const I = md->curr.data[0];
-        int linesize2 = md->curr.linesize[0] / 3; // linesize in pixels
-        return (contrastSubImg(I, field, linesize2, md->fi.height, 3)
-                + contrastSubImg(I + 1, field, linesize2, md->fi.height, 3)
-                + contrastSubImg(I + 2, field, linesize2, md->fi.height, 3)) / 3;
+        unsigned char* const I         = md->curr.data[0];
+        int                  linesize2 = md->curr.linesize[0] / 3; // linesize in pixels
+        
+        return (contrastSubImg(I + 0, field, linesize2, md->fi.height, 3) +
+                contrastSubImg(I + 1, field, linesize2, md->fi.height, 3) +
+                contrastSubImg(I + 2, field, linesize2, md->fi.height, 3)) / 3;
     }
     
     
