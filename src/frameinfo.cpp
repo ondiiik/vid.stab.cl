@@ -144,6 +144,7 @@ void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi)
     }
 }
 
+
 void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane)
 {
@@ -167,15 +168,19 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
     }
 }
 
-void vsFrameCopy(VSFrame* dest, const VSFrame* src, const VSFrameInfo* fi)
+
+void vsFrameCopy(VSFrame*           dest,
+                 const VSFrame*     src,
+                 const VSFrameInfo* fi)
 {
-    int plane;
-    assert(fi->planes > 0 && fi->planes <= 4);
-    for (plane = 0; plane < fi->planes; plane++)
+    assert((fi->planes > 0) && (fi->planes <= 4));
+
+    for (int plane = 0; plane < fi->planes; plane++)
     {
         vsFrameCopyPlane(dest, src, fi, plane);
     }
 }
+
 
 void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
 {

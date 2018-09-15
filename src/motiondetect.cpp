@@ -59,6 +59,8 @@
  */
 #include "motiondetect.hpp"
 #include <exception>
+#include <vector>
+#include <algorithm>
 #include <cstdio>
 #include <cstdarg>
 
@@ -66,14 +68,12 @@ using namespace VidStab;
 using namespace std;
 
 
-/* internal data structures */
-
-// structure that contains the contrast and the index of a field
-typedef struct _contrast_idx
+typedef struct contrast_idx
 {
     double contrast;
-    int index;
-} contrast_idx;
+    int    index;
+}
+contrast_idx;
 
 
 namespace
@@ -138,6 +138,16 @@ namespace
             default:
                 return "unknown";
         }
+    }
+    
+    
+    /* compares contrast_idx structures respect to the contrast
+       (for sort function)
+    */
+    bool _cmp_Contrast(const contrast_idx& ci1,
+                       const contrast_idx& ci2)
+    {
+        return ci1.contrast < ci2.contrast;
     }
 }
 
@@ -281,16 +291,6 @@ double contrastSubImg(unsigned char* const I,
         p += (width - field->size) * bytesPerPixel;
     }
     return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to avoid division by 0
-}
-
-/* compares contrast_idx structures respect to the contrast
-   (for sort function)
-*/
-int cmp_contrast_idx(const void* ci1, const void* ci2)
-{
-    double a = ((contrast_idx*) ci1)->contrast;
-    double b = ((contrast_idx*) ci2)->contrast;
-    return a < b ? 1 : (a > b ? -1 : 0);
 }
 
 
@@ -667,15 +667,14 @@ namespace VidStab
         
         
         VSVector goodflds = _selectfields(fields, contrastfunc);
-        // use all "good" fields and calculate optimal match to previous frame
         
         OMP_SET_THREADS(conf.numThreads)
         
         for (int index = 0; index < vs_vector_size(&goodflds); index++)
         {
-            int i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
-            LocalMotion m;
-            m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
+            int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
+            LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
+            
             if (m.match >= 0)
             {
                 m.contrast = ((contrast_idx*)vs_vector_get(&goodflds, index))->contrast;
@@ -733,7 +732,7 @@ namespace VidStab
             {
                 motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
             }
-            else // PLANAR
+            else
             {
                 motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
             }
@@ -825,17 +824,17 @@ namespace VidStab
         {
             _drawField(LMGet(&motionscoarse, i), 1);
         }
-
+        
         for (int i = 0; i < num_motions_fine; i++)
         {
             _drawField(LMGet(&motionsfine, i), 0);
         }
-
+        
         for (int i = 0; i < num_motions; i++)
         {
             _drawFieldTrans(LMGet(&motionscoarse, i), 180);
         }
-
+        
         for (int i = 0; i < num_motions_fine; i++)
         {
             _drawFieldTrans(LMGet(&motionsfine, i), 64);
@@ -904,71 +903,97 @@ namespace VidStab
     VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
                                  contrastSubImgFunc    contrastfunc)
     {
-        int i, j;
-        VSVector goodflds;
-        contrast_idx* ci =
-            (contrast_idx*) vs_malloc(sizeof(contrast_idx) * fs->fieldNum);
+        VSVector      goodflds;
+        
         vs_vector_init(&goodflds, fs->fieldNum);
         
-        // we split all fields into row+1 segments and take from each segment
-        // the best fields
-        int numsegms = (fs->fieldRows + 1);
-        int segmlen = fs->fieldNum / (fs->fieldRows + 1) + 1;
-        // split the frame list into rows+1 segments
-        contrast_idx* ci_segms =
-            (contrast_idx*) vs_malloc(sizeof(contrast_idx) * fs->fieldNum);
-        int remaining = 0;
-        // calculate contrast for each field
-        // #pragma omp parallel for shared(ci,md) no speedup because to short
-        for (i = 0; i < fs->fieldNum; i++)
+        
+        /*
+         * Calculate contrast for each field
+         */
+        vector<contrast_idx> ci { size_t(fs->fieldNum) };
+        
+        
+        Field* f   = fs->fields;
+        int    idx = 0;
+        
+        for (auto& i : ci)
         {
-            ci[i].contrast = contrastfunc(this, &fs->fields[i]);
-            ci[i].index = i;
-            if (ci[i].contrast < fs->contrastThreshold)
+            i.contrast = contrastfunc(this, f);
+            i.index    = idx;
+            
+            if (i.contrast < fs->contrastThreshold)
             {
-                ci[i].contrast = 0;
+                i.contrast = 0;
             }
-            // else printf("%i %lf\n", ci[i].index, ci[i].contrast);
+            
+            ++f;
+            ++idx;
         }
         
-        memcpy(ci_segms, ci, sizeof(contrast_idx) * fs->fieldNum);
-        // get best fields from each segment
-        for (i = 0; i < numsegms; i++)
+        
+        /*
+         * Get best fields from each segment
+         *
+         * We split all fields into row + 1 segments and take
+         * from each segment the best fields.
+         */
+        vector<contrast_idx> ci_segms { ci.begin(), ci.end()         };
+        int                  numsegms { fs->fieldRows + 1            };
+        int                  segmlen  { fs->fieldNum  / numsegms + 1 };
+
+        for (int i = 0; i < numsegms; i++)
         {
             int startindex = segmlen * i;
-            int endindex = segmlen * (i + 1);
-            endindex = endindex > fs->fieldNum ? fs->fieldNum : endindex;
-            //printf("Segment: %i: %i-%i\n", i, startindex, endindex);
+            int endindex   = segmlen * (i + 1);
+            endindex       = (endindex > fs->fieldNum) ? fs->fieldNum : endindex;
             
-            // sort within segment
-            qsort(ci_segms + startindex, endindex - startindex,
-                  sizeof(contrast_idx), cmp_contrast_idx);
-            // take maxfields/numsegms
-            for (j = 0; j < fs->maxFields / numsegms; j++)
+            /*
+             * Sort within segment
+             */
+            auto b = ci_segms.begin() + startindex;
+            auto e = b +    (endindex - startindex);
+            sort(b, e, _cmp_Contrast);
+            
+            /*
+             * Take maxfields / numsegms
+             */
+            for (int j = 0; j < (fs->maxFields / numsegms); j++)
             {
-                if (startindex + j >= endindex)
+                if ((startindex + j) >= endindex)
                 {
                     continue;
                 }
-                // printf("%i %lf\n", ci_segms[startindex+j].index,
-                //                    ci_segms[startindex+j].contrast);
+                
                 if (ci_segms[startindex + j].contrast > 0)
                 {
-                    vs_vector_append_dup(&goodflds, &ci[ci_segms[startindex + j].index],
+                    vs_vector_append_dup(&goodflds,
+                                         &ci[ci_segms[startindex + j].index],
                                          sizeof(contrast_idx));
-                    // don't consider them in the later selection process
+                    /*
+                     * Don't consider them in the later selection process
+                     */
                     ci_segms[startindex + j].contrast = 0;
                 }
             }
         }
-        // check whether enough fields are selected
-        // printf("Phase2: %i\n", vs_list_size(goodflds));
-        remaining = fs->maxFields - vs_vector_size(&goodflds);
+        
+        
+        /*
+         * Split the frame list into rows+1 segments.
+         * Check whether enough fields are selected.
+         */
+        int remaining = fs->maxFields - vs_vector_size(&goodflds);
+
         if (remaining > 0)
         {
-            // take the remaining from the leftovers
-            qsort(ci_segms, fs->fieldNum, sizeof(contrast_idx), cmp_contrast_idx);
-            for (j = 0; j < remaining; j++)
+            /*
+             * Take the remaining from the leftovers
+             */
+            auto b = ci_segms.begin();
+            sort(b, b + fs->fieldNum, _cmp_Contrast);
+            
+            for (int j = 0; j < remaining; j++)
             {
                 if (ci_segms[j].contrast > 0)
                 {
@@ -976,9 +1001,7 @@ namespace VidStab
                 }
             }
         }
-        // printf("Ende: %i\n", vs_list_size(goodflds));
-        vs_free(ci);
-        vs_free(ci_segms);
+
         return goodflds;
     }
     

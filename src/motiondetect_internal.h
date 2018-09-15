@@ -37,9 +37,6 @@ double contrastSubImg(unsigned char* const I, const Field* field,
                       int width, int height, int bytesPerPixel);
 
 
-int cmp_contrast_idx(const void* ci1, const void* ci2);
-
-
 void drawBox(unsigned char* I, int width, int height, int bytesPerPixel,
              int x, int y, int sizex, int sizey, unsigned char color);
 void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel,
