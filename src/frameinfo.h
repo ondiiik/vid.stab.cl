@@ -33,21 +33,25 @@ extern "C" {
 
 
 /// pixel formats
-typedef enum {PF_NONE = -1,
-              PF_GRAY8,     ///<        Y        ,  8bpp
-              PF_YUV420P,   ///< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples)
-              PF_YUV422P,   ///< planar YUV 4:2:2, 16bpp, (1 Cr & Cb sample per 2x1 Y samples)
-              PF_YUV444P,   ///< planar YUV 4:4:4, 24bpp, (1 Cr & Cb sample per 1x1 Y samples)
-              PF_YUV410P,   ///< planar YUV 4:1:0,  9bpp, (1 Cr & Cb sample per 4x4 Y samples)
-              PF_YUV411P,   ///< planar YUV 4:1:1, 12bpp, (1 Cr & Cb sample per 4x1 Y samples)
-              PF_YUV440P,   ///< planar YUV 4:4:0 (1 Cr & Cb sample per 1x2 Y samples)
-              PF_YUVA420P,  ///< planar YUV 4:2:0, 20bpp, (1 Cr & Cb sample per 2x2 Y & A samples)
-              PF_PACKED,    ///< dummy: packed formats start here
-              PF_RGB24,     ///< packed RGB 8:8:8, 24bpp, RGBRGB...
-              PF_BGR24,     ///< packed RGB 8:8:8, 24bpp, BGRBGR...
-              PF_RGBA,      ///< packed RGBA 8:8:8:8, 32bpp, RGBARGBA...
-              PF_NUMBER     ///< number of pixel formats
-             } VSPixelFormat;
+typedef enum VSPixelFormat
+{
+    PF_NONE = -1,
+    PF_GRAY8,     ///<        Y        ,  8bpp
+    PF_YUV420P,   ///< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples)
+    PF_YUV422P,   ///< planar YUV 4:2:2, 16bpp, (1 Cr & Cb sample per 2x1 Y samples)
+    PF_YUV444P,   ///< planar YUV 4:4:4, 24bpp, (1 Cr & Cb sample per 1x1 Y samples)
+    PF_YUV410P,   ///< planar YUV 4:1:0,  9bpp, (1 Cr & Cb sample per 4x4 Y samples)
+    PF_YUV411P,   ///< planar YUV 4:1:1, 12bpp, (1 Cr & Cb sample per 4x1 Y samples)
+    PF_YUV440P,   ///< planar YUV 4:4:0 (1 Cr & Cb sample per 1x2 Y samples)
+    PF_YUVA420P,  ///< planar YUV 4:2:0, 20bpp, (1 Cr & Cb sample per 2x2 Y & A samples)
+    PF_PACKED,    ///< dummy: packed formats start here
+    PF_RGB24,     ///< packed RGB 8:8:8, 24bpp, RGBRGB...
+    PF_BGR24,     ///< packed RGB 8:8:8, 24bpp, BGRBGR...
+    PF_RGBA,      ///< packed RGBA 8:8:8:8, 32bpp, RGBARGBA...
+    PF_NUMBER     ///< number of pixel formats
+}
+VSPixelFormat;
+
 
 /** frame information for deshaking lib
     This only works for planar image formats
@@ -60,18 +64,23 @@ typedef struct VSFrameInfo
     int log2ChromaH; // subsampling of height in chroma planes
     VSPixelFormat pFormat;
     int bytesPerPixel; // number of bytes per pixel (for packed formats)
-} VSFrameInfo;
+}
+VSFrameInfo;
+
 
 /** frame data according to frameinfo
  */
-typedef struct vsframe
+typedef struct VSFrame
 {
     uint8_t* data[4]; // data in planes. For packed data everthing is in plane 0
     int linesize[4]; // line size of each line in a the planes
-} VSFrame;
+}
+VSFrame;
+
 
 // use it to calculate the CHROMA sizes (rounding is correct)
 #define CHROMA_SIZE(width,log2sub)  (-(-(width) >> (log2sub)))
+
 
 /// initializes the frameinfo for the given format
 int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pFormat);
@@ -80,17 +89,22 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
 /// returns the subsampling shift amount, horizonatally for the given plane
 int vsGetPlaneWidthSubS(const VSFrameInfo* fi, int plane);
 
+
 /// returns the subsampling shift amount, vertically for the given plane
 int vsGetPlaneHeightSubS(const VSFrameInfo* fi, int plane);
+
 
 /// zero initialization
 void vsFrameNull(VSFrame* frame);
 
+
 /// returns true if frame is null (data[0]==0)
 int vsFrameIsNull(const VSFrame* frame);
 
+
 /// compares two frames for identity (based in data[0])
 int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
+
 
 /// allocates memory for a frame
 void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi);
@@ -100,14 +114,17 @@ void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi);
 void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane);
 
+
 /// copies src to dest
 void vsFrameCopy(VSFrame* dest, const VSFrame* src, const VSFrameInfo* fi);
+
 
 /** fills the data pointer so that it corresponds to the img saved in the linear buffer.
     No copying is performed.
     Do not call vsFrameFree() on it.
  */
 void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi);
+
 
 /// frees memory
 void vsFrameFree(VSFrame* frame);

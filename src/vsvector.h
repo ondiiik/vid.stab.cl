@@ -32,13 +32,14 @@ extern "C" {
 /**
    A vector for arbitrary elements that resizes
 */
-typedef struct vsvector_ VSVector;
-struct vsvector_
+typedef struct VSVector
 {
     void**  data;
     int    buffersize;
     int    nelems;
-};
+}
+VSVector;
+
 
 /**
  * vs_vector_init:

@@ -34,7 +34,7 @@ extern "C" {
 
 /** converts for each frame the localmotions into a transform
  */
-int vsLocalmotions2Transforms(struct VSTransformData* td,
+int vsLocalmotions2Transforms(struct VSTransformData*   td,
                               const VSManyLocalMotions* motions,
                               struct VSTransformations* trans );
 
@@ -62,8 +62,8 @@ struct VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modnam
     (File for exporting transforms)
 */
 struct VSTransform vsMotionsToTransform(struct VSTransformData* td,
-                                 const LocalMotions* motions,
-                                 FILE* f);
+                                        const LocalMotions*     motions,
+                                        FILE*                   f);
 
 
 

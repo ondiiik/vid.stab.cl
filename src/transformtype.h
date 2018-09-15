@@ -35,7 +35,7 @@ extern "C" {
    zoom is a percentage to zoom in and
    extra is for additional information like scene cut (unused)
  */
-struct VSTransform
+typedef struct VSTransform
 {
     double x;
     double y;
@@ -45,32 +45,40 @@ struct VSTransform
     double rshutter;
     int    extra;    /* -1: ignore transform (only internal use);
                      0 for normal trans; 1 for inter scene cut (unused) */
-};
+}
+VSTransform;
+
 
 /** stores x y and size of a measurement field */
-typedef struct _field
+typedef struct Field
 {
     int x;     // middle position x
     int y;     // middle position y
     int size;  // size of field
-} Field;
+}
+Field;
+
 
 /** stores x y coordinates (integer) */
-typedef struct _vec
+typedef struct Vec
 {
     int x;     // middle position x
     int y;     // middle position y
-} Vec;
+}
+Vec;
+
 
 /* structure to hold information about local motion.
  */
-typedef struct _localmotion
+typedef struct LocalMotion
 {
     Vec v;
     Field f;
     double contrast; // local contrast of the measurement field
     double match;    // quality of match
-} LocalMotion;
+}
+LocalMotion;
+
 
 typedef VSVector LocalMotions;
 
