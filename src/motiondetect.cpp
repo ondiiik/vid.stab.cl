@@ -33,7 +33,15 @@
 #include <assert.h>
 
 #ifdef USE_OMP
-#include <omp.h>
+#   include <omp.h>
+#   define  OMP_CRITICAL _Pragma("omp critical(localmotions_append)")
+#   define  OMP_SET_THREADS(_nt_) \
+    omp_set_num_threads(    _nt_); \
+    VSMD* md __attribute__((unused)) = this; \
+    _Pragma("omp parallel for shared(goodflds, md, localmotions)")
+#else
+#   define  OMP_CRITICAL
+#   define  OMP_SET_THREADS(_nt_)
 #endif
 
 #include "boxblur.h"
@@ -777,16 +785,14 @@ namespace VidStab
         
         VSVector goodflds = _selectfields(fields, contrastfunc);
         // use all "good" fields and calculate optimal match to previous frame
-#ifdef USE_OMP
-        omp_set_num_threads(conf.numThreads);
-        VSMD* md = this;
-        #pragma omp parallel for shared(goodflds, md, localmotions)
-#endif
+
+        OMP_SET_THREADS(conf.numThreads)
+
         for (int index = 0; index < vs_vector_size(&goodflds); index++)
         {
             int i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
             LocalMotion m;
-            m = fieldfunc(md, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
+            m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
             if (m.match >= 0)
             {
                 m.contrast = ((contrast_idx*)vs_vector_get(&goodflds, index))->contrast;
@@ -794,7 +800,7 @@ namespace VidStab
                 fprintf(file, "%i %i\n%f %f %f %f\n \n\n", m.f.x, m.f.y,
                         m.f.x + m.v.x, m.f.y + m.v.y, m.match, m.contrast);
 #endif
-                #pragma omp critical(localmotions_append)
+                OMP_CRITICAL
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
