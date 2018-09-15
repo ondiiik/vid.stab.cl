@@ -43,9 +43,12 @@ void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
   accumulator: acc = acc + new - old, pixel = acc/size
 */
 
-void boxblurPlanar(VSFrame* dest, const VSFrame* src,
-                   VSFrame* buffer, const VSFrameInfo* fi,
-                   unsigned int size, BoxBlurColorMode colormode)
+void boxblurPlanar(VSFrame*           dest,
+                   const VSFrame*     src,
+                   VSFrame*           buffer,
+                   const VSFrameInfo* fi,
+                   unsigned int       size,
+                   BoxBlurColorMode   colormode)
 {
     int localbuffer = 0;
     int size2;
@@ -72,8 +75,13 @@ void boxblurPlanar(VSFrame* dest, const VSFrame* src,
     //printf("%i\n",size);
     
     // luminance
-    boxblur_hori_C(buf.data[0],  src->data[0],
-                   fi->width, fi->height, buf.linesize[0], src->linesize[0], size);
+    boxblur_hori_C(buf.data[0],
+                   src->data[0],
+                   fi->width,
+                   fi->height,
+                   buf.linesize[0],
+                   src->linesize[0],
+                   size);
     boxblur_vert_C(dest->data[0], buf.data[0],
                    fi->width, fi->height, dest->linesize[0], buf.linesize[0], size);
                    
@@ -87,10 +95,13 @@ void boxblurPlanar(VSFrame* dest, const VSFrame* src,
             {
                 for (plane = 1; plane < fi->planes; plane++)
                 {
-                    boxblur_hori_C(buf.data[plane], src->data[plane],
+                    boxblur_hori_C(buf.data[plane],
+                                   src->data[plane],
                                    fi->width  >> vsGetPlaneWidthSubS(fi, plane),
                                    fi->height >> vsGetPlaneHeightSubS(fi, plane),
-                                   buf.linesize[plane], src->linesize[plane], size2);
+                                   buf.linesize[plane],
+                                   src->linesize[plane],
+                                   size2);
                     boxblur_vert_C(dest->data[plane], buf.data[plane],
                                    fi->width  >> vsGetPlaneWidthSubS(fi, plane),
                                    fi->height >> vsGetPlaneHeightSubS(fi, plane),
@@ -142,10 +153,14 @@ void boxblurPlanar(VSFrame* dest, const VSFrame* src,
 /* } */
 
 
-void boxblur_hori_C(unsigned char* dest, const unsigned char* src,
-                    int width, int height, int dest_strive, int src_strive, int size)
+void boxblur_hori_C(unsigned char*       dest,
+                    const unsigned char* src,
+                    int                  width,
+                    int                  height,
+                    int                  dest_strive,
+                    int                  src_strive,
+                    int                  size)
 {
-
     int i, j, k;
     unsigned int acc;
     const unsigned char* start, *end; // start and end of kernel
@@ -154,7 +169,6 @@ void boxblur_hori_C(unsigned char* dest, const unsigned char* src,
     // #pragma omp parallel for private(acc),schedule(guided,2) (no speedup)
     for (j = 0; j < height; j++)
     {
-        //  for(j=100; j< 101; j++){
         start = end = src + j * src_strive;
         current = dest + j * dest_strive;
         // initialize accumulator

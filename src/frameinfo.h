@@ -107,7 +107,8 @@ int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
 
 
 /// allocates memory for a frame
-void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi);
+void vsFrameAllocate(VSFrame*           frame,
+                     const VSFrameInfo* fi);
 
 
 /// copies the given plane number from src to dest

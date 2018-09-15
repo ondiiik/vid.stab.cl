@@ -192,9 +192,10 @@ static int filter_frame(AVFilterLink* inlink, AVFrame* in)
     
     for (plane = 0; plane < md->fi.planes; plane++)
     {
-        frame.data[plane] = in->data[plane];
+        frame.data[plane]     = in->data[plane];
         frame.linesize[plane] = in->linesize[plane];
     }
+
     if (vsMotionDetection(md, &localmotions, &frame) != VS_OK)
     {
         av_log(ctx, AV_LOG_ERROR, "motion detection failed");

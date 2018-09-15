@@ -108,8 +108,7 @@ int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2)
 
 void vsFrameNull(VSFrame* frame)
 {
-    memset(frame->data, 0, sizeof(uint8_t*) * 4);
-    memset(frame->linesize, 0, sizeof(int) * 4);
+    memset(frame, 0, sizeof(*frame));
 }
 
 void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi)

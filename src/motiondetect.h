@@ -77,26 +77,21 @@ VSMotionDetectFields;
 
 /**
  * @brief   Data structure for motion detection part of deshaking
- * @note    Structure must be also type because is used in C
- *          in ffmpeg
  */
 typedef struct VSMotionDetect
 {
+    /**
+     * @brief   Frame info
+     * @note    This member is used because of compatibility with
+     *          ffmpeg C interface
+     */
     VSFrameInfo fi;
-    
-    VSMotionDetectConfig conf;
-    
-    VSMotionDetectFields fieldscoarse;
-    VSMotionDetectFields fieldsfine;
-    
-    VSFrame curr;                 // blurred version of current frame buffer
-    VSFrame currorig;             // current frame buffer (original) (only pointer)
-    VSFrame currtmp;              // temporary buffer for blurring
-    VSFrame prev;                 // frame buffer for last frame (copied)
-    short hasSeenOneFrame;        // true if we have a valid previous frame
-    int initialized;              // 1 if initialized and 2 if configured
-    
-    int frameNum;
+
+
+    /**
+     * @brief   Pointer on C++ instance of motion tetect object
+     */
+    void* _inst;
 }
 VSMotionDetect;
 
@@ -109,8 +104,9 @@ VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName);
  *  for the frames and stuff
  *  @return VS_OK on success otherwise VS_ERROR
  */
-int vsMotionDetectInit(VSMotionDetect* md, const VSMotionDetectConfig* conf,
-                       const VSFrameInfo* fi);
+int vsMotionDetectInit(VSMotionDetect*             md,
+                       const VSMotionDetectConfig* conf,
+                       const VSFrameInfo*          fi);
 
 /**
  *  Performs a motion detection step
@@ -118,7 +114,9 @@ int vsMotionDetectInit(VSMotionDetect* md, const VSMotionDetectConfig* conf,
  *  is stored internally
  *  @param motions: calculated local motions. (must be deleted manually)
  * */
-int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame* frame);
+int vsMotionDetection(VSMotionDetect* md,
+                      LocalMotions*   motions,
+                      VSFrame*        frame);
 
 /** Deletes internal data structures.
  * In order to use the VSMotionDetect again, you have to call vsMotionDetectInit

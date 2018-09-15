@@ -33,42 +33,13 @@ extern "C" {
 #endif
 
 
-/* type for a function that calculates the transformation of a certain field
- */
-typedef LocalMotion (*calcFieldTransFunc)(VSMotionDetect*, VSMotionDetectFields*,
-                                          const Field*, int);
-
-/* type for a function that calculates the contrast of a certain field
- */
-typedef double (*contrastSubImgFunc)(VSMotionDetect*, const Field*);
-
-
-int initFields(VSMotionDetect* md, VSMotionDetectFields* fs,
-               int fieldSize, int maxShift, int stepSize, short border,
-               int spacing, double contrastThreshold );
-
-double contrastSubImgPlanar(VSMotionDetect* md, const Field* field);
-double contrastSubImgPacked(VSMotionDetect* md, const Field* field);
 double contrastSubImg(unsigned char* const I, const Field* field,
                       int width, int height, int bytesPerPixel);
 
 
 int cmp_contrast_idx(const void* ci1, const void* ci2);
-VSVector selectfields(VSMotionDetect* md, VSMotionDetectFields* fields,
-                      contrastSubImgFunc contrastfunc);
-
-LocalMotion calcFieldTransPlanar(VSMotionDetect* md, VSMotionDetectFields* fields,
-                                 const Field* field, int fieldnum);
-LocalMotion calcFieldTransPacked(VSMotionDetect* md, VSMotionDetectFields* fields,
-                                 const Field* field, int fieldnum);
-LocalMotions calcTransFields(VSMotionDetect* md, VSMotionDetectFields* fields,
-                             calcFieldTransFunc fieldfunc,
-                             contrastSubImgFunc contrastfunc);
 
 
-void drawFieldScanArea(VSMotionDetect* md, const LocalMotion* motion, int maxShift);
-void drawField(VSMotionDetect* md, const LocalMotion* motion, short box);
-void drawFieldTrans(VSMotionDetect* md, const LocalMotion* motion, int color);
 void drawBox(unsigned char* I, int width, int height, int bytesPerPixel,
              int x, int y, int sizex, int sizey, unsigned char color);
 void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel,
