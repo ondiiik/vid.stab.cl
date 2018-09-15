@@ -44,41 +44,23 @@ namespace VidStab
         VSMD(VSMotionDetect*             aMd,
              const VSMotionDetectConfig* aConf,
              const VSFrameInfo*          aFi);
-
-
+             
+             
         /**
          * @brief   Destroy VSDM
          */
         virtual ~VSMD();
         
         
-        /* tries to register current frame onto previous frame.
-         *   Algorithm:
-         *   discards fields with low contrast
-         *   select maxfields fields according to their contrast
-         *   check theses fields for vertical and horizontal transformation
-         *   use minimal difference of all possible positions
+        /**
+         * @brief   process motion detection
+         * @param   aMotions    Last frame motions
+         * @param   aFrame      Current frame
          */
-        LocalMotions calcTransFields(VSMotionDetectFields* fields,
-                                     calcFieldTransFunc    fieldfunc,
-                                     contrastSubImgFunc    contrastfunc);
+        void operator()(LocalMotions*  aMotions,
+                        const VSFrame* aFrame);
                                      
                                      
-        /** draws the field scanning area */
-        void drawFieldScanArea(const LocalMotion* lm,
-                               int                maxShift);
-                               
-                               
-        /** draws the field */
-        void drawField(const LocalMotion* lm,
-                       short              box);
-                       
-                       
-        /** draws the transform data of this field */
-        void drawFieldTrans(const LocalMotion* lm,
-                            int                color);
-
-
         /**
          * @brief   Reference to parent C instance
          */
@@ -93,8 +75,8 @@ namespace VidStab
         VSFrame currorig;             // current frame buffer (original) (only pointer)
         VSFrame currtmp;              // temporary buffer for blurring
         VSFrame prev;                 // frame buffer for last frame (copied)
-        short hasSeenOneFrame;        // true if we have a valid previous frame
-        int initialized;              // 1 if initialized and 2 if configured
+        bool    hasSeenOneFrame;      // true if we have a valid previous frame
+        int     initialized;          // 1 if initialized and 2 if configured
         
         int frameNum;
         
@@ -114,6 +96,42 @@ namespace VidStab
                          double                contrastThreshold);
                          
                          
+        /* tries to register current frame onto previous frame.
+         *   Algorithm:
+         *   discards fields with low contrast
+         *   select maxfields fields according to their contrast
+         *   check theses fields for vertical and horizontal transformation
+         *   use minimal difference of all possible positions
+         */
+        LocalMotions _calcTransFields(VSMotionDetectFields* fields,
+                                      calcFieldTransFunc    fieldfunc,
+                                      contrastSubImgFunc    contrastfunc);
+
+
+        /**
+         * @brief   Draw results of detection
+         * @param   num_motions Number of motions
+         */
+        void _draw(int           num_motions,
+                   LocalMotions& motionscoarse,
+                   LocalMotions& motionsfine);
+        
+        
+        /** draws the field scanning area */
+        void _drawFieldScanArea(const LocalMotion* lm,
+                                int                maxShift);
+                                
+                                
+        /** draws the field */
+        void _drawField(const LocalMotion* lm,
+                        short              box);
+                        
+                        
+        /** draws the transform data of this field */
+        void _drawFieldTrans(const LocalMotion* lm,
+                             int                color);
+                             
+                             
         /* select only the best 'maxfields' fields
            first calc contrasts then select from each part of the
            frame some fields
@@ -129,11 +147,11 @@ namespace VidStab
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
      */
-    inline VSMD* VSMD2Inst(VSMotionDetect* aMd)
+    inline VSMD& VSMD2Inst(VSMotionDetect* aMd)
     {
         assert(nullptr != aMd);
         VSMD* const md = (VSMD*)aMd->_inst;
-        return md;
+        return *md;
     }
     
     
@@ -142,11 +160,11 @@ namespace VidStab
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
      */
-    inline const VSMD* VSMD2Inst(const VSMotionDetect* aMd)
+    inline const VSMD& VSMD2Inst(const VSMotionDetect* aMd)
     {
         assert(nullptr != aMd);
-        VSMD* const md = (VSMD*)aMd->_inst;
-        return md;
+        const VSMD* const md = (VSMD*)aMd->_inst;
+        return *md;
     }
     
     

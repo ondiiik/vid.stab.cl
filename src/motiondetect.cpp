@@ -160,16 +160,16 @@ VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName)
 void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
                              const VSMotionDetect* aMd)
 {
-    const VSMD* const md = VSMD2Inst(aMd);
+    const VSMD& md = VSMD2Inst(aMd);
     assert(nullptr != aConf);
-    *aConf = md->conf;
+    *aConf = md.conf;
 }
 
 
 const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
 {
-    const VSMD* const md = VSMD2Inst(aMd);
-    return           &md->fi;
+    const VSMD& md = VSMD2Inst(aMd);
+    return     &md.fi;
 }
 
 
@@ -192,7 +192,7 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
     }
     catch (exception& exc)
     {
-        vs_log_error(modName, "Standard exception: %s\n", exc.what());
+        vs_log_error(modName, "FAILURE: %s\n", exc.what());
         return VS_ERROR;
     }
     
@@ -207,8 +207,8 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
 
 void vsMotionDetectionCleanup(VSMotionDetect* aMd)
 {
-    VSMD* const md = VSMD2Inst(aMd);
-    delete      md;
+    VSMD*  md = &(VSMD2Inst(aMd));
+    delete md;
     aMd->_inst = nullptr;
 }
 
@@ -231,131 +231,21 @@ int vsMotionDetection(VSMotionDetect* aMd,
                       LocalMotions*   aMotions,
                       VSFrame*        aFrame)
 {
-    VSMD* const md = VSMD2Inst(aMd);
-    assert(md->initialized == 2);
+    VSMD& md = VSMD2Inst(aMd);
     
-    
-    md->currorig = *aFrame;
-    
-    
-    // smoothen image to do better motion detection
-    //  (larger stepsize or eventually gradient descent (need higher resolution))
-    if (md->fi.pFormat > PF_PACKED)
+    try
     {
-        // we could calculate a grayscale version and use the PLANAR stuff afterwards
-        // so far smoothing is only implemented for PLANAR
-        vsFrameCopy(&md->curr, aFrame, &md->fi);
+        md(aMotions, aFrame);
     }
-    else
+    catch (exception& exc)
     {
-        // box-kernel smoothing (plain average of pixels), which is fine for us
-        boxblurPlanar(&md->curr,
-                      aFrame,
-                      &md->currtmp,
-                      &md->fi,
-                      md->conf.stepSize * 1/*1.4*/,
-                      BoxBlurNoColor);
-        // two times yields tent-kernel smoothing, which may be better, but I don't
-        //  think we need it
-        //boxblurPlanar(md->curr, md->curr, md->currtmp, &md->fi, md->stepSize*1,
-        // BoxBlurNoColor);
+        vs_log_error(md.conf.modName, "FAILURE: %s\n", exc.what());
+        return VS_ERROR;
     }
     
-    if (md->hasSeenOneFrame)
-    {
-        LocalMotions motionscoarse;
-        LocalMotions motionsfine;
-        vs_vector_init(&motionsfine, 0);
-        //    md->curr = frame;
-        if (md->fi.pFormat > PF_PACKED)
-        {
-            motionscoarse = md->calcTransFields(&md->fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
-        }
-        else     // PLANAR
-        {
-            motionscoarse = md->calcTransFields(&md->fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
-        }
-        int num_motions = vs_vector_size(&motionscoarse);
-        if (num_motions < 1)
-        {
-            vs_log_warn(md->conf.modName, "too low contrast. \
-(no translations are detected in frame %i)\n", md->frameNum);
-        }
-        else
-        {
-            // calc transformation and perform another scan with small fields
-            struct VSTransform t = vsSimpleMotionsToTransform(md->fi, md->conf.modName, &motionscoarse);
-            md->fieldsfine.offset    = t;
-            md->fieldsfine.useOffset = 1;
-            LocalMotions motions2;
-            if (md->fi.pFormat > PF_PACKED)
-            {
-                motions2 = md->calcTransFields(&md->fieldsfine, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
-            }
-            else     // PLANAR
-            {
-                motions2 = md->calcTransFields(&md->fieldsfine, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
-            }
-            // through out those with bad match (worse than mean of coarse scan)
-            VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
-            double meanMatch = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
-            motionsfine      = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
-            if (0)
-            {
-                printf("\nMatches: mean:  %f | ", meanMatch);
-                vs_array_print(matchQualities1, stdout);
-                printf("\n         fine: ");
-                VSArray matchQualities2 = localmotionsGetMatch(&motions2);
-                vs_array_print(matchQualities2, stdout);
-                printf("\n");
-            }
-        }
-        if (md->conf.show)   // draw fields and transforms into frame.
-        {
-            int num_motions_fine = vs_vector_size(&motionsfine);
-            // this has to be done one after another to handle possible overlap
-            if (md->conf.show > 1)
-            {
-                for (int i = 0; i < num_motions; i++)
-                {
-                    md->drawFieldScanArea(LMGet(&motionscoarse, i), md->fieldscoarse.maxShift);
-                }
-            }
-            for (int i = 0; i < num_motions; i++)
-            {
-                md->drawField(LMGet(&motionscoarse, i), 1);
-            }
-            for (int i = 0; i < num_motions_fine; i++)
-            {
-                md->drawField(LMGet(&motionsfine, i), 0);
-            }
-            for (int i = 0; i < num_motions; i++)
-            {
-                md->drawFieldTrans(LMGet(&motionscoarse, i), 180);
-            }
-            for (int i = 0; i < num_motions_fine; i++)
-            {
-                md->drawFieldTrans(LMGet(&motionsfine, i), 64);
-            }
-        }
-        
-        *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
-    }
-    else
-    {
-        vs_vector_init(aMotions, 1);
-        md->hasSeenOneFrame = 1;
-    }
-    
-    // for tripod we keep a certain reference frame
-    if (md->conf.virtualTripod < 1 || md->frameNum < md->conf.virtualTripod)
-        // copy current frame (smoothed) to prev for next frame comparison
-    {
-        vsFrameCopy(&md->prev, &md->curr, &md->fi);
-    }
-    md->frameNum++;
     return VS_OK;
 }
+
 
 /**
    calculates Michelson-contrast in the given small part of the given image
@@ -636,7 +526,7 @@ namespace VidStab
         vsFrameNull(&currorig);
         vsFrameNull(&currtmp);
         
-        hasSeenOneFrame = 0;
+        hasSeenOneFrame = false;
         frameNum        = 0;
         
         conf.shakiness  = VS_MIN(10, VS_MAX(1, conf.shakiness));
@@ -768,26 +658,19 @@ namespace VidStab
     }
     
     
-    LocalMotions VSMD::calcTransFields(VSMotionDetectFields* fields,
-                                       calcFieldTransFunc    fieldfunc,
-                                       contrastSubImgFunc    contrastfunc)
+    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields* fields,
+                                        calcFieldTransFunc    fieldfunc,
+                                        contrastSubImgFunc    contrastfunc)
     {
         LocalMotions localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-#ifdef STABVERBOSE
-        FILE* file = NULL;
-        char buffer[32];
-        vs_snprintf(buffer, sizeof(buffer), "k%04i.dat", md->frameNum);
-        file = fopen(buffer, "w");
-        fprintf(file, "# plot \"%s\" w l, \"\" every 2:1:0\n", buffer);
-#endif
         
         VSVector goodflds = _selectfields(fields, contrastfunc);
         // use all "good" fields and calculate optimal match to previous frame
-
+        
         OMP_SET_THREADS(conf.numThreads)
-
+        
         for (int index = 0; index < vs_vector_size(&goodflds); index++)
         {
             int i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
@@ -796,25 +679,172 @@ namespace VidStab
             if (m.match >= 0)
             {
                 m.contrast = ((contrast_idx*)vs_vector_get(&goodflds, index))->contrast;
-#ifdef STABVERBOSE
-                fprintf(file, "%i %i\n%f %f %f %f\n \n\n", m.f.x, m.f.y,
-                        m.f.x + m.v.x, m.f.y + m.v.y, m.match, m.contrast);
-#endif
                 OMP_CRITICAL
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
         vs_vector_del(&goodflds);
         
-#ifdef STABVERBOSE
-        fclose(file);
-#endif
         return localmotions;
     }
     
     
-    void VSMD::drawFieldScanArea(const LocalMotion* lm,
-                                 int                maxShift)
+    
+    
+    void VSMD::operator ()(LocalMotions*  aMotions,
+                           const VSFrame* aFrame)
+    {
+        if (initialized != 2)
+        {
+            throw _vsMdException("Not initialized!");
+        }
+        
+        
+        /*
+         * Smoothen image to do better motion detection.
+         * Larger step size or eventually gradient descent
+         * (need higher resolution)
+         */
+        if (fi.pFormat > PF_PACKED)
+        {
+            /*
+             * We could calculate a grayscale version and use the PLANAR stuff afterwards
+             * so far smoothing is only implemented for PLANAR
+             */
+            vsFrameCopy(&curr, aFrame, &fi);
+        }
+        else
+        {
+            /*
+             *  box-kernel smoothing (plain average of pixels), which is fine for us
+             */
+            boxblurPlanar(&curr, aFrame, &currtmp, &fi, conf.stepSize, BoxBlurNoColor);
+        }
+        
+        
+        if (hasSeenOneFrame)
+        {
+            LocalMotions motionscoarse;
+            LocalMotions motionsfine;
+            
+            vs_vector_init(&motionsfine, 0);
+            
+            if (fi.pFormat > PF_PACKED)
+            {
+                motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+            }
+            else // PLANAR
+            {
+                motionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+            }
+            
+            int num_motions = vs_vector_size(&motionscoarse);
+            
+            if (num_motions < 1)
+            {
+                vs_log_warn(conf.modName,
+                            "too low contrast. (no translations are detected in frame %i)\n",
+                            frameNum);
+            }
+            else
+            {
+                /*
+                 * Calculates transformation and perform another scan with small fields
+                 */
+                VSTransform        t = vsSimpleMotionsToTransform(fi, conf.modName, &motionscoarse);
+                fieldsfine.offset    = t;
+                fieldsfine.useOffset = 1;
+                
+                LocalMotions motions2;
+                
+                if (fi.pFormat > PF_PACKED)
+                {
+                    motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+                }
+                else // PLANAR
+                {
+                    motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+                }
+                
+                /*
+                 * Through out those with bad match (worse than mean of coarse scan)
+                 */
+                VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
+                double  meanMatch       = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
+                motionsfine             = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
+            }
+            
+            
+            /*
+             * Draw fields and transforms into frame.
+             * Make a copy of current frame so we can modify it
+             */
+            if (conf.show)
+            {
+                currorig = *aFrame;
+                _draw(num_motions, motionscoarse, motionsfine);
+            }
+            
+            *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
+        }
+        else
+        {
+            vs_vector_init(aMotions, 1);
+            hasSeenOneFrame = true;
+        }
+        
+        /*
+         * For tripod we keep a certain reference frame
+         */
+        if ((conf.virtualTripod < 1) ||
+            (frameNum           < conf.virtualTripod))
+        {
+            vsFrameCopy(&prev, &curr, &fi);
+        }
+        
+        frameNum++;
+    }
+    
+    
+    void VSMD::_draw(int           num_motions,
+                     LocalMotions& motionscoarse,
+                     LocalMotions& motionsfine)
+    {
+        if (conf.show > 1)
+        {
+            for (int i = 0; i < num_motions; i++)
+            {
+                _drawFieldScanArea(LMGet(&motionscoarse, i), fieldscoarse.maxShift);
+            }
+        }
+        
+        
+        int num_motions_fine = vs_vector_size(&motionsfine);
+        
+        for (int i = 0; i < num_motions; i++)
+        {
+            _drawField(LMGet(&motionscoarse, i), 1);
+        }
+
+        for (int i = 0; i < num_motions_fine; i++)
+        {
+            _drawField(LMGet(&motionsfine, i), 0);
+        }
+
+        for (int i = 0; i < num_motions; i++)
+        {
+            _drawFieldTrans(LMGet(&motionscoarse, i), 180);
+        }
+
+        for (int i = 0; i < num_motions_fine; i++)
+        {
+            _drawFieldTrans(LMGet(&motionsfine, i), 64);
+        }
+    }
+    
+    
+    void VSMD::_drawFieldScanArea(const LocalMotion* lm,
+                                  int                maxShift)
     {
         if (fi.pFormat <= PF_PACKED)
         {
@@ -831,8 +861,8 @@ namespace VidStab
     }
     
     
-    void VSMD::drawField(const LocalMotion* lm,
-                         short              box)
+    void VSMD::_drawField(const LocalMotion* lm,
+                          short              box)
     {
         if (fi.pFormat <= PF_PACKED)
         {
@@ -850,8 +880,8 @@ namespace VidStab
     }
     
     
-    void VSMD::drawFieldTrans(const LocalMotion* lm,
-                              int color)
+    void VSMD::_drawFieldTrans(const LocalMotion* lm,
+                               int                color)
     {
         if (fi.pFormat <= PF_PACKED)
         {
@@ -1037,9 +1067,6 @@ namespace VidStab
         
         if (fabs(tx) >= maxShift + stepSize - 1 || fabs(ty) >= maxShift + stepSize - 1)
         {
-#ifdef STABVERBOSE
-            vs_log_msg(md->modName, "maximal shift ");
-#endif
             lm.match = -1;
             return lm;
         }
@@ -1089,14 +1116,6 @@ namespace VidStab
             }
         }
         
-#ifdef STABVERBOSE
-        // printf("%i %i %f\n", md->frameNum, fieldnum, contr);
-        FILE* f = NULL;
-        char buffer[32];
-        vs_snprintf(buffer, sizeof(buffer), "f%04i_%02i.dat", md->frameNum, fieldnum);
-        f = fopen(buffer, "w");
-        fprintf(f, "# splot \"%s\"\n", buffer);
-#endif
         
 #ifdef USE_SPIRAL_FIELD_CALC
         unsigned int minerror = UINT_MAX;
@@ -1183,9 +1202,6 @@ namespace VidStab
                     tx = i;
                     ty = j;
                 }
-#ifdef STABVERBOSE
-                fprintf(f, "%i %i %f\n", i, j, error);
-#endif
             }
         }
         
@@ -1207,9 +1223,6 @@ namespace VidStab
                     }
                     unsigned int error = compareSubImg(Y_c, Y_p, field, linesize_c, linesize_p,
                                                        md->fi.height, 1, i + offset.x, j + offset.y, minerror);
-#ifdef STABVERBOSE
-                    fprintf(f, "%i %i %f\n", i, j, error);
-#endif
                     if (error < minerror)
                     {
                         minerror = error;
@@ -1220,17 +1233,10 @@ namespace VidStab
             }
             stepSize /= 2;
         }
-#ifdef STABVERBOSE
-        fclose(f);
-        vs_log_msg(md->modName, "Minerror: %f\n", minerror);
-#endif
         
         if (unlikely(fabs(tx) >= maxShift + stepSize - 1  ||
                      fabs(ty) >= maxShift + stepSize))
         {
-#ifdef STABVERBOSE
-            vs_log_msg(md->modName, "maximal shift ");
-#endif
             lm.match = -1.0; // to be kicked out
             return lm;
         }

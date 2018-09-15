@@ -127,7 +127,7 @@ LocalMotions vsRestoreLocalmotions(FILE* f)
 int vsPrepareFile(const VSMotionDetect* aMd,
                   FILE*                 f)
 {
-    const VSMD* const md = VSMD2Inst(aMd);
+    const VSMD& md = VSMD2Inst(aMd);
     
     if (!f)
     {
@@ -136,10 +136,10 @@ int vsPrepareFile(const VSMotionDetect* aMd,
     
     fprintf(f, "VID.STAB 1\n");
     fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
-    fprintf(f, "#      accuracy = %d\n", md->conf.accuracy);
-    fprintf(f, "#     shakiness = %d\n", md->conf.shakiness);
-    fprintf(f, "#      stepsize = %d\n", md->conf.stepSize);
-    fprintf(f, "#   mincontrast = %f\n", md->conf.contrastThreshold);
+    fprintf(f, "#      accuracy = %d\n", md.conf.accuracy);
+    fprintf(f, "#     shakiness = %d\n", md.conf.shakiness);
+    fprintf(f, "#      stepsize = %d\n", md.conf.stepSize);
+    fprintf(f, "#   mincontrast = %f\n", md.conf.contrastThreshold);
     
     return VS_OK;
 }
@@ -149,14 +149,14 @@ int vsWriteToFile(const VSMotionDetect* aMd,
                   FILE*                 f,
                   const LocalMotions*   lms)
 {
-    const VSMD* const md = VSMD2Inst(aMd);
+    const VSMD& md = VSMD2Inst(aMd);
     
     if ((nullptr == f) || (nullptr == lms))
     {
         return VS_ERROR;
     }
     
-    if (fprintf(f, "Frame %i (", md->frameNum) <= 0)
+    if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
     {
         return VS_ERROR;
     }
