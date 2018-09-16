@@ -52,7 +52,7 @@ const VSFrame* boxblurPlanar(VSFrame&           aDst,
                              unsigned int       aStepSize,
                              BoxBlurColorMode   aColormode)
 {
-    
+
     if (aStepSize < 2)
     {
         return &aSrc;
@@ -142,7 +142,7 @@ const VSFrame* boxblurPlanar(VSFrame&           aDst,
     {
         vsFrameFree(&buf);
     }
-
+    
     return &aDst;
 }
 
@@ -182,73 +182,82 @@ void boxblur_hori_C(unsigned char*       dest,
                     int                  src_strive,
                     int                  size)
 {
-    int i, j, k;
-    unsigned int acc;
-    const unsigned char* start, *end; // start and end of kernel
-    unsigned char* current;     // current destination pixel
-    int size2 = size / 2; // size of one side of the kernel without center
-    // #pragma omp parallel for private(acc),schedule(guided,2) (no speedup)
-    for (j = 0; j < height; j++)
+    const int size2 = size / 2; // size of one side of the kernel without center
+    
+    for (int y = 0; y < height; ++y)
     {
-        start = end = src + j * src_strive;
-        current = dest + j * dest_strive;
-        // initialize accumulator
-        acc = (*start) * (size2 + 1); // left half of kernel with first pixel
-        for (k = 0; k < size2; k++) // right half of kernel
+        const unsigned char* start   = src  + y * src_strive;  // start and end of kernel
+        const unsigned char* end     = start;
+        unsigned char*       current = dest + y * dest_strive; // current destination pixel
+        unsigned int         acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
+        
+        // right half of kernel
+        for (int k = 0; k < size2; ++k)
         {
             acc += (*end);
             end++;
         }
+        
         // go through the image
-        for (i = 0; i < width; i++)
+        for (int x = 0; x < width; ++x)
         {
             acc = acc + (*end) - (*start);
-            if (i > size2)
+            
+            if (x > size2)
             {
                 start++;
             }
-            if (i < width - size2 - 1)
+            
+            if (x < (width - size2 - 1))
             {
                 end++;
             }
-            (*current) = acc / size;
-            current++;
+            
+            *current = acc / size;
+            ++current;
         }
     }
 }
 
-void boxblur_vert_C(unsigned char* dest, const unsigned char* src,
-                    int width, int height, int dest_strive, int src_strive, int size)
+void boxblur_vert_C(unsigned char*       dest,
+                    const unsigned char* src,
+                    int                  width,
+                    int                  height,
+                    int                  dest_strive,
+                    int                  src_strive,
+                    int                  size)
 {
-
-    int i, j, k;
-    int acc;
-    const unsigned char* start, *end; // start and end of kernel
-    unsigned char* current;     // current destination pixel
-    int size2 = size / 2; // size of one side of the kernel without center
-    for (i = 0; i < width; i++)
+    const int size2 = size / 2; // size of one side of the kernel without center
+    
+    for (int x = 0; x < width; x++)
     {
-        start = end = src + i;
-        current = dest + i;
-        // initialize accumulator
-        acc = (*start) * (size2 + 1); // left half of kernel with first pixel
-        for (k = 0; k < size2; k++) // right half of kernel
+        const unsigned char* start   = src + x;     // start and end of kernel
+        const unsigned char* end     = start;
+        unsigned char*       current = dest + x;    // current destination pixel
+        int acc = (*start) * (size2 + 1);           // left half of kernel with first pixel
+        
+        // right half of kernel
+        for (int k = 0; k < size2; k++)
         {
             acc += (*end);
             end += src_strive;
         }
+        
         // go through the image
-        for (j = 0; j < height; j++)
+        for (int y = 0; y < height; y++)
         {
             acc = acc - (*start) + (*end);
-            if (j > size2)
+            
+            if (y > size2)
             {
                 start += src_strive;
             }
-            if (j < height - size2 - 1)
+            
+            if (y < height - size2 - 1)
             {
                 end += src_strive;
             }
+            
             *current = acc / size;
             current += dest_strive;
         }
