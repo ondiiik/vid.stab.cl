@@ -1,6 +1,7 @@
-# VidStab
+# VidStab CL
 
-Vidstab is a video stabilization library which can be plugged-in with Ffmpeg and Transcode.
+Vidstab is a video stabilization library based on [Vistab library](http://public.hronopik.de/vid.stab/) from Georg Martius. Original algorythms was partialy rewritten from C to C++ and some parts was (will be) implemented in OpenCL to utilize graphical card for computation. I hope this improve performance of deshaking.
+
 
 **Why is it needed**
 
@@ -11,8 +12,8 @@ A video acquired using a hand-held camera or a camera mounted on a vehicle, typi
  * Fast detection of subsequent transformations e.g. translation and rotations up to a given extent.
  * Low pass filtered smoothing with adjustable horizon.
  * Detection algorithms:
-  * Smart and fast multi measurement fields algorithm with contrast selection.
-  * Brute force algorithm only for translations.
+ * Smart and fast multi measurement fields algorithm with contrast selection.
+ * Brute force algorithm only for translations.
  * Clipping options: keep blank (black) or keep from previous frames.
  * Optional drawing of measurement fields and detected transformations for visual analysis.
  * Zooming possible to get rid of jiggling borders (automatic mode).
