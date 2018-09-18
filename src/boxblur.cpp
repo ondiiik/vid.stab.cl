@@ -231,10 +231,10 @@ void boxblur_vert_C(unsigned char*       dest,
     
     for (int x = 0; x < width; x++)
     {
-        const unsigned char* start   = src + x;     // start and end of kernel
+        const unsigned char* start   = src + x;                // start and end of kernel
         const unsigned char* end     = start;
-        unsigned char*       current = dest + x;    // current destination pixel
-        int acc = (*start) * (size2 + 1);           // left half of kernel with first pixel
+        unsigned char*       current = dest + x;               // current destination pixel
+        int                  acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
         
         // right half of kernel
         for (int k = 0; k < size2; k++)

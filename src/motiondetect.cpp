@@ -58,11 +58,11 @@
  * C++ includes
  */
 #include "motiondetect.hpp"
-#include <exception>
+#include "md_exception.hpp"
+#include "cl/opencl.hpp"
 #include <vector>
 #include <algorithm>
 #include <cstdio>
-#include <cstdarg>
 
 using namespace VidStab;
 using namespace std;
@@ -78,33 +78,6 @@ contrast_idx;
 
 namespace
 {
-    /**
-     * @brief   Vidstab exception
-     */
-    class _vsMdException: public exception
-    {
-    public:
-        _vsMdException(const char* aFmt, ...)
-        {
-            va_list                            args;
-            va_start(                          args, aFmt);
-            vsnprintf(_errTxt, _bufSize, aFmt, args);
-            va_end(                            args);
-        }
-        
-        
-        virtual const char* what() const throw()
-        {
-            return _errTxt;
-        }
-        
-        
-    private:
-        static const std::size_t _bufSize { 1024 };
-        char             _errTxt[_bufSize];
-    };
-    
-    
     const char* _fmt2str(VSPixelFormat aFmt)
     {
         switch (aFmt)
@@ -211,6 +184,22 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
                 aFi->width,
                 aFi->height,
                 _fmt2str(aFi->pFormat));
+                
+                
+    vs_log_info(modName, "OpenCL devices:\n");
+    
+    for (auto& platform : OpenCl::devices)
+    {
+        for (auto& device : platform)
+        {
+            vs_log_info(modName,
+                        "\tFound %s\n",
+                        device.getInfo<CL_DEVICE_NAME>().c_str());
+                        
+        }
+    }
+    
+    
     return VS_OK;
 }
 
@@ -485,12 +474,12 @@ namespace VidStab
          */
         if (nullptr == aConf)
         {
-            throw _vsMdException("Configuration structure is NULL!");
+            throw mdException("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw _vsMdException("Frame info is NULL!");
+            throw mdException("Frame info is NULL!");
         }
         
         conf = *aConf;
@@ -504,7 +493,7 @@ namespace VidStab
             (fi.pFormat == PF_PACKED) ||
             (fi.pFormat >= PF_NUMBER))
         {
-            throw _vsMdException("Unsupported Pixel Format (%i)", fi.pFormat);
+            throw mdException("Unsupported Pixel Format (%i)", fi.pFormat);
         }
         
         
@@ -520,7 +509,7 @@ namespace VidStab
         vsFrameAllocate(&prev, &fi);
         if (vsFrameIsNull(&prev))
         {
-            throw _vsMdException("Allocation failed!");
+            throw mdException("Allocation failed!");
         }
         
         vsFrameNull(&currPrep);
@@ -611,7 +600,7 @@ namespace VidStab
         
         if (!(fs->fields = (Field*)vs_malloc(sizeof(Field) * fs->fieldNum)))
         {
-            throw _vsMdException("Allocation failed!");
+            throw mdException("Allocation failed!");
         }
         else
         {

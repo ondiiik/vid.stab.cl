@@ -26,6 +26,8 @@
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1086985015" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
+									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.504280935" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -35,6 +37,8 @@
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1612474751" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
+									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1111155735" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -79,6 +83,8 @@
 								<option id="gnu.cpp.compiler.option.preprocessor.def.600787590" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
+									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1348046268" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -88,6 +94,8 @@
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.769993933" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
+									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1912253035" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
