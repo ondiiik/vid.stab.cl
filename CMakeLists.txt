@@ -61,7 +61,6 @@ set(SOURCES
     src/motiondetect_opt.cpp
     src/serialize.cpp
     src/localmotion2transform.cpp
-    src/boxblur.cpp
     src/vsvector.cpp
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
@@ -75,7 +74,6 @@ set(HEADERS
     src/motiondetect.h
     src/serialize.h
     src/localmotion2transform.h
-    src/boxblur.h
     src/vsvector.h
     src/md_exception.hpp
     src/cl/opencl.hpp

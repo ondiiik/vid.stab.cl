@@ -44,7 +44,6 @@
 #   define  OMP_SET_THREADS(_nt_)
 #endif
 
-#include "boxblur.h"
 #include "vidstabdefines.h"
 #include "localmotion2transform.h"
 #include "transformtype_operations.h"
