@@ -713,11 +713,11 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
-        LocalMotions localmotions;
+        LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-        
         VSVector goodflds = _selectfields(fields, contrastfunc);
+        
         
         OMP_SET_THREADS(conf.numThreads)
         
@@ -733,6 +733,7 @@ namespace VidStab
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
+        
         vs_vector_del(&goodflds);
         
         return localmotions;
@@ -819,11 +820,15 @@ namespace VidStab
             
             if (fi.pFormat > PF_PACKED)
             {
-                motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+                motions2 = _calcTransFields(&fieldsfine,
+                                            visitor_calcFieldTransPacked,
+                                            visitor_contrastSubImgPacked);
             }
             else
             {
-                motions2 = _calcTransFields(&fieldsfine, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+                motions2 = _calcTransFields(&fieldsfine,
+                                            visitor_calcFieldTransPlanar,
+                                            visitor_contrastSubImgPlanar);
             }
             
             /*
@@ -1075,25 +1080,26 @@ namespace VidStab
                                              const Field*          field,
                                              int                   fieldnum)
     {
-        int         tx = 0;
-        int         ty = 0;
+        int      tx       = 0;
+        int      ty       = 0;
         
-        uint8_t* I_c = md->curr->data[0], *I_p = md->prev.data[0];
-        int width1   = md->curr->linesize[0] / 3; // linesize in pixels
-        int width2   = md->prev.linesize[0] / 3; // linesize in pixels
-        int i, j;
-        int stepSize = fs->stepSize;
-        int maxShift = fs->maxShift;
+        uint8_t* I_c      = md->curr->data[0], *I_p = md->prev.data[0];
+        int      width1   = md->curr->linesize[0] / 3; // linesize in pixels
+        int      width2   = md->prev.linesize[0]  / 3; // linesize in pixels
+        int      stepSize = fs->stepSize;
+        int      maxShift = fs->maxShift;
         
-        Vec offset     = { 0, 0};
-        LocalMotion lm = null_localmotion();
+        Vec offset        = { 0, 0};
+        LocalMotion lm    = null_localmotion();
+        
         if (fs->useOffset)
         {
             PreparedTransform pt = prepare_transform(&fs->offset, &md->fi);
-            offset = transform_vec(&pt, (Vec*)field);
+            offset               = transform_vec(&pt, (Vec*)field);
+            
             // is the field still in the frame
-            if (unlikely(offset.x - maxShift - stepSize < 0 || offset.x + maxShift + stepSize >= md->fi.width ||
-                         offset.y - maxShift - stepSize < 0 || offset.y + maxShift + stepSize >= md->fi.height))
+            if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md->fi.width) ||
+                ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md->fi.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1103,19 +1109,38 @@ namespace VidStab
         /* Here we improve speed by checking first the most probable position
            then the search paths are most effectively cut. (0,0) is a simple start
         */
-        unsigned int minerror = compareSubImg(I_c, I_p, field, width1, width2, md->fi.height,
-                                              3, offset.x, offset.y, UINT_MAX);
+        unsigned int minerror = compareSubImg(I_c,
+                                              I_p,
+                                              field,
+                                              width1,
+                                              width2,
+                                              md->fi.height,
+                                              3,
+                                              offset.x,
+                                              offset.y,
+                                              UINT_MAX);
+                                              
         // check all positions...
-        for (i = -maxShift; i <= maxShift; i += stepSize)
+        for (int i = -maxShift; i <= maxShift; i += stepSize)
         {
-            for (j = -maxShift; j <= maxShift; j += stepSize)
+            for (int j = -maxShift; j <= maxShift; j += stepSize)
             {
                 if ( i == 0 && j == 0 )
                 {
                     continue;    //no need to check this since already done
                 }
-                unsigned int error = compareSubImg(I_c, I_p, field, width1, width2,
-                                                   md->fi.height, 3, i + offset.x, j + offset.y, minerror);
+                
+                unsigned int error = compareSubImg(I_c,
+                                                   I_p,
+                                                   field,
+                                                   width1,
+                                                   width2,
+                                                   md->fi.height,
+                                                   3,
+                                                   i + offset.x,
+                                                   j + offset.y,
+                                                   minerror);
+                                                   
                 if (error < minerror)
                 {
                     minerror = error;
@@ -1124,21 +1149,32 @@ namespace VidStab
                 }
             }
         }
+        
         if (stepSize > 1)   // make fine grain check around the best match
         {
             int txc = tx; // save the shifts
             int tyc = ty;
-            int r = stepSize - 1;
-            for (i = txc - r; i <= txc + r; i += 1)
+            int r   = stepSize - 1;
+            
+            for (int i = txc - r; i <= txc + r; i += 1)
             {
-                for (j = tyc - r; j <= tyc + r; j += 1)
+                for (int j = tyc - r; j <= tyc + r; j += 1)
                 {
                     if (i == txc && j == tyc)
                     {
                         continue;    //no need to check this since already done
                     }
-                    unsigned int error = compareSubImg(I_c, I_p, field, width1, width2,
-                                                       md->fi.height, 3, i + offset.x, j + offset.y, minerror);
+                    unsigned int error = compareSubImg(I_c,
+                                                       I_p,
+                                                       field,
+                                                       width1,
+                                                       width2,
+                                                       md->fi.height,
+                                                       3,
+                                                       i + offset.x,
+                                                       j + offset.y,
+                                                       minerror);
+                                                       
                     if (error < minerror)
                     {
                         minerror = error;
@@ -1149,11 +1185,13 @@ namespace VidStab
             }
         }
         
-        if (fabs(tx) >= maxShift + stepSize - 1 || fabs(ty) >= maxShift + stepSize - 1)
+        if ((fabs(tx) >= (maxShift + stepSize - 1)) ||
+            (fabs(ty) >= (maxShift + stepSize - 1)))
         {
             lm.match = -1;
             return lm;
         }
+        
         lm.f     = *field;
         lm.v.x   = tx + offset.x;
         lm.v.y   = ty + offset.y;

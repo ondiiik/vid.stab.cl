@@ -28,19 +28,19 @@
 using namespace std; // DBG
 
 
-void boxblur_hori_C(unsigned char*       dest,
+void boxblur_hori_C(unsigned char*       dst,
                     const unsigned char* src,
                     int                  width,
                     int                  height,
-                    int                  dest_strive,
+                    int                  dst_strive,
                     int                  src_strive,
                     int                  size);
 
-void boxblur_vert_C(unsigned char*       dest,
+void boxblur_vert_C(unsigned char*       dst,
                     const unsigned char* src,
                     int                  width,
                     int                  height,
-                    int                  dest_strive,
+                    int                  dst_strive,
                     int                  src_strive,
                     int                  size);
 
@@ -174,11 +174,11 @@ const VSFrame* boxblurPlanar(VSFrame&           aDst,
 /* } */
 
 
-void boxblur_hori_C(unsigned char*       dest,
+void boxblur_hori_C(unsigned char*       dst,
                     const unsigned char* src,
                     int                  width,
                     int                  height,
-                    int                  dest_strive,
+                    int                  dst_strive,
                     int                  src_strive,
                     int                  size)
 {
@@ -188,7 +188,7 @@ void boxblur_hori_C(unsigned char*       dest,
     {
         const unsigned char* start   = src  + y * src_strive;  // start and end of kernel
         const unsigned char* end     = start;
-        unsigned char*       current = dest + y * dest_strive; // current destination pixel
+        unsigned char*       current = dst + y * dst_strive; // current destination pixel
         unsigned int         acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
         
         // right half of kernel
@@ -219,11 +219,11 @@ void boxblur_hori_C(unsigned char*       dest,
     }
 }
 
-void boxblur_vert_C(unsigned char*       dest,
+void boxblur_vert_C(unsigned char*       dst,
                     const unsigned char* src,
                     int                  width,
                     int                  height,
-                    int                  dest_strive,
+                    int                  dst_strive,
                     int                  src_strive,
                     int                  size)
 {
@@ -233,7 +233,7 @@ void boxblur_vert_C(unsigned char*       dest,
     {
         const unsigned char* start   = src + x;                // start and end of kernel
         const unsigned char* end     = start;
-        unsigned char*       current = dest + x;               // current destination pixel
+        unsigned char*       current = dst + x;               // current destination pixel
         int                  acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
         
         // right half of kernel
@@ -259,7 +259,7 @@ void boxblur_vert_C(unsigned char*       dest,
             }
             
             *current = acc / size;
-            current += dest_strive;
+            current += dst_strive;
         }
     }
 }

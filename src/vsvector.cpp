@@ -114,18 +114,23 @@ int vs_vector_append(VSVector* V, void* data)
     return VS_OK;
 }
 
+
 int vs_vector_append_dup(VSVector* V, void* data, int data_size)
 {
     assert(V && data);
-    if (!V->data || V->buffersize < 1)
+
+    if ((nullptr == V->data) || (V->buffersize < 1))
     {
         vs_vector_init(V, 4);
     }
+
     void* d = vs_malloc(data_size);
-    if (!d)
+
+    if (nullptr == d)
     {
         return VS_ERROR;
     }
+
     memcpy(d, data, data_size);
     return vs_vector_append(V, d);
 }
