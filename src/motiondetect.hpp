@@ -109,8 +109,8 @@ namespace VidStab
          * @brief   Prepare OpenCL kernels (calculator code)
          */
         void _initOpenCl_prepareKernels();
-        
-        
+
+
         /**
          * @brief   Initialise measurement fields on the frame.
          *

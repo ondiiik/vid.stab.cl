@@ -456,11 +456,12 @@ namespace VidStab
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fi         { aMd->fi  },
-        firstFrame { true     },
-        _mn        { aModName },
-        _clDevice  {          },
-        _clContext { nullptr  }
+        fi          { aMd->fi  },
+        firstFrame  { true     },
+        _mn         { aModName },
+        _clDevice   {          },
+        _clContext  { nullptr  },
+        _clProgram  { nullptr  }
     {
         _initOpenCl();
         _initVsDetect(aConf, aFi);
