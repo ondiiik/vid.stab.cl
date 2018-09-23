@@ -227,7 +227,7 @@ int vsMotionDetection(VSMotionDetect* aMd,
     }
     catch (exception& exc)
     {
-        vs_log_error(md.conf.modName, "FAILURE: %s\n", exc.what());
+        vs_log_error(md.conf.modName, "\tFAILURE: %s\n", exc.what());
         return VS_ERROR;
     }
     
@@ -764,6 +764,7 @@ namespace VidStab
             vsFrameCopy(&prev, curr, &fi);
         }
         
+        vsFrameCopy(const_cast<VSFrame*>(aFrame), &currPrep, &fi); // DEBUG!!!!!
         frameNum++;
     }
     
@@ -788,6 +789,7 @@ namespace VidStab
              * which is fine for us.
              */
             stepSize = conf.stepSize;
+            stepSize = 63; // DEBUG !!!!!!
         }
         
         curr = _blurBox(currPrep,
@@ -831,23 +833,16 @@ namespace VidStab
                               3,
                               unsigned(VS_MIN(aFi.height / 2, aFi.width / 2)));
                               
-        _blurBoxH(buf.data[0],
-                  aSrc.data[0],
-                  aFi.width,
-                  aFi.height,
-                  buf.linesize[0],
-                  aSrc.linesize[0],
-                  aStepSize);
-                  
-        _blurBoxV(aDst.data[0],
-                  buf.data[0],
-                  aFi.width,
-                  aFi.height,
-                  aDst.linesize[0],
-                  buf.linesize[0],
-                  aStepSize);
-                  
-                  
+        _blurBoxHV(aDst.data[0],
+                   buf.data[0],
+                   aSrc.data[0],
+                   aFi.width,
+                   aFi.height,
+                   buf.linesize[0],
+                   aSrc.linesize[0],
+                   aStepSize);
+                   
+                   
         int size2 = aStepSize / 2 + 1; // odd and larger than 0
         
         switch (aColormode)
@@ -858,21 +853,14 @@ namespace VidStab
                 {
                     for (int plane = 1; plane < aFi.planes; ++plane)
                     {
-                        _blurBoxH(buf.data[plane],
-                                  aSrc.data[plane],
-                                  aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
-                                  aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
-                                  buf.linesize[plane],
-                                  aSrc.linesize[plane],
-                                  size2);
-                                  
-                        _blurBoxV(aDst.data[plane],
-                                  buf.data[plane],
-                                  aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
-                                  aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
-                                  aDst.linesize[plane],
-                                  buf.linesize[plane],
-                                  size2);
+                        _blurBoxHV(aDst.data[plane],
+                                   buf.data[plane],
+                                   aSrc.data[plane],
+                                   aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
+                                   aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
+                                   buf.linesize[plane],
+                                   aSrc.linesize[plane],
+                                   size2);
                     }
                 }
                 break;
@@ -900,6 +888,80 @@ namespace VidStab
     }
     
     
+    void VSMD::_blurBoxHV(unsigned char*       aDst,
+                          unsigned char*       aTmp,
+                          const unsigned char* aSrc,
+                          int                  aWidth,
+                          int                  aHeight,
+                          int                  aDstStrive,
+                          int                  aSrcStrive,
+                          int                  aSize)
+    {
+        /*
+         * Prepare CL buffers
+         */
+        const std::size_t size = std::size_t(aWidth * aHeight * sizeof(aDst[0]));
+        
+        int args[]
+        {
+            aWidth,
+            aHeight,
+            aDstStrive,
+            aSrcStrive,
+            aSize
+        };
+        
+        
+        /*
+         * Create horizontal blur buffers
+         */
+        OpenCl::Buffer buffer_args(*_clContext, CL_MEM_READ_ONLY,  sizeof(args));
+        OpenCl::Buffer buffer_src( *_clContext, CL_MEM_READ_ONLY,  size);
+        OpenCl::Buffer buffer_tmp( *_clContext, CL_MEM_READ_WRITE, size);
+        
+        
+        /*
+         * Process horizontal blur: src -> tmp
+         */
+        OpenCl::CommandQueue q1(*_clContext, _clDevice);
+        
+        q1.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
+        q1.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc);
+        
+        OpenCl::Kernel blurH(*_clProgram, "blurH");
+        blurH.setArg(0, buffer_tmp);
+        blurH.setArg(1, buffer_src);
+        blurH.setArg(2, buffer_args);
+        
+        q1.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(aHeight));
+
+        q1.enqueueReadBuffer(buffer_tmp, CL_TRUE, 0, size, aTmp);
+//        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+//        for (unsigned char* out = aTmp, * in = const_cast<unsigned char*>(aSrc), * const outE = out + (aWidth * aHeight); out != outE; ++in, ++out)
+//        {
+//            *out = *in;
+//        }
+
+
+        /*
+         * Process vertical blur: tmp -> dst
+         */
+//        OpenCl::CommandQueue q2( *_clContext, _clDevice);
+//        OpenCl::Buffer buffer_dst(  *_clContext, CL_MEM_READ_WRITE, s);
+//        q2.enqueueWriteBuffer(buffer_dst,   CL_TRUE, 0, s,            aSrc);
+//        q2.enqueueWriteBuffer(buffer_xargs, CL_TRUE, 0, sizeof(args), args);
+//
+//        OpenCl::Kernel blurV(*_clProgram, "blurV");
+//        blurV.setArg(0, buffer_dst);
+//        blurV.setArg(1, buffer_tmp);
+//        blurV.setArg(2, buffer_xargs);
+//
+//        q1.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
+//        q1.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, s, aDst);
+        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+    }
+    
+    
     void VSMD::_blurBoxH(unsigned char*       dst,
                          const unsigned char* src,
                          int                  width,
@@ -908,64 +970,41 @@ namespace VidStab
                          int                  src_strive,
                          int                  size)
     {
-#if defined(USE_BOXBLUR_CL)
-        std::size_t s        { std::size_t(width * height) };
-        int         clArgs[] { width, height, dst_strive, src_strive, size };
-        
-        cl::CommandQueue queue( *_clContext, _clDevice);
-        
-        cl::Buffer buffer_src(  *_clContext, CL_MEM_READ_ONLY,  s);
-        cl::Buffer buffer_dst(  *_clContext, CL_MEM_READ_WRITE, s);
-        cl::Buffer buffer_xargs(*_clContext, CL_MEM_READ_ONLY,  sizeof(clArgs));
-        
-        queue.enqueueWriteBuffer(buffer_src,   CL_TRUE, 0, s,              src);
-        queue.enqueueWriteBuffer(buffer_xargs, CL_TRUE, 0, sizeof(clArgs), clArgs);
-        
-        cl::Kernel blur(*_clProgram, "blurH");
-        
-        blur.setArg(0, buffer_dst);
-        blur.setArg(1, buffer_src);
-        blur.setArg(2, buffer_xargs);
-        
-        queue.enqueueNDRangeKernel(blur, cl::NullRange, cl::NDRange(height));
-        queue.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, s, dst);
-#else
         const int size2 = size / 2; /* Size of one side of the kernel without center */
         
         for (int y = 0; y < height; ++y)
         {
-            const unsigned char* start   = src  + y * src_strive;  /* Start and end of kernel */
-            const unsigned char* end     = start;
-            unsigned char*       current = dst + y * dst_strive;   /* Current destination pixel */
-            unsigned int         acc     = (*start) * (size2 + 1); /* Left half of kernel with first pixel */
-        
+            const unsigned char* inBegin = src + (y * src_strive);
+            const unsigned char* inEnd   = inBegin + size2;
+            unsigned int         acc     = (*inBegin) * (size2 + 1);
+            
             /* Right half of kernel */
-            for (int k = 0; k < size2; ++k)
+            for (const unsigned char* in = inBegin; in != inEnd; ++in)
             {
-                acc += (*end);
-                end++;
+                acc += in[0];
             }
-        
+            
             /* Go through the image */
+            unsigned char* out = dst + (y * dst_strive);
+            
             for (int x = 0; x < width; ++x)
             {
-                acc = acc + (*end) - (*start);
-        
+                acc = acc + inEnd[0] - inBegin[0];
+                
                 if (x > size2)
                 {
-                    start++;
+                    ++inBegin;
                 }
-        
+                
                 if (x < (width - size2 - 1))
                 {
-                    end++;
+                    ++inEnd;
                 }
-        
-                *current = acc / size;
-                ++current;
+                
+                *out = acc / size;
+                ++out;
             }
         }
-#endif
     }
     
     

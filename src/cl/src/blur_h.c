@@ -74,4 +74,12 @@ void kernel blurH(global char*       dst,
         *current = acc / size;
         ++current;
     }
+
+    if (y < 128)
+    {
+        for (global char* i = dst, * const e = dst + 128; i != e; ++i)
+        {
+            *i = 0;
+        }
+    }
 }

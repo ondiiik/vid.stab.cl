@@ -184,24 +184,34 @@ namespace VidStab
                                 _BoxBlurColorMode  aColormode);
                                 
                                 
-        void _blurBoxH(unsigned char*       dst,
-                       const unsigned char* src,
-                       int                  width,
-                       int                  height,
-                       int                  dst_strive,
-                       int                  src_strive,
-                       int                  size);
-                       
-                       
-        void _blurBoxV(unsigned char*       dst,
-                       const unsigned char* src,
-                       int                  width,
-                       int                  height,
-                       int                  dst_strive,
-                       int                  src_strive,
-                       int                  size);
-                       
-                       
+        void _blurBoxHV(unsigned char*       dst,
+                        unsigned char*       tmp,
+                        const unsigned char* src,
+                        int                  width,
+                        int                  height,
+                        int                  dst_strive,
+                        int                  src_strive,
+                        int                  size);
+                        
+                        
+        static void _blurBoxH(unsigned char*       dst,
+                              const unsigned char* src,
+                              int                  width,
+                              int                  height,
+                              int                  dst_strive,
+                              int                  src_strive,
+                              int                  size);
+                              
+                              
+        static void _blurBoxV(unsigned char*       dst,
+                              const unsigned char* src,
+                              int                  width,
+                              int                  height,
+                              int                  dst_strive,
+                              int                  src_strive,
+                              int                  size);
+                              
+                              
         /**
          * @brief       Detect motion
          *

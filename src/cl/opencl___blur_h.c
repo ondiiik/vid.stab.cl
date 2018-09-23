@@ -76,6 +76,14 @@ const char opencl___blur_h[] =
 "         *current = acc / size;                                                                                    \n"
 "         ++current;                                                                                                \n"
 "     }                                                                                                             \n"
+"                                                                                                                   \n"
+"     if (y < 128)                                                                                                  \n"
+"     {                                                                                                             \n"
+"         for (global char* i = dst, * const e = dst + 128; i != e; ++i)                                            \n"
+"         {                                                                                                         \n"
+"             *i = 0;                                                                                               \n"
+"         }                                                                                                         \n"
+"     }                                                                                                             \n"
 " }                                                                                                                 \n"
 
 
@@ -90,7 +98,8 @@ const char opencl___blur_h[] =
 "har*_0_10=_0_a;global unsigned char*_0_8=_0_f+y*_0_6;unsigned int _0_12=(*_0"
 "_a)*(_0_c+1);for(int k=0;k<_0_c;++k){_0_12+=(*_0_10);_0_10++;}for(int x=0;x<"
 "_0_b;++x){_0_12=_0_12+(*_0_10)-(*_0_a);if(x>_0_c){_0_a++;}if(x<(_0_b-_0_c-1)"
-"){_0_10++;}*_0_8=_0_12/_0_d;++_0_8;}}"
+"){_0_10++;}*_0_8=_0_12/_0_d;++_0_8;}if(y<128){for(global char*i=_0_f,*const "
+"e=_0_f+128;i !=e;++i){*i=0;}}}"
 
 
 #endif /* defined(OPENCL_DBG_MODE) */

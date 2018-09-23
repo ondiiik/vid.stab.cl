@@ -41,6 +41,14 @@ namespace OpenCl
     
     
     /**
+     * @brief   Convert error code to string
+     * @param   aErr    Error code
+     * @return  String representation of error code
+     */
+    const char* err2string(cl_int aErr);
+    
+    
+    /**
      * @brief   List of device belonging to single platform
      */
     class Platform
@@ -208,28 +216,156 @@ namespace OpenCl
     
     
     /**
-     * @brief   Represents OpenCL kernel
+     * @brief   Extends command queue
      */
-    class OpenCl
+    class CommandQueue : public cl::CommandQueue
     {
     public:
-        /**
-         * @brief   Construct OpenCL
-         */
-        OpenCl();
+        using cl::CommandQueue::CommandQueue;
         
         
-        /**
-         * @brief   Destroy OpenCL
-         */
-        virtual ~OpenCl();
+        inline void enqueueWriteBuffer(const cl::Buffer&             buffer,
+                                       cl_bool                       blocking,
+                                       cl::size_type                 offset,
+                                       cl::size_type                 size,
+                                       const void*                   ptr,
+                                       const std::vector<cl::Event>* events = NULL,
+                                       cl::Event*                    event  = NULL) const
+        {
+            cl_int ret = cl::CommandQueue::enqueueWriteBuffer(buffer,
+                                                              blocking,
+                                                              offset,
+                                                              size,
+                                                              ptr,
+                                                              events,
+                                                              event);
+                                                              
+            if (CL_SUCCESS != ret)
+            {
+                throw exception("[OpenCL] Enqueue write buffer reported %i (%s)!",
+                                int(ret),
+                                OpenCl::err2string(ret));
+            }
+        }
+        
+        
+        inline void enqueueNDRangeKernel(const cl::Kernel&             kernel,
+                                         const cl::NDRange&            offset,
+                                         const cl::NDRange&            global,
+                                         const cl::NDRange&            local  = cl::NullRange,
+                                         const std::vector<cl::Event>* events = NULL,
+                                         cl::Event*                    event  = NULL) const
+        {
+            cl_int ret = cl::CommandQueue::enqueueNDRangeKernel(kernel,
+                                                                offset,
+                                                                global,
+                                                                local,
+                                                                events,
+                                                                event);
+                                                                
+            if (CL_SUCCESS != ret)
+            {
+                throw exception("[OpenCL] Enqueue kernel reported %i (%s)!",
+                                int(ret),
+                                OpenCl::err2string(ret));
+            }
+        }
+        
+        
+        inline void enqueueReadBuffer(const cl::Buffer&             buffer,
+                                      cl_bool                       blocking,
+                                      cl::size_type                 offset,
+                                      cl::size_type                 size,
+                                      void*                         ptr,
+                                      const std::vector<cl::Event>* events = NULL,
+                                      cl::Event*                    event  = NULL) const
+        {
+            cl_int ret = cl::CommandQueue::enqueueReadBuffer(buffer,
+                                                             blocking,
+                                                             offset,
+                                                             size,
+                                                             ptr,
+                                                             events,
+                                                             event);
+                                                             
+            if (CL_SUCCESS != ret)
+            {
+                throw exception("[OpenCL] Enqueue read buffer reported %i (%s)!",
+                                int(ret),
+                                OpenCl::err2string(ret));
+            }
+        }
+    };
+    
+    
+    /**
+     * @brief   Extends kernel object
+     */
+    class Kernel : public cl::Kernel
+    {
+    public:
+        inline Kernel(const cl::Program& program,
+                      const char*        name)
+            :
+            cl::Kernel { program, name, &_ret },
+            _name      { name                 }
+        {
+            if (CL_SUCCESS != _ret)
+            {
+                throw exception("[OpenCL-%s] Kernel constructor reported %i (%s)!",
+                                _name.c_str(),
+                                int(_ret),
+                                OpenCl::err2string(_ret));
+            }
+        }
+        
+        
+        inline void setArg(cl_uint     index,
+                           cl::Buffer& argPtr)
+        {
+            cl_int ret = cl::Kernel::setArg(index, argPtr);
+            
+            if (CL_SUCCESS != ret)
+            {
+                throw exception("[OpenCL-%s] Set arg idx %i reported %i (%s)!",
+                                _name.c_str(),
+                                int(index),
+                                int(ret),
+                                OpenCl::err2string(ret));
+            }
+        }
         
         
     private:
-        /**
-         * @brief   Current device
-         */
-        cl::Device* _device;
+        cl_int      _ret;
+        std::string _name;
+    };
+    
+    
+    /**
+     * @brief   Extends CL buffer
+     */
+    class Buffer : public cl::Buffer
+    {
+    public:
+        inline Buffer(const cl::Context& context,
+                      cl_mem_flags       flags,
+                      cl::size_type      size,
+                      void*              host_ptr = NULL)
+            :
+            cl::Buffer(context, flags, size, host_ptr, &_ret)
+        {
+            if (CL_SUCCESS != _ret)
+            {
+                throw exception("[OpenCL] Buffer constructor reported %i (%s)!",
+                                int(_ret),
+                                OpenCl::err2string(_ret));
+            }
+        }
+        
+        
+    private:
+        cl_int _ret;
     };
     
     
