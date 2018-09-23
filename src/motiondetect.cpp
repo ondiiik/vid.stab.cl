@@ -764,6 +764,7 @@ namespace VidStab
             vsFrameCopy(&prev, curr, &fi);
         }
         
+        vsFrameCopy(const_cast<VSFrame*>(aFrame), &currPrep, &fi); // DEBUG!!!!!
         frameNum++;
     }
     
@@ -916,45 +917,39 @@ namespace VidStab
         OpenCl::Buffer buffer_args(*_clContext, CL_MEM_READ_ONLY,  sizeof(args));
         OpenCl::Buffer buffer_src( *_clContext, CL_MEM_READ_ONLY,  size);
         OpenCl::Buffer buffer_tmp( *_clContext, CL_MEM_READ_WRITE, size);
+        OpenCl::Buffer buffer_dst( *_clContext, CL_MEM_READ_WRITE, size);
         
         
         /*
          * Process horizontal blur: src -> tmp
          */
-        OpenCl::CommandQueue q1(*_clContext, _clDevice);
+        OpenCl::CommandQueue clQ(*_clContext, _clDevice);
         
-        q1.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
-        q1.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc);
+        clQ.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
+        clQ.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc);
         
         OpenCl::Kernel blurH(*_clProgram, "blurH");
         blurH.setArg(0, buffer_tmp);
         blurH.setArg(1, buffer_src);
         blurH.setArg(2, buffer_args);
         
-        q1.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(aHeight));
+        clQ.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(aHeight));
         
-        q1.enqueueReadBuffer(buffer_tmp, CL_TRUE, 0, size, aTmp);
-//        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-
-
+        
         /*
          * Process vertical blur: tmp -> dst
          */
-        OpenCl::CommandQueue q2(*_clContext, _clDevice);
-        
-        OpenCl::Buffer buffer_dst(*_clContext, CL_MEM_READ_WRITE, size);
-        
-        q2.enqueueWriteBuffer(buffer_dst,  CL_TRUE, 0, size,         aTmp);
-        q2.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
-        
         OpenCl::Kernel blurV(*_clProgram, "blurV");
         blurV.setArg(0, buffer_dst);
         blurV.setArg(1, buffer_tmp);
         blurV.setArg(2, buffer_args);
         
-        q1.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
+        clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
         
-        q1.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
+        clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
+        
+        
+//        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
 //        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
     }
     
