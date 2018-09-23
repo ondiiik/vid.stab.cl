@@ -8,8 +8,8 @@ extern "C" {
 
 
 
-extern const char     opencl___blur[];
-extern const unsigned opencl___blur_len;
+extern const char     opencl___blur_v[];
+extern const unsigned opencl___blur_v_len;
 
 
 

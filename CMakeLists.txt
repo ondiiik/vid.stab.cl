@@ -64,7 +64,8 @@ set(SOURCES
     src/vsvector.cpp
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
-    src/cl/opencl___blur.c)
+    src/cl/opencl___blur_h.c
+    src/cl/opencl___blur_v.c)
 
 set(HEADERS
     src/frameinfo.h
@@ -77,7 +78,8 @@ set(HEADERS
     src/vsvector.h
     src/md_exception.hpp
     src/cl/opencl.hpp
-    src/cl/opencl___blur.h)
+    src/cl/opencl___blur_h.h
+    src/cl/opencl___blur_v.h)
 
 
 # Create the vidstab library

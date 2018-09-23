@@ -60,7 +60,8 @@
 #include "md_exception.hpp"
 
 #include "cl/opencl.hpp"
-#include "cl/opencl___blur.h"
+#include "cl/opencl___blur_h.h"
+#include "cl/opencl___blur_v.h"
 
 #include <vector>
 #include <algorithm>
@@ -537,7 +538,8 @@ namespace VidStab
     
     void VSMD::_initOpenCl_prepareKernels()
     {
-        _clSources.push_back({opencl___blur, opencl___blur_len});
+        _clSources.push_back({opencl___blur_h, opencl___blur_h_len});
+        _clSources.push_back({opencl___blur_v, opencl___blur_v_len});
         
         _clProgram = new cl::Program(*_clContext, _clSources);
         
@@ -906,41 +908,64 @@ namespace VidStab
                          int                  src_strive,
                          int                  size)
     {
-        const int size2 = size / 2; // size of one side of the kernel without center
+#if defined(USE_BOXBLUR_CL)
+        std::size_t s        { std::size_t(width * height) };
+        int         clArgs[] { width, height, dst_strive, src_strive, size };
+        
+        cl::CommandQueue queue( *_clContext, _clDevice);
+        
+        cl::Buffer buffer_src(  *_clContext, CL_MEM_READ_ONLY,  s);
+        cl::Buffer buffer_dst(  *_clContext, CL_MEM_READ_WRITE, s);
+        cl::Buffer buffer_xargs(*_clContext, CL_MEM_READ_ONLY,  sizeof(clArgs));
+        
+        queue.enqueueWriteBuffer(buffer_src,   CL_TRUE, 0, s,              src);
+        queue.enqueueWriteBuffer(buffer_xargs, CL_TRUE, 0, sizeof(clArgs), clArgs);
+        
+        cl::Kernel blur(*_clProgram, "blurH");
+        
+        blur.setArg(0, buffer_dst);
+        blur.setArg(1, buffer_src);
+        blur.setArg(2, buffer_xargs);
+        
+        queue.enqueueNDRangeKernel(blur, cl::NullRange, cl::NDRange(height));
+        queue.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, s, dst);
+#else
+        const int size2 = size / 2; /* Size of one side of the kernel without center */
         
         for (int y = 0; y < height; ++y)
         {
-            const unsigned char* start   = src  + y * src_strive;  // start and end of kernel
+            const unsigned char* start   = src  + y * src_strive;  /* Start and end of kernel */
             const unsigned char* end     = start;
-            unsigned char*       current = dst + y * dst_strive; // current destination pixel
-            unsigned int         acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
-            
-            // right half of kernel
+            unsigned char*       current = dst + y * dst_strive;   /* Current destination pixel */
+            unsigned int         acc     = (*start) * (size2 + 1); /* Left half of kernel with first pixel */
+        
+            /* Right half of kernel */
             for (int k = 0; k < size2; ++k)
             {
                 acc += (*end);
                 end++;
             }
-            
-            // go through the image
+        
+            /* Go through the image */
             for (int x = 0; x < width; ++x)
             {
                 acc = acc + (*end) - (*start);
-                
+        
                 if (x > size2)
                 {
                     start++;
                 }
-                
+        
                 if (x < (width - size2 - 1))
                 {
                     end++;
                 }
-                
+        
                 *current = acc / size;
                 ++current;
             }
         }
+#endif
     }
     
     

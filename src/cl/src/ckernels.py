@@ -7,26 +7,52 @@ import re
 
 kernels  = [
                [
-                   "blur.c",
+                   "blur_h.c",
                    [
-                       [ "_0", "WIDTH"       ],
-                       [ "_1", "HEIGHT"      ],
-                       [ "_2", "DST_STRIVE"  ],
-                       [ "_3", "SRC_STRIVE"  ],
-                       [ "_5", "SIZE"        ],
-                       [ "_6", "width"       ],
-                       [ "_7", "height"      ],
-                       [ "_8", "dst_strive"  ],
-                       [ "_9", "src_strive"  ],
-                       [ "_A", "size"        ],
-                       [ "_a", "args"        ],
-                       [ "_b", "size2"       ],
-                       [ "_c", "start"       ],
-                       [ "_d", "dst"         ],
-                       [ "_e", "end"         ],
-                       [ "_f", "current"     ],
-                       [ "_s", "src"         ],
-                       [ "_z", "__ARGS_CNT"  ]
+                       [ "BLUR_H___DST_STRIVE"  ],
+                       [ "BLUR_H___SRC_STRIVE"  ],
+                       [ "__BLUR_H___ARGS_CNT"  ],
+                       [ "BLUR_H___WIDTH"       ],
+                       [ "BLUR_H___HEIGHT"      ],
+                       [ "BLUR_H___SIZE"        ],
+                       [ "dst_strive"           ],
+                       [ "src_strive"           ],
+                       [ "current"              ],
+                       [ "height"               ],
+                       [ "start"                ],
+                       [ "width"                ],
+                       [ "size2"                ],
+                       [ "size"                 ],
+                       [ "args"                 ],
+                       [ "dst"                  ],
+                       [ "end"                  ],
+                       [ "src"                  ],
+                       [ "acc"                  ],
+                   ]
+               ],
+               
+               [
+                   "blur_v.c",
+                   [
+                       [ "BLUR_V___DST_STRIVE"  ],
+                       [ "BLUR_V___SRC_STRIVE"  ],
+                       [ "__BLUR_V___ARGS_CNT"  ],
+                       [ "BLUR_V___HEIGHT"      ],
+                       [ "BLUR_V___SIZE"        ],
+                       [ "BLUR_V___WIDTH"       ],
+                       [ "dst_strive"           ],
+                       [ "src_strive"           ],
+                       [ "current"              ],
+                       [ "height"               ],
+                       [ "start"                ],
+                       [ "width"                ],
+                       [ "size2"                ],
+                       [ "size"                 ],
+                       [ "args"                 ],
+                       [ "dst"                  ],
+                       [ "end"                  ],
+                       [ "src"                  ],
+                       [ "acc"                  ],
                    ]
                ]
            ]
@@ -34,9 +60,12 @@ kernels  = [
 
 
 
-def _aliasses(txt, aliasses):
+def _aliasses(txt, aliasses, kid):
+    prefix = "_" + kid + "_"
+    eidx   = 0
     for a in aliasses:
-        txt = re.sub(a[1], a[0], txt)
+        txt   = re.sub(a[0], prefix + hex(eidx)[2:], txt)
+        eidx += 1
     return txt
     
     
@@ -71,7 +100,7 @@ def _simplify(txt):
     
     
     
-def _buildKernel(kernel):
+def _buildKernel(kernel, kidx):
     kernelIn   = kernel[0]
     kernelName = kernel[0][:-2]
     kernelOut  = "opencl___"    + kernelName
@@ -93,7 +122,7 @@ def _buildKernel(kernel):
     for i in range(32):
         txt = _simplify(txt)
         
-    txt = _aliasses(txt, kernel[1])
+    txt = _aliasses(txt, kernel[1], hex(kidx)[2:])
     
     blockSize = 76
     rng       = range(0, len(txt), blockSize)
@@ -154,6 +183,7 @@ def _buildKernel(kernel):
 
 
 
-
+kidx = 0
 for kernel in kernels:
-    _buildKernel(kernel)
+    _buildKernel(kernel, kidx)
+    kidx += 1

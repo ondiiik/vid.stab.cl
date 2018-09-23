@@ -3,10 +3,9 @@
 #define global
 #endif
 /**
- * @brief   OpenCL kernel used to calculate equation resolver for
- *          reverse barrel distortion correction.
+ * @brief   OpenCL kernel used for horizontal bluring.
  *
- * @file    from_barrel.c
+ * @file    blur_h.c
  * @author  OSi (Ondrej Sienczak)
  */
 
@@ -14,24 +13,14 @@
 /**
  * @brief   Indexes of arguments
  */
-enum ArgIdx
+enum BlurH_ArgIdx
 {
-    WIDTH,          /**< @brief Frame width */
-    HEIGHT,         /**< @brief Frame height */
-    DST_STRIVE,     /**< @brief ? */
-    SRC_STRIVE,     /**< @brief ? */
-    SIZE,           /**< @brief Count of items to be calculated */
-    __ARGS_CNT      /**< @brief Count of arguments */
-};
-
-
-/**
- * @brief   Argument type
- */
-union Arg
-{
-    float f;        /**< @brief Argument of float type */
-    int   i;        /**< @brief Argument of integer type */
+    BLUR_H___WIDTH,          /**< @brief Frame width */
+    BLUR_H___HEIGHT,         /**< @brief Frame height */
+    BLUR_H___DST_STRIVE,     /**< @brief ? */
+    BLUR_H___SRC_STRIVE,     /**< @brief ? */
+    BLUR_H___SIZE,           /**< @brief Count of items to be calculated */
+    __BLUR_H___ARGS_CNT      /**< @brief Count of arguments */
 };
 
 
@@ -42,15 +31,15 @@ union Arg
  * @param   src     Source buffer
  * @param   args    Arguments of filter
  */
-void kernel blur(global char*            dst,
-                 global const char*      src,
-                 global const union Arg* args)
+void kernel blurH(global char*       dst,
+                  global const char* src,
+                  global const int*  args)
 {
-    const int                   width       = args[WIDTH].i;
-    const int                   height      = args[HEIGHT].i;
-    const int                   dst_strive  = args[DST_STRIVE].i;
-    const int                   src_strive  = args[SRC_STRIVE].i;
-    const int                   size        = args[SIZE].i;
+    const int                   width       = args[BLUR_H___WIDTH];
+    const int                   height      = args[BLUR_H___HEIGHT];
+    const int                   dst_strive  = args[BLUR_H___DST_STRIVE];
+    const int                   src_strive  = args[BLUR_H___SRC_STRIVE];
+    const int                   size        = args[BLUR_H___SIZE];
     
     const int                   size2       = size / 2; /* Size of one side of the kernel without center */
     
@@ -86,17 +75,3 @@ void kernel blur(global char*            dst,
         ++current;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
