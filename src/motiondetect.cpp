@@ -789,7 +789,205 @@ namespace VidStab
             stepSize = conf.stepSize;
         }
         
-        curr = boxblurPlanar(currPrep, *aFrame, currtmp, fi, stepSize, BoxBlurNoColor);
+        curr = _blurBox(currPrep,
+                        *aFrame,
+                        currtmp,
+                        fi,
+                        stepSize,
+                        _BoxBlurNoColor);
+    }
+    
+    
+    const VSFrame* VSMD::_blurBox(VSFrame&           aDst,
+                                  const VSFrame&     aSrc,
+                                  VSFrame&           aBuffer,
+                                  const VSFrameInfo& aFi,
+                                  unsigned int       aStepSize,
+                                  _BoxBlurColorMode  aColormode)
+    {
+        if (aStepSize < 2)
+        {
+            return &aSrc;
+        }
+        
+        
+        VSFrame buf;
+        int     localbuffer = 0;
+        
+        if (&aBuffer == nullptr)
+        {
+            vsFrameAllocate(&buf, &aFi);
+            localbuffer = 1;
+        }
+        else
+        {
+            buf = aBuffer;
+        }
+        
+        
+        // odd and larger than 2 and maximally half of smaller image dimension
+        aStepSize  = VS_CLAMP(aStepSize | 1U,
+                              3,
+                              unsigned(VS_MIN(aFi.height / 2, aFi.width / 2)));
+                              
+        _blurBoxH(buf.data[0],
+                  aSrc.data[0],
+                  aFi.width,
+                  aFi.height,
+                  buf.linesize[0],
+                  aSrc.linesize[0],
+                  aStepSize);
+                  
+        _blurBoxV(aDst.data[0],
+                  buf.data[0],
+                  aFi.width,
+                  aFi.height,
+                  aDst.linesize[0],
+                  buf.linesize[0],
+                  aStepSize);
+                  
+                  
+        int size2 = aStepSize / 2 + 1; // odd and larger than 0
+        
+        switch (aColormode)
+        {
+            case _BoxBlurColor:
+                // color
+                if (size2 > 1)
+                {
+                    for (int plane = 1; plane < aFi.planes; ++plane)
+                    {
+                        _blurBoxH(buf.data[plane],
+                                  aSrc.data[plane],
+                                  aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
+                                  aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
+                                  buf.linesize[plane],
+                                  aSrc.linesize[plane],
+                                  size2);
+                                  
+                        _blurBoxV(aDst.data[plane],
+                                  buf.data[plane],
+                                  aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
+                                  aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
+                                  aDst.linesize[plane],
+                                  buf.linesize[plane],
+                                  size2);
+                    }
+                }
+                break;
+                
+                
+            case _BoxBlurKeepColor:
+                // copy both color channels
+                for (int plane = 1; plane < aFi.planes; plane++)
+                {
+                    vsFrameCopyPlane(&aDst, &aSrc, &aFi, plane);
+                }
+                break;
+                
+                
+            default:
+                break;
+        }
+        
+        if (localbuffer)
+        {
+            vsFrameFree(&buf);
+        }
+        
+        return &aDst;
+    }
+    
+    
+    void VSMD::_blurBoxH(unsigned char*       dst,
+                         const unsigned char* src,
+                         int                  width,
+                         int                  height,
+                         int                  dst_strive,
+                         int                  src_strive,
+                         int                  size)
+    {
+        const int size2 = size / 2; // size of one side of the kernel without center
+        
+        for (int y = 0; y < height; ++y)
+        {
+            const unsigned char* start   = src  + y * src_strive;  // start and end of kernel
+            const unsigned char* end     = start;
+            unsigned char*       current = dst + y * dst_strive; // current destination pixel
+            unsigned int         acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
+            
+            // right half of kernel
+            for (int k = 0; k < size2; ++k)
+            {
+                acc += (*end);
+                end++;
+            }
+            
+            // go through the image
+            for (int x = 0; x < width; ++x)
+            {
+                acc = acc + (*end) - (*start);
+                
+                if (x > size2)
+                {
+                    start++;
+                }
+                
+                if (x < (width - size2 - 1))
+                {
+                    end++;
+                }
+                
+                *current = acc / size;
+                ++current;
+            }
+        }
+    }
+    
+    
+    void VSMD::_blurBoxV(unsigned char*       dst,
+                         const unsigned char* src,
+                         int                  width,
+                         int                  height,
+                         int                  dst_strive,
+                         int                  src_strive,
+                         int                  size)
+    {
+        const int size2 = size / 2; // size of one side of the kernel without center
+        
+        for (int x = 0; x < width; x++)
+        {
+            const unsigned char* start   = src + x;                // start and end of kernel
+            const unsigned char* end     = start;
+            unsigned char*       current = dst + x;               // current destination pixel
+            int                  acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
+            
+            // right half of kernel
+            for (int k = 0; k < size2; k++)
+            {
+                acc += (*end);
+                end += src_strive;
+            }
+            
+            // go through the image
+            for (int y = 0; y < height; y++)
+            {
+                acc = acc - (*start) + (*end);
+                
+                if (y > size2)
+                {
+                    start += src_strive;
+                }
+                
+                if (y < height - size2 - 1)
+                {
+                    end += src_strive;
+                }
+                
+                *current = acc / size;
+                current += dst_strive;
+            }
+        }
     }
     
     

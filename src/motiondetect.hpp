@@ -61,8 +61,8 @@ namespace VidStab
          */
         void operator()(LocalMotions*  aMotions,
                         const VSFrame* aFrame);
-        
-        
+                        
+                        
         /**
          * @brief   Reference to parent C instance
          */
@@ -84,6 +84,17 @@ namespace VidStab
         
         
     private:
+        /**
+         * @brief   Blur mode
+         */
+        enum _BoxBlurColorMode
+        {
+            _BoxBlurColor,     /**< @brief Blur also color channels */
+            _BoxBlurKeepColor, /**< @brief Copy original color channels */
+            _BoxBlurNoColor    /**< @brief Do not touch color channels in dest */
+        };
+        
+        
         /**
          * @brief   Core filter initialization
          * @param   aConf   Initial configuration
@@ -109,8 +120,8 @@ namespace VidStab
          * @brief   Prepare OpenCL kernels (calculator code)
          */
         void _initOpenCl_prepareKernels();
-
-
+        
+        
         /**
          * @brief   Initialise measurement fields on the frame.
          *
@@ -151,6 +162,46 @@ namespace VidStab
         void _blur(const VSFrame* aFrame);
         
         
+        /**
+         * @brief   Performs a boxblur operation on src and stores results in dest
+         *
+         * It uses an accumulator method and separate horizontal and vertical runs
+         *
+         * @param   aDst        Destination buffer
+         * @param   aSrc        Source buffer
+         * @param   aBuffer     Frame buffer
+         * @param   aFi         Frame information
+         * @param   aStepSize   Size of bluring kernel (min 3 and it is made odd)
+         * @param   aColormode  Which color mode is used
+         *
+         * @return  Blured frame
+         */
+        const VSFrame* _blurBox(VSFrame&           aDst,
+                                const VSFrame&     aSrc,
+                                VSFrame&           aBuffer,
+                                const VSFrameInfo& aFi,
+                                unsigned int       aStepSize,
+                                _BoxBlurColorMode  aColormode);
+                                
+                                
+        void _blurBoxH(unsigned char*       dst,
+                       const unsigned char* src,
+                       int                  width,
+                       int                  height,
+                       int                  dst_strive,
+                       int                  src_strive,
+                       int                  size);
+                       
+                       
+        void _blurBoxV(unsigned char*       dst,
+                       const unsigned char* src,
+                       int                  width,
+                       int                  height,
+                       int                  dst_strive,
+                       int                  src_strive,
+                       int                  size);
+                       
+                       
         /**
          * @brief       Detect motion
          *
@@ -224,8 +275,8 @@ namespace VidStab
          * @brief   Sources of code we want to run over OpenCL
          */
         cl::Program::Sources _clSources;
-
-
+        
+        
         /**
          * @brief   Compiled binary of code we want to run over OpenCL
          */
