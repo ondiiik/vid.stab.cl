@@ -59,7 +59,10 @@
  */
 #include "motiondetect.hpp"
 #include "md_exception.hpp"
+
 #include "cl/opencl.hpp"
+#include "cl/opencl___blur.h"
+
 #include <vector>
 #include <algorithm>
 #include <cstdio>
@@ -455,8 +458,9 @@ namespace VidStab
         :
         fi         { aMd->fi  },
         firstFrame { true     },
-        _mn   { aModName },
-        _clDevice  { nullptr  }
+        _mn        { aModName },
+        _clDevice  {          },
+        _clContext { nullptr  }
     {
         _initOpenCl();
         _initVsDetect(aConf, aFi);
@@ -480,37 +484,70 @@ namespace VidStab
         vsFrameFree(&prev);
         vsFrameFree(&currPrep);
         vsFrameFree(&currtmp);
+        
+        
+        delete _clProgram;
+        delete _clContext;
     }
     
     
     void VSMD::_initOpenCl()
     {
-        vs_log_info(_mn.c_str(), "OpenCL devices:\n");
+        _initOpenCl_selectDevice();
+        _initOpenCl_prepareKernels();
+    }
+    
+    
+    void VSMD::_initOpenCl_selectDevice()
+    {
+        vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
+        
+        
+        bool first { true };
         
         for (auto& platform : OpenCl::devices)
         {
             for (auto& device : platform)
             {
-                if (nullptr == _clDevice)
+                if (first)
                 {
                     vs_log_info(_mn.c_str(),
-                                "--> Found %s\n",
+                                "[OpenCL] --> %s\n",
                                 device.getInfo<CL_DEVICE_NAME>().c_str());
-                    _clDevice = &device;
+                    _clDevice = device;
+                    first     = false;
                 }
                 else
                 {
                     vs_log_info(_mn.c_str(),
-                                "    Found %s\n",
+                                "[OpenCL]     %s\n",
                                 device.getInfo<CL_DEVICE_NAME>().c_str());
                 }
             }
         }
         
-        if (nullptr == _clDevice)
+        if (first)
         {
-            throw mdException("There is no OpenCL device available!");
+            throw mdException("[OpenCL] There is no device available!");
         }
+        
+        _clContext = new cl::Context({_clDevice});
+    }
+    
+    
+    void VSMD::_initOpenCl_prepareKernels()
+    {
+        _clSources.push_back({opencl___blur, opencl___blur_len});
+        
+        _clProgram = new cl::Program(*_clContext, _clSources);
+        
+        
+        if (_clProgram->build({_clDevice}) != CL_SUCCESS)
+        {
+            throw mdException("[OpenCL] OpenCL build error:\n%s\n", _clProgram->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+        }
+        
+        vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
     }
     
     
@@ -725,19 +762,6 @@ namespace VidStab
         }
         
         frameNum++;
-    }
-    
-    
-    const cl::Device& VSMD::getClDevice() const
-    {
-        if (nullptr != _clDevice)
-        {
-            return *_clDevice;
-        }
-        else
-        {
-            throw mdException("There is no OpenCL device available!");
-        }
     }
     
     

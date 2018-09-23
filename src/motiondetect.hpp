@@ -61,13 +61,6 @@ namespace VidStab
          */
         void operator()(LocalMotions*  aMotions,
                         const VSFrame* aFrame);
-                        
-                        
-        /**
-         * @brief   Get selected OpenCL device
-         * @return  Selected OpenCL device
-         */
-        const cl::Device& getClDevice() const;
         
         
         /**
@@ -104,6 +97,18 @@ namespace VidStab
          * @brief   Initialize OpenCL engine
          */
         void _initOpenCl();
+        
+        
+        /**
+         * @brief   Select OpenCL device
+         */
+        void _initOpenCl_selectDevice();
+        
+        
+        /**
+         * @brief   Prepare OpenCL kernels (calculator code)
+         */
+        void _initOpenCl_prepareKernels();
         
         
         /**
@@ -201,12 +206,30 @@ namespace VidStab
          * @brief   Module name
          */
         std::string _mn;
-
-
+        
+        
         /**
          * @brief   OpenCL device
          */
-        cl::Device* _clDevice;
+        cl::Device _clDevice;
+        
+        
+        /**
+         * @brief   OpenCL context (communication channel to device)
+         */
+        cl::Context* _clContext;
+        
+        
+        /**
+         * @brief   Sources of code we want to run over OpenCL
+         */
+        cl::Program::Sources _clSources;
+
+
+        /**
+         * @brief   Compiled binary of code we want to run over OpenCL
+         */
+        cl::Program* _clProgram;
     };
     
     
