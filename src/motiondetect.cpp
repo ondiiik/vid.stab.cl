@@ -170,7 +170,7 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
     
     try
     {
-        VSMD* md   = new VSMD(aMd, aConf, aFi);
+        VSMD* md   = new VSMD(modName, aMd, aConf, aFi);
         aMd->_inst = md;
     }
     catch (exception& exc)
@@ -179,27 +179,13 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
         return VS_ERROR;
     }
     
+    
     vs_log_info(modName,
                 "Initialized: [%ix%i]:%s\n",
                 aFi->width,
                 aFi->height,
                 _fmt2str(aFi->pFormat));
                 
-                
-    vs_log_info(modName, "OpenCL devices:\n");
-    
-    for (auto& platform : OpenCl::devices)
-    {
-        for (auto& device : platform)
-        {
-            vs_log_info(modName,
-                        "\tFound %s\n",
-                        device.getInfo<CL_DEVICE_NAME>().c_str());
-                        
-        }
-    }
-    
-    
     return VS_OK;
 }
 
@@ -462,12 +448,74 @@ unsigned int compareSubImg_thr(unsigned char* const I1, unsigned char* const I2,
 
 namespace VidStab
 {
-    VSMD::VSMD(VSMotionDetect*             aMd,
+    VSMD::VSMD(const char*                 aModName,
+               VSMotionDetect*             aMd,
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fi         { aMd->fi },
-        firstFrame { true    }
+        fi         { aMd->fi  },
+        firstFrame { true     },
+        _mn   { aModName },
+        _clDevice  { nullptr  }
+    {
+        _initOpenCl();
+        _initVsDetect(aConf, aFi);
+    }
+    
+    
+    VSMD::~VSMD()
+    {
+        if (fieldscoarse.fields)
+        {
+            vs_free(fieldscoarse.fields);
+            fieldscoarse.fields = 0;
+        }
+        
+        if (fieldsfine.fields)
+        {
+            vs_free(fieldsfine.fields);
+            fieldsfine.fields = 0;
+        }
+        
+        vsFrameFree(&prev);
+        vsFrameFree(&currPrep);
+        vsFrameFree(&currtmp);
+    }
+    
+    
+    void VSMD::_initOpenCl()
+    {
+        vs_log_info(_mn.c_str(), "OpenCL devices:\n");
+        
+        for (auto& platform : OpenCl::devices)
+        {
+            for (auto& device : platform)
+            {
+                if (nullptr == _clDevice)
+                {
+                    vs_log_info(_mn.c_str(),
+                                "--> Found %s\n",
+                                device.getInfo<CL_DEVICE_NAME>().c_str());
+                    _clDevice = &device;
+                }
+                else
+                {
+                    vs_log_info(_mn.c_str(),
+                                "    Found %s\n",
+                                device.getInfo<CL_DEVICE_NAME>().c_str());
+                }
+            }
+        }
+        
+        if (nullptr == _clDevice)
+        {
+            throw mdException("There is no OpenCL device available!");
+        }
+    }
+    
+    
+    void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
+                             const VSFrameInfo*          aFi)
     {
         /*
          * First of all check inputs before we use them
@@ -554,26 +602,6 @@ namespace VidStab
         
         vsFrameAllocate(&currPrep, &fi);
         vsFrameAllocate(&currtmp,  &fi);
-    }
-    
-    
-    VSMD::~VSMD()
-    {
-        if (fieldscoarse.fields)
-        {
-            vs_free(fieldscoarse.fields);
-            fieldscoarse.fields = 0;
-        }
-        
-        if (fieldsfine.fields)
-        {
-            vs_free(fieldsfine.fields);
-            fieldsfine.fields = 0;
-        }
-        
-        vsFrameFree(&prev);
-        vsFrameFree(&currPrep);
-        vsFrameFree(&currtmp);
     }
     
     
@@ -697,6 +725,19 @@ namespace VidStab
         }
         
         frameNum++;
+    }
+    
+    
+    const cl::Device& VSMD::getClDevice() const
+    {
+        if (nullptr != _clDevice)
+        {
+            return *_clDevice;
+        }
+        else
+        {
+            throw mdException("There is no OpenCL device available!");
+        }
     }
     
     

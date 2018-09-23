@@ -8,14 +8,14 @@
 
 
 #include "motiondetect.h"
+#include "cl/opencl.hpp"
+#include <string>
 
 
 namespace VidStab
 {
     /**
      * @brief   Data structure for motion detection part of deshaking
-     * @note    Structure must be also type because is used in C
-     *          in ffmpeg
      */
     class VSMD
     {
@@ -37,11 +37,13 @@ namespace VidStab
         /**
          * @brief   Construct data structure for motion detection part of deshaking
          *
-         * @param   aMd     Parrent C instance used by external tools such as ffmpeg
-         * @param   aConf   Initial configuration
-         * @param   aFi     Frame info
+         * @param   aModName    Module name
+         * @param   aMd         Parrent C instance used by external tools such as ffmpeg
+         * @param   aConf       Initial configuration
+         * @param   aFi         Frame info
          */
-        VSMD(VSMotionDetect*             aMd,
+        VSMD(const char*                 aModName,
+             VSMotionDetect*             aMd,
              const VSMotionDetectConfig* aConf,
              const VSFrameInfo*          aFi);
              
@@ -59,8 +61,15 @@ namespace VidStab
          */
         void operator()(LocalMotions*  aMotions,
                         const VSFrame* aFrame);
-                                     
-                                     
+                        
+                        
+        /**
+         * @brief   Get selected OpenCL device
+         * @return  Selected OpenCL device
+         */
+        const cl::Device& getClDevice() const;
+        
+        
         /**
          * @brief   Reference to parent C instance
          */
@@ -78,14 +87,32 @@ namespace VidStab
         VSFrame              prev;       // frame buffer for last frame (copied)
         bool                 firstFrame; // true if we have a valid previous frame
         
-        int frameNum;
+        int                  frameNum;
         
         
     private:
-        /** initialise measurement fields on the frame.
-            The size of the fields and the maxshift is used to
-            calculate an optimal distribution in the frame.
-            if border is set then they are placed savely away from the border for maxShift
+        /**
+         * @brief   Core filter initialization
+         * @param   aConf   Initial configuration
+         * @param   aFi     Frame info
+         */
+        void _initVsDetect(const VSMotionDetectConfig* aConf,
+                           const VSFrameInfo*          aFi);
+                           
+                           
+        /**
+         * @brief   Initialize OpenCL engine
+         */
+        void _initOpenCl();
+        
+        
+        /**
+         * @brief   Initialise measurement fields on the frame.
+         *
+         * The size of the fields and the maxshift is used to
+         * calculate an optimal distribution in the frame.
+         * if border is set then they are placed savely
+         * away from the border for maxShift
         */
         void _initFields(VSMotionDetectFields* fs,
                          int                   fieldSize,
@@ -106,8 +133,8 @@ namespace VidStab
         LocalMotions _calcTransFields(VSMotionDetectFields* fields,
                                       calcFieldTransFunc    fieldfunc,
                                       contrastSubImgFunc    contrastfunc);
-
-
+                                      
+                                      
         /**
          * @brief   Smoothen image to do better motion detection
          *
@@ -117,8 +144,8 @@ namespace VidStab
          * @param   aFrame  Current frame
          */
         void _blur(const VSFrame* aFrame);
-
-
+        
+        
         /**
          * @brief       Detect motion
          *
@@ -127,16 +154,16 @@ namespace VidStab
          */
         void _detect(LocalMotions*  aMotions,
                      const VSFrame* aFrame);
-
-
+                     
+                     
         /**
          * @brief   Detect motion - contrast part
          * @param   aMotionscoarse    Coarse motion results
          * @return  Number of detected motions
          */
         int _detectContrast(LocalMotions& aMotionscoarse);
-
-
+        
+        
         /**
          * @brief   Draw results of detection
          * @param   num_motions Number of motions
@@ -144,8 +171,8 @@ namespace VidStab
         void _draw(int           num_motions,
                    LocalMotions& motionscoarse,
                    LocalMotions& motionsfine);
-        
-        
+                   
+                   
         /** draws the field scanning area */
         void _drawFieldScanArea(const LocalMotion* lm,
                                 int                maxShift);
@@ -168,6 +195,18 @@ namespace VidStab
         */
         VSVector _selectfields(VSMotionDetectFields* fs,
                                contrastSubImgFunc    contrastfunc);
+                               
+                               
+        /**
+         * @brief   Module name
+         */
+        std::string _mn;
+
+
+        /**
+         * @brief   OpenCL device
+         */
+        cl::Device* _clDevice;
     };
     
     
