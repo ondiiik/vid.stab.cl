@@ -118,15 +118,18 @@ void storeVSTransform(FILE* f, const struct VSTransform* t)
 }
 
 
-PreparedTransform prepare_transform(const struct VSTransform* t, const VSFrameInfo* fi)
+PreparedTransform prepare_transform(const struct VSTransform* t,
+                                    const        VSFrameInfo* fi)
 {
     PreparedTransform pt;
     pt.t = t;
-    double z = 1.0 + t->zoom / 100.0;
+
+    double  z = 1.0 + t->zoom / 100.0;
     pt.zcos_a = z * cos(t->alpha); // scaled cos
     pt.zsin_a = z * sin(t->alpha); // scaled sin
     pt.c_x    = fi->width / 2;
     pt.c_y    = fi->height / 2;
+
     return pt;
 }
 

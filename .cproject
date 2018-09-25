@@ -25,7 +25,6 @@
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1711677617" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1086985015" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
-									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
@@ -36,7 +35,6 @@
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.1399206640" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1612474751" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
-									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
@@ -82,7 +80,6 @@
 								<option id="gnu.cpp.compiler.exe.release.option.debugging.level.1849686830" name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.600787590" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
-									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
@@ -93,7 +90,6 @@
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.646974353" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.preprocessor.def.symbols.769993933" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
-									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
@@ -144,4 +140,5 @@
 		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

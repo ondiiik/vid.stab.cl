@@ -19,7 +19,8 @@ endif()
 option(BUILD_SHARED_LIBS "build shared libraries instead of static libraries"
        ON)
 
-option(USE_OMP "use parallelization use OMP" ON)
+option(USE_OMP  "use parallelization use OMP" ON)
+option(USE_SSE2 "use SSE2 optimization"       ON)
 
 add_definitions(-fPIC
                 -DOPENCL_DBG_MODE=1
@@ -40,10 +41,12 @@ endif()
 # here we should check for SSE2
 # our  -DUSE_SSE2_ASM code does not work with fpic
 
+if(USE_SSE2)
 if(SSE2_FOUND)
 add_definitions(-DUSE_SSE2
                 -msse2
                 -ffast-math)
+endif()
 endif()
 
 if(USE_OMP)

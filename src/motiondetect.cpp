@@ -67,6 +67,29 @@
 #include <algorithm>
 #include <cstdio>
 
+
+// DEBUG - PROFILING
+#if defined(__i386__)
+
+static __inline__ unsigned long long rdtsc(void)
+{
+    unsigned long long int x;
+    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
+    return x;
+}
+
+#elif defined(__x86_64__)
+
+static __inline__ unsigned long long rdtsc(void)
+{
+    unsigned hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
+#endif
+
+
 using namespace VidStab;
 using namespace std;
 
@@ -416,35 +439,43 @@ void drawLine(unsigned char* I, int width, int height, int bytesPerPixel,
 
 //#ifdef TESTING
 /// plain C implementation of compareSubImg (without ORC)
-unsigned int compareSubImg_thr(unsigned char* const I1, unsigned char* const I2,
-                               const Field* field, int width1, int width2, int height,
-                               int bytesPerPixel, int d_x, int d_y,
-                               unsigned int threshold)
+unsigned int compareSubImg_thr(unsigned char* const I1,
+                               unsigned char* const I2,
+                               const Field*         field,
+                               int                  width1,
+                               int                  width2,
+                               int                  height,
+                               int                  bytesPerPixel,
+                               int                  d_x,
+                               int                  d_y,
+                               unsigned int         threshold)
 {
-    int k, j;
-    unsigned char* p1 = NULL;
-    unsigned char* p2 = NULL;
-    int s2 = field->size / 2;
-    unsigned int sum = 0;
+    unsigned char* p1  = NULL;
+    unsigned char* p2  = NULL;
+    int            s2  = field->size / 2;
+    unsigned int   sum = 0;
+
+    p1 = I1 + ((field->x - s2)       + (field->y - s2)       * width1) * bytesPerPixel;
+    p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
     
-    p1 = I1 + ((field->x - s2) + (field->y - s2) * width1) * bytesPerPixel;
-    p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2)
-         * bytesPerPixel;
-    for (j = 0; j < field->size; j++)
+    for (int j = 0; j < field->size; j++)
     {
-        for (k = 0; k < field->size * bytesPerPixel; k++)
+        for (int k = 0; k < field->size * bytesPerPixel; k++)
         {
             sum += abs((int) * p1 - (int) * p2);
             p1++;
             p2++;
         }
-        if ( sum > threshold) // no need to calculate any longer: worse than the best match
+
+        if (sum > threshold) // no need to calculate any longer: worse than the best match
         {
             break;
         }
+
         p1 += (width1 - field->size) * bytesPerPixel;
         p2 += (width2 - field->size) * bytesPerPixel;
     }
+
     return sum;
 }
 
@@ -714,10 +745,13 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
+        unsigned long long PROFILER[6] = {0,0,0,0,0,0};
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
+        PROFILER[0] = rdtsc();
         VSVector goodflds = _selectfields(fields, contrastfunc);
+        PROFILER[1] = rdtsc();
         
         
         OMP_SET_THREADS(conf.numThreads)
@@ -725,7 +759,11 @@ namespace VidStab
         for (int index = 0; index < vs_vector_size(&goodflds); index++)
         {
             int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
+
+            PROFILER[2] = rdtsc();
             LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
+            PROFILER[3] = rdtsc();
+
             
             if (m.match >= 0)
             {
@@ -734,6 +772,7 @@ namespace VidStab
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
+        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n", PROFILER[1] - PROFILER[0], PROFILER[3] - PROFILER[2], int(vs_vector_size(&goodflds)), (PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds), float((PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds)) / float(PROFILER[1] - PROFILER[0]));
         
         vs_vector_del(&goodflds);
         
@@ -1079,6 +1118,7 @@ namespace VidStab
             }
             else
             {
+                vs_log_error(conf.modName, "YUV MOTION %i\n", fieldscoarse.fieldNum);
                 motions2 = _calcTransFields(&fieldsfine,
                                             visitor_calcFieldTransPlanar,
                                             visitor_contrastSubImgPlanar);
@@ -1114,11 +1154,16 @@ namespace VidStab
         
         if (fi.pFormat > PF_PACKED)
         {
-            aMotionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPacked, visitor_contrastSubImgPacked);
+            aMotionscoarse = _calcTransFields(&fieldscoarse,
+                                              visitor_calcFieldTransPacked,
+                                              visitor_contrastSubImgPacked);
         }
         else
         {
-            aMotionscoarse = _calcTransFields(&fieldscoarse, visitor_calcFieldTransPlanar, visitor_contrastSubImgPlanar);
+            vs_log_error(conf.modName, "YUV CONTRAST %i\n", fieldscoarse.fieldNum);
+            aMotionscoarse = _calcTransFields(&fieldscoarse,
+                                              visitor_calcFieldTransPlanar,
+                                              visitor_contrastSubImgPlanar);
         }
         
         return vs_vector_size(&aMotionscoarse);
@@ -1215,11 +1260,13 @@ namespace VidStab
     }
     
     
-    /* select only the best 'maxfields' fields
-       first calc contrasts then select from each part of the
-       frame some fields
-       We may simplify here by using random. People want high quality, so typically we use all.
-    */
+    /*
+     * Select only the best 'maxfields' fields
+     *
+     * First calculate contrasts then select from each part of the frame
+     * some fields. We may simplify here by using random. People want high
+     * quality, so typically we use all.
+     */
     VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
                                  contrastSubImgFunc    contrastfunc)
     {

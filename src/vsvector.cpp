@@ -34,6 +34,7 @@ int vs_vector_resize(VSVector* V, int newsize);
 int vs_vector_init(VSVector* V, int buffersize)
 {
     assert(V);
+
     if (buffersize > 0)
     {
         V->data = (void**)vs_zalloc(sizeof(void*)*buffersize);
@@ -47,6 +48,7 @@ int vs_vector_init(VSVector* V, int buffersize)
         V->data = 0;
         buffersize = 0;
     }
+
     V->buffersize = buffersize;
     V->nelems = 0;
     return VS_OK;
