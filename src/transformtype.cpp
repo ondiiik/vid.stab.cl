@@ -149,16 +149,6 @@ void transform_vec_double(double* x, double* y, const PreparedTransform* pt, con
     *y = -pt->zsin_a * rx + pt->zcos_a * ry + pt->t->y + pt->c_y;
 }
 
-Vec sub_vec(Vec v1, Vec v2)
-{
-    Vec r = {v1.x - v2.x, v1.y - v2.y};
-    return r;
-}
-Vec add_vec(Vec v1, Vec v2)
-{
-    Vec r = {v1.x + v2.x, v1.y + v2.y};
-    return r;
-}
 Vec field_to_vec(Field f)
 {
     Vec r = {f.x, f.y};

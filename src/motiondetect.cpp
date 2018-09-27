@@ -84,7 +84,7 @@ static __inline__ unsigned long long rdtsc(void)
 {
     unsigned hi, lo;
     __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+    return ( (unsigned long long)lo) | ( ((unsigned long long)hi) << 32 );
 }
 
 #endif
@@ -104,6 +104,116 @@ contrast_idx;
 
 namespace
 {
+    class _Spiral
+    {
+    public:
+        _Spiral()
+            :
+            i      {       },
+            _limit { 1     },
+            _step  { 0     },
+            _dir   { _LEFT }
+        {
+        
+        }
+        
+        
+        /**
+         * @brief   Check if spiral index is in range
+         * @param   aMaxShift    Range
+         * @return  Result
+         */
+        inline bool operator<(int aMaxShift)
+        {
+            return (i.y >= -aMaxShift) &&
+                   (i.y <=  aMaxShift) &&
+                   (i.x >= -aMaxShift) &&
+                   (i.x <=  aMaxShift);
+        }
+        
+        
+        /**
+         * @brief   Spiral indexing
+         * @param   aStepSize   Step size
+         */
+        inline _Spiral& operator+=(int aStepSize)
+        {
+            ++_step;
+            
+            switch (_dir)
+            {
+                case _LEFT:
+                    i.x += aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _DOWN;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _DOWN:
+                    i.y += aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _RIGHT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+                    
+                    
+                case _RIGHT:
+                    i.x -= aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _UP;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _UP:
+                    i.y -= aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _LEFT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+            }
+            
+            return *this;
+        }
+        
+        
+        Vec i;
+        
+        
+    private:
+        enum _Direction
+        {
+            _LEFT,
+            _DOWN,
+            _RIGHT,
+            _UP
+        };
+        
+        int        _limit;
+        int        _step;
+        _Direction _dir;
+    };
+    
+    
     const char* _fmt2str(VSPixelFormat aFmt)
     {
         switch (aFmt)
@@ -140,9 +250,10 @@ namespace
     }
     
     
-    /* compares contrast_idx structures respect to the contrast
-       (for sort function)
-    */
+    /*
+     * Compares contrast_idx structures respect to the contrast
+     * (for sort function)
+     */
     bool _cmp_Contrast(const contrast_idx& ci1,
                        const contrast_idx& ci2)
     {
@@ -361,11 +472,17 @@ void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel, i
  * draws a line from a to b with given thickness(not filled) at the given position x,y (center) in the given color
  at the first channel
 */
-void drawLine(unsigned char* I, int width, int height, int bytesPerPixel,
-              Vec* a, Vec* b, int thickness, unsigned char color)
+void drawLine(unsigned char* I,
+              int width,
+              int height,
+              int bytesPerPixel,
+              Vec* a,
+              Vec* b,
+              int thickness,
+              unsigned char color)
 {
     unsigned char* p;
-    Vec div = sub_vec(*b, *a);
+    Vec div = *b - *a;
     if (div.y == 0) // horizontal line
     {
         if (div.x < 0)
@@ -454,7 +571,7 @@ unsigned int compareSubImg_thr(unsigned char* const I1,
     unsigned char* p2  = NULL;
     int            s2  = field->size / 2;
     unsigned int   sum = 0;
-
+    
     p1 = I1 + ((field->x - s2)       + (field->y - s2)       * width1) * bytesPerPixel;
     p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
     
@@ -466,16 +583,16 @@ unsigned int compareSubImg_thr(unsigned char* const I1,
             p1++;
             p2++;
         }
-
+        
         if (sum > threshold) // no need to calculate any longer: worse than the best match
         {
             break;
         }
-
+        
         p1 += (width1 - field->size) * bytesPerPixel;
         p2 += (width2 - field->size) * bytesPerPixel;
     }
-
+    
     return sum;
 }
 
@@ -745,7 +862,7 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
-        unsigned long long PROFILER[6] = {0,0,0,0,0,0};
+        unsigned long long PROFILER[6] = {0, 0, 0, 0, 0, 0};
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
@@ -759,11 +876,11 @@ namespace VidStab
         for (int index = 0; index < vs_vector_size(&goodflds); index++)
         {
             int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
-
+            
             PROFILER[2] = rdtsc();
             LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
             PROFILER[3] = rdtsc();
-
+            
             
             if (m.match >= 0)
             {
@@ -772,8 +889,9 @@ namespace VidStab
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
-        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n", PROFILER[1] - PROFILER[0], PROFILER[3] - PROFILER[2], int(vs_vector_size(&goodflds)), (PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds), float((PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds)) / float(PROFILER[1] - PROFILER[0]));
-        
+        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n", PROFILER[1] - PROFILER[0], PROFILER[3] - PROFILER[2],
+                     int(vs_vector_size(&goodflds)), (PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds), float((PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds)) / float(PROFILER[1] - PROFILER[0]));
+                     
         vs_vector_del(&goodflds);
         
         return localmotions;
@@ -803,7 +921,6 @@ namespace VidStab
             vsFrameCopy(&prev, curr, &fi);
         }
         
-        vsFrameCopy(const_cast<VSFrame*>(aFrame), &currPrep, &fi); // DEBUG!!!!!
         frameNum++;
     }
     
@@ -1118,7 +1235,6 @@ namespace VidStab
             }
             else
             {
-                vs_log_error(conf.modName, "YUV MOTION %i\n", fieldscoarse.fieldNum);
                 motions2 = _calcTransFields(&fieldsfine,
                                             visitor_calcFieldTransPlanar,
                                             visitor_contrastSubImgPlanar);
@@ -1160,7 +1276,6 @@ namespace VidStab
         }
         else
         {
-            vs_log_error(conf.modName, "YUV CONTRAST %i\n", fieldscoarse.fieldNum);
             aMotionscoarse = _calcTransFields(&fieldscoarse,
                                               visitor_calcFieldTransPlanar,
                                               visitor_contrastSubImgPlanar);
@@ -1249,7 +1364,7 @@ namespace VidStab
     {
         if (fi.pFormat <= PF_PACKED)
         {
-            Vec end = add_vec(field_to_vec(lm->f), lm->v);
+            Vec end = field_to_vec(lm->f) + lm->v;
             drawBox(currorig.data[0], currorig.linesize[0], fi.height, 1,
                     lm->f.x, lm->f.y, 5, 5, 0); // draw center
             drawBox(currorig.data[0], currorig.linesize[0], fi.height, 1,
@@ -1380,24 +1495,29 @@ namespace VidStab
                                              const Field*          field,
                                              int                   fieldnum)
     {
+        vs_log_error(md->conf.modName, "\t\t[DBG]PACKED\n");
+        
         int      tx       = 0;
         int      ty       = 0;
         
-        uint8_t* I_c      = md->curr->data[0], *I_p = md->prev.data[0];
-        int      width1   = md->curr->linesize[0] / 3; // linesize in pixels
-        int      width2   = md->prev.linesize[0]  / 3; // linesize in pixels
-        int      stepSize = fs->stepSize;
-        int      maxShift = fs->maxShift;
+        uint8_t* current  = md->curr->data[0];
+        uint8_t* previous = md->prev.data[0];
+        int      width1         = md->curr->linesize[0] / 3; // linesize in pixels
+        int      width2         = md->prev.linesize[0]  / 3; // linesize in pixels
+        int      stepSize       = fs->stepSize;
+        int      maxShift       = fs->maxShift;
         
-        Vec offset        = { 0, 0};
-        LocalMotion lm    = null_localmotion();
+        Vec offset              = { 0, 0};
+        LocalMotion lm          = null_localmotion();
         
         if (fs->useOffset)
         {
             PreparedTransform pt = prepare_transform(&fs->offset, &md->fi);
             offset               = transform_vec(&pt, (Vec*)field);
             
-            // is the field still in the frame
+            /*
+             * Is the field still in the frame
+             */
             if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md->fi.width) ||
                 ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md->fi.height))
             {
@@ -1406,11 +1526,12 @@ namespace VidStab
             }
         }
         
-        /* Here we improve speed by checking first the most probable position
-           then the search paths are most effectively cut. (0,0) is a simple start
-        */
-        unsigned int minerror = compareSubImg(I_c,
-                                              I_p,
+        /*
+         * Here we improve speed by checking first the most probable position
+         * then the search paths are most effectively cut. (0,0) is a simple start
+         */
+        unsigned int minerror = compareSubImg(current,
+                                              previous,
                                               field,
                                               width1,
                                               width2,
@@ -1420,18 +1541,23 @@ namespace VidStab
                                               offset.y,
                                               UINT_MAX);
                                               
-        // check all positions...
+        /*
+         * Check all positions...
+         */
         for (int i = -maxShift; i <= maxShift; i += stepSize)
         {
             for (int j = -maxShift; j <= maxShift; j += stepSize)
             {
                 if ( i == 0 && j == 0 )
                 {
-                    continue;    //no need to check this since already done
+                    /*
+                     * No need to check this since already done
+                     */
+                    continue;
                 }
                 
-                unsigned int error = compareSubImg(I_c,
-                                                   I_p,
+                unsigned int error = compareSubImg(current,
+                                                   previous,
                                                    field,
                                                    width1,
                                                    width2,
@@ -1450,7 +1576,11 @@ namespace VidStab
             }
         }
         
-        if (stepSize > 1)   // make fine grain check around the best match
+        
+        /*
+         * Make fine grain check around the best match
+         */
+        if (stepSize > 1)
         {
             int txc = tx; // save the shifts
             int tyc = ty;
@@ -1462,10 +1592,13 @@ namespace VidStab
                 {
                     if (i == txc && j == tyc)
                     {
-                        continue;    //no need to check this since already done
+                        /*
+                         * No need to check this since already done
+                         */
+                        continue;
                     }
-                    unsigned int error = compareSubImg(I_c,
-                                                       I_p,
+                    unsigned int error = compareSubImg(current,
+                                                       previous,
                                                        field,
                                                        width1,
                                                        width2,
@@ -1501,7 +1634,8 @@ namespace VidStab
     }
     
     
-    /* calculates the optimal transformation for one field in Planar frames
+    /*
+     * Calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
     LocalMotion visitor_calcFieldTransPlanar(VSMD*                 md,
@@ -1509,29 +1643,42 @@ namespace VidStab
                                              const Field*          field,
                                              int                   fieldnum)
     {
-        int         tx = 0;
-        int         ty = 0;
+        vs_log_error(md->conf.modName, "\t\t[DBG]PLANAR\n");
+        Vec t { };
         
-        uint8_t* Y_c = md->curr->data[0], *Y_p = md->prev.data[0];
-        int linesize_c = md->curr->linesize[0], linesize_p = md->prev.linesize[0];
-        // we only use the luminance part of the image
-        int i, j;
-        int stepSize = fs->stepSize;
-        int maxShift = fs->maxShift;
-        Vec offset = { 0, 0};
-        LocalMotion lm = null_localmotion();
+        uint8_t* current   = md->curr->data[0];
+        uint8_t* previous   = md->prev.data[0];
+        int      linesize_c = md->curr->linesize[0];
+        int      linesize_p = md->prev.linesize[0];
+        
+        /*
+         * We only use the luminance part of the image
+         */
+        int         stepSize = fs->stepSize;
+        int         maxShift = fs->maxShift;
+        LocalMotion lm       = null_localmotion();
+        Vec         offset { };
+        
         if (fs->useOffset)
         {
-            // Todo: we could put the preparedtransform into fs
-            PreparedTransform pt = prepare_transform(&fs->offset, &md->fi);
-            Vec fieldpos = {field->x, field->y};
-            offset = sub_vec(transform_vec(&pt, &fieldpos), fieldpos);
-            // is the field still in the frame
+            /*
+             * Todo: we could put the preparedtransform into fs
+             */
+            PreparedTransform pt       = prepare_transform(&fs->offset, &md->fi);
+            Vec               fieldpos = {field->x, field->y};
+            
+            offset = transform_vec(&pt, &fieldpos) - fieldpos;
+            
+
+            /*
+             * Is the field still in the frame
+             */
             int s2 = field->size / 2;
-            if (unlikely(fieldpos.x + offset.x - s2 - maxShift - stepSize < 0 ||
-                         fieldpos.x + offset.x + s2 + maxShift + stepSize >= md->fi.width ||
-                         fieldpos.y + offset.y - s2 - maxShift - stepSize < 0 ||
-                         fieldpos.y + offset.y + s2 + maxShift + stepSize >= md->fi.height))
+            
+            if (unlikely((fieldpos.x + offset.x - s2 - maxShift - stepSize) < 0             ||
+                         (fieldpos.x + offset.x + s2 + maxShift + stepSize) >= md->fi.width ||
+                         (fieldpos.y + offset.y - s2 - maxShift - stepSize) < 0             ||
+                         (fieldpos.y + offset.y + s2 + maxShift + stepSize) >= md->fi.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1542,130 +1689,141 @@ namespace VidStab
 #ifdef USE_SPIRAL_FIELD_CALC
         unsigned int minerror = UINT_MAX;
         
-        // check all positions by outgoing spiral
-        i = 0;
-        j = 0;
-        int limit = 1;
-        int step = 0;
-        int dir = 0;
-        while (j >= -maxShift && j <= maxShift && i >= -maxShift && i <= maxShift)
+        for (_Spiral sp; sp < maxShift; sp += stepSize)
         {
-            unsigned int error = compareSubImg(Y_c, Y_p, field, linesize_c, linesize_p,
-                                               md->fi.height, 1, i + offset.x, j + offset.y,
+            unsigned int error = compareSubImg(current,
+                                               previous,
+                                               field,
+                                               linesize_c,
+                                               linesize_p,
+                                               md->fi.height,
+                                               1,
+                                               sp.i.x + offset.x,
+                                               sp.i.y + offset.y,
                                                minerror);
                                                
             if (error < minerror)
             {
                 minerror = error;
-                tx = i;
-                ty = j;
-            }
-            
-            //spiral indexing...
-            step++;
-            switch (dir)
-            {
-                case 0:
-                    i += stepSize;
-                    if (step == limit)
-                    {
-                        dir = 1;
-                        step = 0;
-                    }
-                    break;
-                case 1:
-                    j += stepSize;
-                    if (step == limit)
-                    {
-                        dir = 2;
-                        step = 0;
-                        limit++;
-                    }
-                    break;
-                case 2:
-                    i -= stepSize;
-                    if (step == limit)
-                    {
-                        dir = 3;
-                        step = 0;
-                    }
-                    break;
-                case 3:
-                    j -= stepSize;
-                    if (step == limit)
-                    {
-                        dir = 0;
-                        step = 0;
-                        limit++;
-                    }
-                    break;
+                t        = sp.i;
             }
         }
+        
+        
 #else
-        /* Here we improve speed by checking first the most probable position
-           then the search paths are most effectively cut. (0,0) is a simple start
-        */
-        unsigned int minerror = compareSubImg(Y_c, Y_p, field, linesize_c, linesize_p,
-                                              md->fi.height, 1, 0, 0, UINT_MAX);
-        // check all positions...
-        for (i = -maxShift; i <= maxShift; i += stepSize)
+        /*
+         * Here we improve speed by checking first the most probable position
+         * then the search paths are most effectively cut. (0,0) is a simple
+         * start
+         */
+        unsigned int minerror = compareSubImg(current,
+                                              previous,
+                                              field,
+                                              linesize_c,
+                                              linesize_p,
+                                              md->fi.height,
+                                              1,
+                                              0,
+                                              0,
+                                              UINT_MAX);
+        /*
+         * Check all positions...
+         */
+        for (int i = -maxShift; i <= maxShift; i += stepSize)
         {
-            for (j = -maxShift; j <= maxShift; j += stepSize)
+            for (int j = -maxShift; j <= maxShift; j += stepSize)
             {
                 if ( i == 0 && j == 0 )
                 {
-                    continue;    //no need to check this since already done
+                    /*
+                     * No need to check this since already done
+                     */
+                    continue;
                 }
-                unsigned int error = compareSubImg(Y_c, Y_p, field, linesize_c, linesize_p,
-                                                   md->fi.height, 1, i + offset.x, j + offset.y, minerror);
+        
+                unsigned int error = compareSubImg(current,
+                                                   previous,
+                                                   field,
+                                                   linesize_c,
+                                                   linesize_p,
+                                                   md->fi.height,
+                                                   1,
+                                                   i + offset.x,
+                                                   j + offset.y,
+                                                   minerror);
+        
                 if (error < minerror)
                 {
                     minerror = error;
-                    tx = i;
-                    ty = j;
+                    t.x = i;
+                    t.y = j;
                 }
             }
         }
-        
 #endif
         
-        while (stepSize > 1) // make fine grain check around the best match
+        
+        /*
+         * Make fine grain check around the best match
+         */
+        while (stepSize > 1)
         {
-            int txc = tx; // save the shifts
-            int tyc = ty;
+            /*
+             * Save the shifts
+             */
+            Vec tc { t };
             int newStepSize = stepSize / 2;
             int r = stepSize - newStepSize;
-            for (i = txc - r; i <= txc + r; i += newStepSize)
+            for (int i = tc.x - r; i <= tc.x + r; i += newStepSize)
             {
-                for (j = tyc - r; j <= tyc + r; j += newStepSize)
+                for (int j = tc.y - r; j <= tc.y + r; j += newStepSize)
                 {
-                    if (i == txc && j == tyc)
+                    if ((i == tc.x) && (j == tc.y))
                     {
-                        continue;    //no need to check this since already done
+                        /*
+                         * No need to check this since already done
+                         */
+                        continue;
                     }
-                    unsigned int error = compareSubImg(Y_c, Y_p, field, linesize_c, linesize_p,
-                                                       md->fi.height, 1, i + offset.x, j + offset.y, minerror);
+                    
+                    unsigned int error = compareSubImg(current,
+                                                       previous,
+                                                       field,
+                                                       linesize_c,
+                                                       linesize_p,
+                                                       md->fi.height,
+                                                       1,
+                                                       i + offset.x,
+                                                       j + offset.y,
+                                                       minerror);
+                                                       
                     if (error < minerror)
                     {
                         minerror = error;
-                        tx = i;
-                        ty = j;
+                        t.x = i;
+                        t.y = j;
                     }
                 }
             }
+            
             stepSize /= 2;
         }
         
-        if (unlikely(fabs(tx) >= maxShift + stepSize - 1  ||
-                     fabs(ty) >= maxShift + stepSize))
+        if (unlikely(fabs(t.x) >= maxShift + stepSize - 1  ||
+                     fabs(t.y) >= maxShift + stepSize))
         {
-            lm.match = -1.0; // to be kicked out
+            /*
+             * To be kicked out
+             */
+            lm.match = -1.0;
             return lm;
         }
-        lm.f = *field;
-        lm.v.x = tx + offset.x;
-        lm.v.y = ty + offset.y;
+        
+        lm.f     = *field;
+        lm.v.x   = t.x + offset.x;
+        lm.v.y   = t.y + offset.y;
         lm.match = ((double) minerror) / (field->size * field->size);
+        
         return lm;
     }
     

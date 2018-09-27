@@ -25,6 +25,74 @@
 #include "vsvector.h"
 
 
+
+/**
+ * @brief   Represents x y coordinates vector
+ */
+template <typename _Tp> struct Vect
+{
+    Vect()
+        :
+        x { _Tp(0) },
+        y { _Tp(0) }
+    {
+    
+    }
+    
+    
+    Vect(_Tp aX,
+         _Tp aY)
+        :
+        x { aX },
+        y { aY }
+    {
+    
+    }
+    
+    
+    inline Vect& operator-=(const Vect& aSrc)
+    {
+        this->x -= aSrc.x;
+        this->y -= aSrc.y;
+        return *this;
+    }
+    
+    
+    inline Vect operator-(const Vect& aSrc)
+    {
+        ;
+        Vect r { *this };
+        r -= aSrc;
+        return r;
+    }
+
+
+    inline Vect& operator+=(const Vect& aSrc)
+    {
+        this->x += aSrc.x;
+        this->y += aSrc.y;
+        return *this;
+    }
+
+
+    inline Vect operator+(const Vect& aSrc)
+    {
+        ;
+        Vect r { *this };
+        r += aSrc;
+        return r;
+    }
+
+
+    _Tp x;
+    _Tp y;
+};
+
+
+typedef Vect<int> Vec;
+
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,15 +127,6 @@ typedef struct Field
 Field;
 
 
-/** stores x y coordinates (integer) */
-typedef struct Vec
-{
-    int x;     // middle position x
-    int y;     // middle position y
-}
-Vec;
-
-
 /* structure to hold information about local motion.
  */
 typedef struct LocalMotion
@@ -88,13 +147,3 @@ typedef VSVector LocalMotions;
 #endif
 
 
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

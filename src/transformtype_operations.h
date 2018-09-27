@@ -69,10 +69,6 @@ PreparedTransform prepare_transform(const struct VSTransform* t, const VSFrameIn
 Vec transform_vec(const PreparedTransform* t, const Vec* v);
 void transform_vec_double(double* x, double* y, const PreparedTransform* t, const Vec* v);
 
-// subtract two vectors
-Vec sub_vec(Vec v1, Vec v2);
-// adds two vectors
-Vec add_vec(Vec v1, Vec v2);
 Vec field_to_vec(Field f);
 
 /* compares a transform with respect to x (for sort function) */
