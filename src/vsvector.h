@@ -20,6 +20,7 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include "libvidstab.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -27,18 +28,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-/**
-   A vector for arbitrary elements that resizes
-*/
-typedef struct VSVector
-{
-    void**  data;
-    int    buffersize;
-    int    nelems;
-}
-VSVector;
 
 
 /**
@@ -67,18 +56,6 @@ int vs_vector_init(VSVector* V, int buffersize);
  *     VS_ERROR on error.
  */
 int vs_vector_fini(VSVector* V);
-
-/**
- * vs_vector_del:
- *     like vs_vector_fini, but also deletes the data pointed by vector elements.
- *
- * Parameters:
- *     V: pointer to list to be finalized
- * Return Value:
- *     VS_OK on success,
- *     VS_ERROR on error.
- */
-int vs_vector_del(VSVector* V);
 
 /**
  * vs_vector_zero:

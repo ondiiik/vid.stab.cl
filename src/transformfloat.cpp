@@ -30,9 +30,9 @@
 
 /** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
     This is used by many other interpolation methods at and outsize the border, see interpolate */
-void _FLT(interpolateBiLinBorder)(uint8_t* rv, float x, float y,
-                                  const uint8_t* img, int img_linesize,
-                                  int width, int height, uint8_t def)
+void interpolateBiLinBorder(uint8_t* rv, float x, float y,
+                            const uint8_t* img, int img_linesize,
+                            int width, int height, uint8_t def)
 {
     int x_f = myfloor(x);
     int x_c = x_f + 1;
@@ -57,60 +57,60 @@ void _FLT(interpolateBiLinBorder)(uint8_t* rv, float x, float y,
     (1,t,t^2,t^3) | 2,-5, 4,-1 |  |a2|
     |-1, 3,-3, 1 |  |a3|
 */
-static short _FLT(bicub_kernel)(float t, short a0, short a1, short a2, short a3)
+static short bicub_kernel(float t, short a0, short a1, short a2, short a3)
 {
     return (2 * a1 + t * ((-a0 + a2) + t * ((2 * a0 - 5 * a1 + 4 * a2 - a3) + t * (-a0 + 3 * a1 - 3 * a2 + a3) )) ) / 2;
 }
 
 /** interpolateBiCub: bi-cubic interpolation function using 4x4 pixel, see interpolate */
-void _FLT(interpolateBiCub)(uint8_t* rv, float x, float y,
-                            const uint8_t* img, int img_linesize,
-                            int width, int height, uint8_t def)
+void interpolateBiCub(uint8_t* rv, float x, float y,
+                      const uint8_t* img, int img_linesize,
+                      int width, int height, uint8_t def)
 {
     // do a simple linear interpolation at the border
     if (x < 1 || x > width - 2 || y < 1 || y > height - 2)
     {
-        _FLT(interpolateBiLinBorder)(rv, x, y, img, img_linesize, width, height, def);
+        interpolateBiLinBorder(rv, x, y, img, img_linesize, width, height, def);
     }
     else
     {
         int x_f = myfloor(x);
         int y_f = myfloor(y);
         float tx = x - x_f;
-        short v1 = _FLT(bicub_kernel)(tx,
+        short v1 = bicub_kernel(tx,
                                       PIX(img, img_linesize, x_f - 1, y_f - 1),
                                       PIX(img, img_linesize, x_f,   y_f - 1),
                                       PIX(img, img_linesize, x_f + 1, y_f - 1),
                                       PIX(img, img_linesize, x_f + 2, y_f - 1));
-        short v2 = _FLT(bicub_kernel)(tx,
+        short v2 = bicub_kernel(tx,
                                       PIX(img, img_linesize, x_f - 1, y_f),
                                       PIX(img, img_linesize, x_f,   y_f),
                                       PIX(img, img_linesize, x_f + 1, y_f),
                                       PIX(img, img_linesize, x_f + 2, y_f));
-        short v3 = _FLT(bicub_kernel)(tx,
+        short v3 = bicub_kernel(tx,
                                       PIX(img, img_linesize, x_f - 1, y_f + 1),
                                       PIX(img, img_linesize, x_f,   y_f + 1),
                                       PIX(img, img_linesize, x_f + 1, y_f + 1),
                                       PIX(img, img_linesize, x_f + 2, y_f + 1));
-        short v4 = _FLT(bicub_kernel)(tx,
+        short v4 = bicub_kernel(tx,
                                       PIX(img, img_linesize, x_f - 1, y_f + 2),
                                       PIX(img, img_linesize, x_f,   y_f + 2),
                                       PIX(img, img_linesize, x_f + 1, y_f + 2),
                                       PIX(img, img_linesize, x_f + 2, y_f + 2));
-        int32_t res = (int32_t)_FLT(bicub_kernel)(y - y_f, v1, v2, v3, v4);
+        int32_t res = (int32_t)bicub_kernel(y - y_f, v1, v2, v3, v4);
         *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
     }
 }
 
 
 /** interpolateBiLin: bi-linear interpolation function, see interpolate */
-void _FLT(interpolateBiLin)(uint8_t* rv, float x, float y,
+void interpolateBiLin(uint8_t* rv, float x, float y,
                             const uint8_t* img, int img_linesize,
                             int width, int height, uint8_t def)
 {
     if (x < 0 || x > width - 1 || y < 0 || y > height - 1)
     {
-        _FLT(interpolateBiLinBorder)(rv, x, y, img, img_linesize, width, height, def);
+        interpolateBiLinBorder(rv, x, y, img, img_linesize, width, height, def);
     }
     else
     {
@@ -131,7 +131,7 @@ void _FLT(interpolateBiLin)(uint8_t* rv, float x, float y,
 
 
 /** interpolateLin: linear (only x) interpolation function, see interpolate */
-void _FLT(interpolateLin)(uint8_t* rv, float x, float y,
+void interpolateLin(uint8_t* rv, float x, float y,
                           const uint8_t* img, int img_linesize,
                           int width, int height, uint8_t def)
 {
@@ -146,7 +146,7 @@ void _FLT(interpolateLin)(uint8_t* rv, float x, float y,
 }
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
-void _FLT(interpolateZero)(uint8_t* rv, float x, float y,
+void interpolateZero(uint8_t* rv, float x, float y,
                            const uint8_t* img, int img_linesize,
                            int width, int height, uint8_t def)
 {
@@ -170,7 +170,7 @@ void _FLT(interpolateZero)(uint8_t* rv, float x, float y,
  *            def: default value if coordinates are out of range
  * Return value:  None
  */
-void _FLT(interpolateN)(uint8_t* rv, float x, float y,
+void interpolateN(uint8_t* rv, float x, float y,
                         const uint8_t* img, int img_linesize,
                         int width, int height,
                         uint8_t N, uint8_t channel,
@@ -209,7 +209,7 @@ void _FLT(interpolateN)(uint8_t* rv, float x, float y,
  /// TODO Add zoom!
  /// Add bytes per pixel usage
  */
-int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t)
+int transformPacked(struct VSTransformData* td, struct VSTransform t)
 {
     int x = 0, y = 0, z = 0;
     uint8_t* D_1, *D_2;
@@ -247,7 +247,7 @@ int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t)
                 for (z = 0; z < channels; z++)   // iterate over colors
                 {
                     uint8_t* dest = &D_2[x + y * td->destbuf.linesize[0] + z];
-                    _FLT(interpolateN)(dest, x_s, y_s, D_1, td->src.linesize[0],
+                    interpolateN(dest, x_s, y_s, D_1, td->src.linesize[0],
                                        td->fiSrc.width, td->fiSrc.height,
                                        channels, z, crop ? 16 : *dest);
                 }
@@ -297,7 +297,7 @@ int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t)
  * Preconditions:
  *  The frame must be in Planar format
  */
-int _FLT(transformPlanar)(struct VSTransformData* td, struct VSTransform t)
+int transformPlanar(struct VSTransformData* td, struct VSTransform t)
 {
     int x = 0, y = 0;
     uint8_t* dat_1, *dat_2;
@@ -358,7 +358,7 @@ int _FLT(transformPlanar)(struct VSTransformData* td, struct VSTransform t)
                 float y_s  = -zsin_a * x_d1
                              + zcos_a * y_d1 + c_s_y - ty;
                 uint8_t* dest = &dat_2[x + y * td->destbuf.linesize[plane]];
-                td->_FLT(interpolate)(dest, x_s, y_s, dat_1, td->src.linesize[plane],
+                td->interpolate(dest, x_s, y_s, dat_1, td->src.linesize[plane],
                                       sw, sh, crop ? black : *dest);
             }
         }

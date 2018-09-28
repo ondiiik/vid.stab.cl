@@ -40,74 +40,9 @@ extern "C" {
 #endif
 
 
-typedef struct VSMotionDetectConfig
-{
-    /* meta parameter for maxshift and fieldsize between 1 and 15 */
-    int         shakiness;
-    int         accuracy;         // meta parameter for number of fields between 1 and 10
-    int         stepSize;         // stepsize of field transformation detection
-    int         algo;             // deprecated
-    int         virtualTripod;
-    /* if 1 and 2 then the fields and transforms are shown in the frames */
-    int         show;
-    /* measurement fields with lower contrast are discarded */
-    double      contrastThreshold;
-    const char* modName;          // module name (used for logging)
-    int         numThreads;       // number of threads to use (automatically set if 0)
-}
-VSMotionDetectConfig;
-
-
-/**
- * @brief   Data structure for motion detection part of deshaking
- */
-typedef struct VSMotionDetect
-{
-    /**
-     * @brief   Frame info
-     * @note    This member is used because of compatibility with
-     *          ffmpeg C interface
-     */
-    VSFrameInfo fi;
-
-
-    /**
-     * @brief   Pointer on C++ instance of motion tetect object
-     */
-    void* _inst;
-}
-VSMotionDetect;
-
-
 /** returns the default config
  */
 VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName);
-
-/** initialized the VSMotionDetect structure and allocates memory
- *  for the frames and stuff
- *  @return VS_OK on success otherwise VS_ERROR
- */
-int vsMotionDetectInit(VSMotionDetect*             md,
-                       const VSMotionDetectConfig* conf,
-                       const VSFrameInfo*          fi);
-
-/**
- *  Performs a motion detection step
- *  Only the new current frame is given. The last frame
- *  is stored internally
- *  @param motions: calculated local motions. (must be deleted manually)
- * */
-int vsMotionDetection(VSMotionDetect* md,
-                      LocalMotions*   motions,
-                      VSFrame*        frame);
-
-/** Deletes internal data structures.
- * In order to use the VSMotionDetect again, you have to call vsMotionDetectInit
- */
-void vsMotionDetectionCleanup(VSMotionDetect* md);
-
-/// returns the current config
-void vsMotionDetectGetConfig(VSMotionDetectConfig* conf, const VSMotionDetect* md);
 
 /// returns the frame info
 const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* md);

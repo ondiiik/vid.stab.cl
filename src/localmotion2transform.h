@@ -39,13 +39,6 @@ extern "C" {
 #endif
 
 
-/** converts for each frame the localmotions into a transform
- */
-int vsLocalmotions2Transforms(struct VSTransformData*   td,
-                              const VSManyLocalMotions* motions,
-                              struct VSTransformations* trans );
-
-
 /** calculates the transformation that caused the observed motions.
     Using a simple cleaned-means approach to eliminate outliers.
     translation and rotation is calculated.

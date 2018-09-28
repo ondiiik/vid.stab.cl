@@ -22,6 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#include "libvidstab.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <inttypes.h>
@@ -32,58 +33,8 @@ extern "C" {
 #endif
 
 
-/// pixel formats
-typedef enum VSPixelFormat
-{
-    PF_NONE = -1,
-    PF_GRAY8,     ///<        Y        ,  8bpp
-    PF_YUV420P,   ///< planar YUV 4:2:0, 12bpp, (1 Cr & Cb sample per 2x2 Y samples)
-    PF_YUV422P,   ///< planar YUV 4:2:2, 16bpp, (1 Cr & Cb sample per 2x1 Y samples)
-    PF_YUV444P,   ///< planar YUV 4:4:4, 24bpp, (1 Cr & Cb sample per 1x1 Y samples)
-    PF_YUV410P,   ///< planar YUV 4:1:0,  9bpp, (1 Cr & Cb sample per 4x4 Y samples)
-    PF_YUV411P,   ///< planar YUV 4:1:1, 12bpp, (1 Cr & Cb sample per 4x1 Y samples)
-    PF_YUV440P,   ///< planar YUV 4:4:0 (1 Cr & Cb sample per 1x2 Y samples)
-    PF_YUVA420P,  ///< planar YUV 4:2:0, 20bpp, (1 Cr & Cb sample per 2x2 Y & A samples)
-    PF_PACKED,    ///< dummy: packed formats start here
-    PF_RGB24,     ///< packed RGB 8:8:8, 24bpp, RGBRGB...
-    PF_BGR24,     ///< packed RGB 8:8:8, 24bpp, BGRBGR...
-    PF_RGBA,      ///< packed RGBA 8:8:8:8, 32bpp, RGBARGBA...
-    PF_NUMBER     ///< number of pixel formats
-}
-VSPixelFormat;
-
-
-/** frame information for deshaking lib
-    This only works for planar image formats
- */
-typedef struct VSFrameInfo
-{
-    int width, height;
-    int planes;        // number of planes (1 luma, 2,3 chroma, 4 alpha)
-    int log2ChromaW; // subsampling of width in chroma planes
-    int log2ChromaH; // subsampling of height in chroma planes
-    VSPixelFormat pFormat;
-    int bytesPerPixel; // number of bytes per pixel (for packed formats)
-}
-VSFrameInfo;
-
-
-/** frame data according to frameinfo
- */
-typedef struct VSFrame
-{
-    uint8_t* data[4]; // data in planes. For packed data everthing is in plane 0
-    int linesize[4]; // line size of each line in a the planes
-}
-VSFrame;
-
-
 // use it to calculate the CHROMA sizes (rounding is correct)
 #define CHROMA_SIZE(width,log2sub)  (-(-(width) >> (log2sub)))
-
-
-/// initializes the frameinfo for the given format
-int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pFormat);
 
 
 /// returns the subsampling shift amount, horizonatally for the given plane

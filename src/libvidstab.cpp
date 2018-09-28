@@ -23,18 +23,18 @@
  */
 
 #include "libvidstab.h"
+#include "vidstabdefines.h"
 
-#include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
+
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
+
+
+
 
 /**** default values for memory and logging ****/
-
-/// memory allocation with zero initialization
-void* _zalloc(size_t size)
-{
-    return memset(malloc(size), 0, size);
-}
 
 /// logging function
 int _vs_log(int type, const char* tag, const char* format, ...)
@@ -57,23 +57,30 @@ int _vs_log(int type, const char* tag, const char* format, ...)
 }
 
 
-vs_malloc_t vs_malloc   = malloc;
-vs_realloc_t vs_realloc = realloc;
-vs_free_t vs_free       = free;
-vs_zalloc_t vs_zalloc   = _zalloc;
+/**
+ * @brief   Memory allocation with zero initialization
+ */
+static void* _zalloc(size_t size)
+{
+    return memset(malloc(size), 0, size);
+}
 
-vs_strdup_t vs_strdup   = strdup;
+vs_malloc_t  vs_malloc  { malloc  };
+vs_realloc_t vs_realloc { realloc };
+vs_free_t    vs_free    { free    };
+vs_zalloc_t  vs_zalloc  { _zalloc };
 
-vs_log_t vs_log         = _vs_log;
-int VS_ERROR_TYPE = 0;
-int VS_WARN_TYPE  = 1;
-int VS_INFO_TYPE  = 2;
-int VS_MSG_TYPE   = 3;
+vs_log_t  vs_log        { _vs_log };
+int       vs_log_level  { 4       };
 
-int VS_ERROR     = -1;
-int VS_OK        = 0;
+int       VS_ERROR_TYPE { 0       };
+int       VS_WARN_TYPE  { 1       };
+int       VS_INFO_TYPE  { 2       };
+int       VS_MSG_TYPE   { 3       };
 
-int vs_log_level = 4;
+int       VS_ERROR      { -1      };
+int       VS_OK         {  0      };
+
 
 /*
  * Local variables:

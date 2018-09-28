@@ -32,56 +32,33 @@ extern "C" {
 #endif
 
 
-#ifdef TESTING
-#define _FLT(n) n ## _float
-#else
-#define _FLT(n) n
-#endif
-
 struct VSTransformData;
 
 /// does the actual transformation in Packed space
-int _FLT(transformPacked)(struct VSTransformData* td, struct VSTransform t);
+int transformPacked(struct VSTransformData* td, struct VSTransform t);
 /// does the actual transformation in Planar space
-int _FLT(transformPlanar)(struct VSTransformData* td, struct VSTransform t);
-
-/**
- * interpolate: general interpolation function pointer for one channel image data
- *
- * Parameters:
- *             rv: destination pixel (call by reference)
- *            x,y: the source coordinates in the image img. Note this
- *                 are real-value coordinates, that's why we interpolate
- *            img: source image
- *   img_linesize: length of one line in bytes (>= width)
- *   width,height: dimension of image
- *            def: default value if coordinates are out of range
- * Return value:  None
- */
-typedef void (*_FLT(vsInterpolateFun))(uint8_t* rv, float x, float y,
-                                       const uint8_t* img, int img_linesize,
-                                       int width, int height, uint8_t def);
+int transformPlanar(struct VSTransformData* td, struct VSTransform t);
 
 /* forward deklarations, please look in the .c file for documentation*/
-void _FLT(interpolateBiLinBorder)(uint8_t* rv, float x, float y,
-                                  const uint8_t* img, int img_linesize,
-                                  int w, int h, uint8_t def);
-void _FLT(interpolateBiCub)(uint8_t* rv, float x, float y,
-                            const uint8_t* img, int img_linesize,
-                            int width, int height, uint8_t def);
-void _FLT(interpolateBiLin)(uint8_t* rv, float x, float y,
+void interpolateBiLinBorder(uint8_t* rv, float x, float y,
                             const uint8_t* img, int img_linesize,
                             int w, int h, uint8_t def);
-void _FLT(interpolateLin)(uint8_t* rv, float x, float y,
-                          const uint8_t* img, int img_linesize,
-                          int w, int h, uint8_t def);
-void _FLT(interpolateZero)(uint8_t* rv, float x, float y,
-                           const uint8_t* img, int img_linesize,
-                           int w, int h, uint8_t def);
-void _FLT(interpolateN)(uint8_t* rv, float x, float y,
-                        const uint8_t* img, int img_linesize,
-                        int width, int height,
-                        uint8_t N, uint8_t channel, uint8_t def);
+void interpolateBiCub(uint8_t* rv, float x, float y,
+                      const uint8_t* img, int img_linesize,
+                      int width, int height, uint8_t def);
+void interpolateBiLin(uint8_t* rv, float x, float y,
+                      const uint8_t* img, int img_linesize,
+                      int w, int h, uint8_t def);
+void interpolateLin(uint8_t* rv, float x, float y,
+                    const uint8_t* img, int img_linesize,
+                    int w, int h, uint8_t def);
+void interpolateZero(uint8_t* rv, float x, float y,
+                     const uint8_t* img, int img_linesize,
+                     int w, int h, uint8_t def);
+void interpolateN(uint8_t* rv, float x, float y,
+                  const uint8_t* img, int img_linesize,
+                  int width, int height,
+                  uint8_t N, uint8_t channel, uint8_t def);
 
 
 #ifdef __cplusplus

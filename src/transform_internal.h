@@ -25,18 +25,12 @@
 #include "transform.h"
 
 #include "transformfixedpoint.h"
-#ifdef TESTING
-#include "transformfloat.h"
-#endif
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-/// name of the interpolation type
-const char* getInterpolationTypeName(VSInterpolType type);
 
 /** performs the smoothing of the camera path and modifies the transforms
     to compensate for the jiggle

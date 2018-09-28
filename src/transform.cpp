@@ -27,9 +27,6 @@
 #include "transformtype_operations.h"
 
 #include "transformfixedpoint.h"
-#ifdef TESTING
-#include "transformfloat.h"
-#endif
 
 #include <math.h>
 #include <libgen.h>
@@ -128,7 +125,7 @@ int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConf
     switch (td->conf.interpolType)
     {
         case VS_Zero:
-            td->interpolate = &interpolateZero;
+            td->interpolate = interpolateZero;
             break;
         case VS_Linear:
             td->interpolate = &interpolateLin;
@@ -142,26 +139,6 @@ int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConf
         default:
             td->interpolate = &interpolateBiLin;
     }
-#ifdef TESTING
-    switch (td->conf.interpolType)
-    {
-        case VS_Zero:
-            td->_FLT(interpolate) = &_FLT(interpolateZero);
-            break;
-        case VS_Linear:
-            td->_FLT(interpolate) = &_FLT(interpolateLin);
-            break;
-        case VS_BiLinear:
-            td->_FLT(interpolate) = &_FLT(interpolateBiLin);
-            break;
-        case VS_BiCubic:
-            td->_FLT(interpolate) = &_FLT(interpolateBiCub);
-            break;
-        default:
-            td->_FLT(interpolate) = &_FLT(interpolateBiLin);
-    }
-    
-#endif
     return VS_OK;
 }
 

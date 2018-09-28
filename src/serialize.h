@@ -32,8 +32,6 @@ extern "C" {
 #endif
 
 
-/// Vector of LocalMotions
-typedef VSVector VSManyLocalMotions;
 /// helper macro to access a localmotions vector in the VSVector of all Frames
 #define VSMLMGet(manylocalmotions,index) \
     ((LocalMotions*)vs_vector_get(manylocalmotions,index))
@@ -45,13 +43,6 @@ int vsStoreLocalmotions(FILE* f, const LocalMotions* lms);
 /// restores local motions from file
 LocalMotions vsRestoreLocalmotions(FILE* f);
 
-
-/// writes the header to the file that is to be holding the local motions
-int vsPrepareFile(const VSMotionDetect* td, FILE* f);
-
-/// appends the given localmotions to the file
-int vsWriteToFile(const VSMotionDetect* td, FILE* f, const LocalMotions* lms);
-
 /// reads the header of the file and return the version number (used by readLocalmotionsFile)
 int vsReadFileVersion(FILE* f);
 
@@ -60,20 +51,6 @@ int vsReadFileVersion(FILE* f);
  * if nothing is read (used by readLocalmotionsFile)
  */
 int vsReadFromFile(FILE* f, LocalMotions* lms);
-
-/*
- * reads the entire file of localmotions, return VS_ERROR on error or if nothing is read
- *
- *  The format is as follows:
- *   The file must begin with 'VID.STAB version\n'
- *   Lines with # at the beginning are comments and will be ignored
- *   Data lines have the structure: Frame NUM (<LocalMotions>)
- *   where LocalMotions ::= List [(LM v.x v.y f.x f.y f.size contrast match),...]
- */
-int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* lms);
-
-// read the transformations from the given file (Deprecated format)
-int vsReadOldTransforms(const struct VSTransformData* td, FILE* f, struct VSTransformations* trans);
 
 
 #ifdef __cplusplus

@@ -66,25 +66,6 @@ extern "C" {
 #endif
 
 
-/* structure to hold information about frame transformations
-   x,y are translations, alpha is a rotation around the center in RAD,
-   zoom is a percentage to zoom in and
-   extra is for additional information like scene cut (unused)
- */
-typedef struct VSTransform
-{
-    double x;
-    double y;
-    double alpha;
-    double zoom;
-    double barrel;
-    double rshutter;
-    int    extra;    /* -1: ignore transform (only internal use);
-                     0 for normal trans; 1 for inter scene cut (unused) */
-}
-VSTransform;
-
-
 typedef VSVector LocalMotions;
 
 

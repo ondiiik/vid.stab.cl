@@ -17,8 +17,7 @@
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-#define DEFAULT_RESULT_NAME     "transforms.trf"
+#define DEFAULT_RESULT_NAME "transforms.trf"
 
 #include <vid.stab/libvidstab.h>
 
@@ -51,7 +50,7 @@ static const AVOption vidstabdetect_options[] =
     {"result",      "path to the file used to write the transforms",                 OFFSET(result),             AV_OPT_TYPE_STRING, {.str = DEFAULT_RESULT_NAME}, .flags = FLAGS},
     {
         "shakiness",   "how shaky is the video and how quick is the camera?"
-        " 1: little (fast) 10: very strong/quick (slow)",                OFFSETC(shakiness),         AV_OPT_TYPE_INT,    {.i64 = 5},      1,  10, FLAGS
+        " 1: little (fast) 10: very strong/quick (slow)",                            OFFSETC(shakiness),         AV_OPT_TYPE_INT,    {.i64 = 5},      1,  10, FLAGS
     },
     {"accuracy",    "(>=shakiness) 1: low 15: high (slow)",                          OFFSETC(accuracy),          AV_OPT_TYPE_INT,    {.i64 = 15},     1,  15, FLAGS},
     {"stepsize",    "region around minimum is scanned with 1 pixel resolution",      OFFSETC(stepSize),          AV_OPT_TYPE_INT,    {.i64 = 6},      1,  32, FLAGS},
@@ -59,12 +58,14 @@ static const AVOption vidstabdetect_options[] =
     {"show",        "0: draw nothing; 1,2: show fields and transforms",              OFFSETC(show),              AV_OPT_TYPE_INT,    {.i64 = 0},      0,   2, FLAGS},
     {
         "tripod",      "virtual tripod mode (if >0): motion is compared to a reference"
-        " reference frame (frame # is the value)",                       OFFSETC(virtualTripod),     AV_OPT_TYPE_INT,    {.i64 = 0}, 0, INT_MAX, FLAGS
+        " reference frame (frame # is the value)",                                   OFFSETC(virtualTripod),     AV_OPT_TYPE_INT,    {.i64 = 0},      0, INT_MAX, FLAGS
     },
     {NULL}
 };
 
+
 AVFILTER_DEFINE_CLASS(vidstabdetect);
+
 
 static av_cold int init(AVFilterContext* ctx)
 {
@@ -74,6 +75,7 @@ static av_cold int init(AVFilterContext* ctx)
     av_log(ctx, AV_LOG_VERBOSE, "vidstabdetect filter: init %s\n", LIBVIDSTAB_VERSION);
     return 0;
 }
+
 
 static av_cold void uninit(AVFilterContext* ctx)
 {
@@ -89,38 +91,53 @@ static av_cold void uninit(AVFilterContext* ctx)
     vsMotionDetectionCleanup(md);
 }
 
+
 static int query_formats(AVFilterContext* ctx)
 {
     // If you add something here also add it in vidstabutils.c
     static const enum AVPixelFormat pix_fmts[] =
     {
-        AV_PIX_FMT_YUV444P,  AV_PIX_FMT_YUV422P, AV_PIX_FMT_YUV420P,
-        AV_PIX_FMT_YUV411P,  AV_PIX_FMT_YUV410P, AV_PIX_FMT_YUVA420P,
-        AV_PIX_FMT_YUV440P,  AV_PIX_FMT_GRAY8,
-        AV_PIX_FMT_RGB24, AV_PIX_FMT_BGR24, AV_PIX_FMT_RGBA,
+        AV_PIX_FMT_YUV444P,
+        AV_PIX_FMT_YUV422P,
+        AV_PIX_FMT_YUV420P,
+        AV_PIX_FMT_YUV411P,
+        AV_PIX_FMT_YUV410P,
+        AV_PIX_FMT_YUVA420P,
+        AV_PIX_FMT_YUV440P,
+        AV_PIX_FMT_GRAY8,
+        AV_PIX_FMT_RGB24,
+        AV_PIX_FMT_BGR24,
+        AV_PIX_FMT_RGBA,
         AV_PIX_FMT_NONE
     };
     
     AVFilterFormats* fmts_list = ff_make_format_list(pix_fmts);
+
     if (!fmts_list)
     {
         return AVERROR(ENOMEM);
     }
+
     return ff_set_common_formats(ctx, fmts_list);
 }
+
 
 static int config_input(AVFilterLink* inlink)
 {
     AVFilterContext* ctx = inlink->dst;
-    StabData* s = ctx->priv;
+    StabData*        s   = ctx->priv;
+
+    VSMotionDetect* md   = &(s->md);
+    VSFrameInfo     fi;
     
-    VSMotionDetect* md = &(s->md);
-    VSFrameInfo fi;
-    const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(inlink->format);
-    int is_planar = desc->flags & AV_PIX_FMT_FLAG_PLANAR;
+    const AVPixFmtDescriptor* desc      = av_pix_fmt_desc_get(inlink->format);
+    int                       is_planar = desc->flags & AV_PIX_FMT_FLAG_PLANAR;
     
-    vsFrameInfoInit(&fi, inlink->w, inlink->h,
+    vsFrameInfoInit(&fi,
+                    inlink->w,
+                    inlink->h,
                     ff_av2vs_pixfmt(ctx, inlink->format));
+
     if (!is_planar && fi.bytesPerPixel != av_get_bits_per_pixel(desc) / 8)
     {
         av_log(ctx, AV_LOG_ERROR, "pixel-format error: wrong bits/per/pixel, please report a BUG");

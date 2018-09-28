@@ -60,33 +60,6 @@ extern "C" {
 
 /**** Configurable memory and logging functions. Defined in libvidstab.cpp ****/
 
-typedef void* (*vs_malloc_t) (size_t size);
-typedef void* (*vs_realloc_t) (void* ptr, size_t size);
-typedef void (*vs_free_t) (void* ptr);
-typedef void* (*vs_zalloc_t) (size_t size);
-
-typedef int (*vs_log_t) (int type, const char* tag, const char* format, ...);
-
-typedef char* (*vs_strdup_t) (const char* s);
-
-extern vs_log_t vs_log;
-extern int vs_log_level;
-
-extern vs_malloc_t vs_malloc;
-extern vs_realloc_t vs_realloc;
-extern vs_free_t vs_free;
-extern vs_zalloc_t vs_zalloc;
-
-extern vs_strdup_t vs_strdup;
-
-extern int VS_ERROR_TYPE;
-extern int VS_WARN_TYPE;
-extern int VS_INFO_TYPE;
-extern int VS_MSG_TYPE;
-
-extern int VS_ERROR;
-extern int VS_OK;
-
 
 #define vs_log_error(tag, format, args...) \
     vs_log(VS_ERROR_TYPE, tag, format , ## args)
