@@ -1554,10 +1554,11 @@ namespace VidStab
             /*
              * Prepare CL buffers
              */
-            const std::size_t  size  { std::size_t(md->fi.width * md->fi.height * 1)      };
-            const std::size_t  range { std::size_t(maxShift * 2U + 1U)                    };
-            const std::size_t  cnt   { range * range                                      };
-            const std::size_t  rsize { range * range * sizeof(int)                        };
+            const std::size_t  size    { std::size_t(md->fi.width * md->fi.height * 1)      };
+            const std::size_t  range   { std::size_t(maxShift * 2U + 1U)                    };
+            const std::size_t  cnt     { range * range                                      };
+            const std::size_t  rsize   { range * range * sizeof(int)                        };
+            const std::size_t  threads { 8000                                               };
         
             int args[]
             {
@@ -1580,11 +1581,11 @@ namespace VidStab
             vs_log_error(md->conf.modName, "[correlate] \trsize       = %i\n", int(rsize));
             vs_log_error(md->conf.modName, "[correlate] \targs        = %i\n", int(sizeof(args) / sizeof(args[0])));
 
-            if (range > 200)
-            {
-                vs_log_error(md->conf.modName, "[correlate] HIGH RANGE!\n");
-                break;
-            }
+//            if (range > 200)
+//            {
+//                vs_log_error(md->conf.modName, "[correlate] HIGH RANGE!\n");
+//                break;
+//            }
         
         
             /*
@@ -1613,8 +1614,8 @@ namespace VidStab
             correlate.setArg(3, buffer_args);
         
             Dbg::Profiler::Measure profRun { oclRun };
-            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i\n", int(cnt));
-            clQ.enqueueNDRangeKernel(correlate, cl::NullRange, cl::NDRange(cnt));
+            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i items on 512 threads\n", int(cnt));
+            clQ.enqueueNDRangeKernel(correlate, cl::NullRange, cl::NDRange((threads < cnt) ? threads : cnt));
             profRun.leave();
         
             int results[range][range];
