@@ -60,8 +60,8 @@ namespace VidStab
          * @param   aMotions    Last frame motions
          * @param   aFrame      Current frame
          */
-        void operator()(LocalMotions*  aMotions,
-                        const VSFrame* aFrame);
+        void operator()(LocalMotions* aMotions,
+                        VSFrame&      aFrame);
                         
                         
         /**
@@ -76,7 +76,6 @@ namespace VidStab
         
         const VSFrame*       curr;       // Current pre-processed frame
         VSFrame              currPrep;   // Current pre-processed frame
-        VSFrame              currorig;   // current frame buffer (original) (only pointer)
         VSFrame              currtmp;    // temporary buffer for blurring
         VSFrame              prev;       // frame buffer for last frame (copied)
         bool                 firstFrame; // true if we have a valid previous frame
@@ -160,7 +159,7 @@ namespace VidStab
          *
          * @param   aFrame  Current frame
          */
-        void _blur(const VSFrame* aFrame);
+        void _blur(const VSFrame& aFrame);
         
         
         /**
@@ -219,8 +218,8 @@ namespace VidStab
          * @param[out]  aMotions    Motions vector
          * @param[in]   aFrame      Current frame
          */
-        void _detect(LocalMotions*  aMotions,
-                     const VSFrame* aFrame);
+        void _detect(LocalMotions* aMotions,
+                     VSFrame&      aFrame);
                      
                      
         /**

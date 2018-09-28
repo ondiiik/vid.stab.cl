@@ -343,7 +343,7 @@ int vsMotionDetection(VSMotionDetect* aMd,
     
     try
     {
-        md(aMotions, aFrame);
+        md(aMotions, *aFrame);
     }
     catch (exception& exc)
     {
@@ -596,7 +596,6 @@ namespace VidStab
         }
         
         vsFrameNull(&currPrep);
-        vsFrameNull(&currorig);
         vsFrameNull(&currtmp);
         
         frameNum        = 0;
@@ -751,8 +750,8 @@ namespace VidStab
     }
     
     
-    void VSMD::operator ()(LocalMotions*  aMotions,
-                           const VSFrame* aFrame)
+    void VSMD::operator ()(LocalMotions* aMotions,
+                           VSFrame&      aFrame)
     {
         _blur(aFrame);
         
@@ -778,7 +777,7 @@ namespace VidStab
     }
     
     
-    void VSMD::_blur(const VSFrame* aFrame)
+    void VSMD::_blur(const VSFrame& aFrame)
     {
         int stepSize;
         
@@ -801,7 +800,7 @@ namespace VidStab
         }
         
         curr = _blurBox(currPrep,
-                        *aFrame,
+                        aFrame,
                         currtmp,
                         fi,
                         stepSize,
@@ -1055,8 +1054,8 @@ namespace VidStab
     }
     
     
-    void VSMD::_detect(LocalMotions*  aMotions,
-                       const VSFrame* aFrame)
+    void VSMD::_detect(LocalMotions* aMotions,
+                       VSFrame&      aFrame)
     {
         LocalMotions motionsfine;
         LocalMotions motionscoarse;
@@ -1103,18 +1102,12 @@ namespace VidStab
         }
         
         
-        /*
-         * Draw fields and transforms into frame.
-         * Make a copy of current frame so we can modify it
-         */
         if (conf.show)
         {
-            currorig = *aFrame;
-            
             Frame::Canvas canvas
             {
-                currorig.data[0],
-                currorig.linesize[0],
+                aFrame.data[0],
+                aFrame.linesize[0],
                 fi.height,
                 1
             };
