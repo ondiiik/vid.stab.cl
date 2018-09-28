@@ -60,6 +60,8 @@
 #include "md_exception.hpp"
 #include "frame_canvas.h"
 
+#include "dbg_profiler.h"
+
 #include "cl/opencl.hpp"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
@@ -69,26 +71,6 @@
 #include <cstdio>
 
 
-// DEBUG - PROFILING
-#if defined(__i386__)
-
-static __inline__ unsigned long long rdtsc(void)
-{
-    unsigned long long int x;
-    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-    return x;
-}
-
-#elif defined(__x86_64__)
-
-static __inline__ unsigned long long rdtsc(void)
-{
-    unsigned hi, lo;
-    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-    return ( (unsigned long long)lo) | ( ((unsigned long long)hi) << 32 );
-}
-
-#endif
 
 
 using namespace VidStab;
@@ -774,13 +756,15 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
-        unsigned long long PROFILER[6] = {0, 0, 0, 0, 0, 0};
+        Dbg::Profiler::Data selectfieldsProf;
+        Dbg::Profiler::Data fieldfuncProf;
+        
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-        PROFILER[0] = rdtsc();
+        Dbg::Profiler::Measure prof1 { selectfieldsProf };
         VSVector goodflds = _selectfields(fields, contrastfunc);
-        PROFILER[1] = rdtsc();
+        prof1.leave();
         
         
         OMP_SET_THREADS(conf.numThreads)
@@ -789,10 +773,9 @@ namespace VidStab
         {
             int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
             
-            PROFILER[2] = rdtsc();
+            Dbg::Profiler::Measure prof2 { fieldfuncProf };
             LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
-            PROFILER[3] = rdtsc();
-            
+            prof2.leave();
             
             if (m.match >= 0)
             {
@@ -801,8 +784,12 @@ namespace VidStab
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
-        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n", PROFILER[1] - PROFILER[0], PROFILER[3] - PROFILER[2],
-                     int(vs_vector_size(&goodflds)), (PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds), float((PROFILER[3] - PROFILER[2]) * vs_vector_size(&goodflds)) / float(PROFILER[1] - PROFILER[0]));
+        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n",
+                     selectfieldsProf(),
+                     fieldfuncProf(),
+                     int(vs_vector_size(&goodflds)),
+                     fieldfuncProf() * vs_vector_size(&goodflds),
+                     (float(fieldfuncProf()) * vs_vector_size(&goodflds)) / float(selectfieldsProf()));
                      
         vs_vector_del(&goodflds);
         
