@@ -93,6 +93,12 @@ namespace VidStab
             _BoxBlurKeepColor, /**< @brief Copy original color channels */
             _BoxBlurNoColor    /**< @brief Do not touch color channels in dest */
         };
+
+
+        /**
+         * @brief   Show message with information about filter
+         */
+        void _initMsg();
         
         
         /**
@@ -110,6 +116,7 @@ namespace VidStab
         void _initOpenCl();
         
         
+#if !defined(DISABLE_DETECT_OPENCL)
         /**
          * @brief   Select OpenCL device
          */
@@ -120,6 +127,7 @@ namespace VidStab
          * @brief   Prepare OpenCL kernels (calculator code)
          */
         void _initOpenCl_prepareKernels();
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
         
         
         /**
@@ -273,6 +281,7 @@ namespace VidStab
         std::string _mn;
         
         
+#if !defined(DISABLE_DETECT_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL
          */
@@ -296,6 +305,7 @@ namespace VidStab
          * @brief   Compiled binary of code we want to run over OpenCL
          */
         cl::Program* _clProgram;
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
     };
     
     

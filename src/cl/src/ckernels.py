@@ -55,43 +55,6 @@ kernels  = [
                        [ "acc"                  ],
                    ]
                ],
-               
-               [
-                   "correl8.c",
-                   [
-                       [ "CORREL8___WIDTH_PREVIOUS" ],
-                       [ "CORREL8___WIDTH_CURRENT"  ],
-                       [ "CORREL8___FIELD_SIZE"     ],
-                       [ "CORREL8___MAX_SHIFT"      ],
-                       [ "__CORREL8___ARGS_CNT"     ],
-                       [ "CORREL8___OFFSET_X"       ],
-                       [ "CORREL8___OFFSET_Y"       ],
-                       [ "CORREL8___FIELD_X"        ],
-                       [ "CORREL8___FIELD_Y"        ],
-                       [ "CORREL8___HEIGHT"         ],
-                       [ "CORREL8___BPP"            ],
-                       [ "Correl8_ArgIdx"           ],
-                       [ "widthPrevious"            ],
-                       [ "widthCurrent"             ],
-                       [ "widthCurrent"             ],
-                       [ "field_size"               ],
-                       [ "maxShift"                 ],
-                       [ "previous"                 ],
-                       [ "field_x"                  ],
-                       [ "field_y"                  ],
-                       [ "current"                  ],
-                       [ "offsetX"                  ],
-                       [ "offsetY"                  ],
-                       [ "result"                   ],
-                       [ "height"                   ],
-                       [ "args"                     ],
-                       [ "curr"                     ],
-                       [ "prev"                     ],
-                       [ "sum"                      ],
-                       [ "bpp"                      ],
-                       [ "idx"                      ],
-                   ]
-               ],
            ]
 
 

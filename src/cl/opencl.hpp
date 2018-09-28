@@ -7,6 +7,7 @@
 #pragma once
 
 
+#if !defined(DISABLE_DETECT_OPENCL) && !defined(DISABLE_TRANSFORM_OPENCL)
 #include <CL/cl2.hpp>
 #include <exception>
 #include <cstdarg>
@@ -374,4 +375,5 @@ namespace OpenCl
      */
     extern Devices devices;
 }
+#endif /* !defined(DISABLE_DETECT_OPENCL) && !defined(DISABLE_TRANSFORM_OPENCL) */
 

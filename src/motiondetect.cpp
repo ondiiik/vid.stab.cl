@@ -32,7 +32,7 @@
 #include <string.h>
 #include <assert.h>
 
-#ifdef USE_OMP
+#ifdef USE_DETECT_OMP
 #   include <omp.h>
 #   define  OMP_CRITICAL _Pragma("omp critical(localmotions_append)")
 #   define  OMP_SET_THREADS(_nt_) \
@@ -48,9 +48,6 @@
 #include "localmotion2transform.h"
 #include "transformtype_operations.h"
 #include "transformtype_operations.h"
-
-
-//#define USE_SPIRAL_FIELD_CALC
 
 
 /*
@@ -298,13 +295,13 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
     }
     catch (exception& exc)
     {
-        vs_log_error(modName, "FAILURE: %s\n", exc.what());
+        vs_log_error(modName, "[filter] FAILURE: %s\n", exc.what());
         return VS_ERROR;
     }
     
     
     vs_log_info(modName,
-                "Initialized: [%ix%i]:%s\n",
+                "[filter] Initialized: [%ix%i]:%s\n",
                 aFi->width,
                 aFi->height,
                 _fmt2str(aFi->pFormat));
@@ -453,11 +450,15 @@ namespace VidStab
         :
         fi          { aMd->fi  },
         firstFrame  { true     },
-        _mn         { aModName },
+        _mn         { aModName }
+#if !defined(DISABLE_DETECT_OPENCL)
+        ,
         _clDevice   {          },
         _clContext  { nullptr  },
         _clProgram  { nullptr  }
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
     {
+        _initMsg();
         _initOpenCl();
         _initVsDetect(aConf, aFi);
     }
@@ -482,18 +483,23 @@ namespace VidStab
         vsFrameFree(&currtmp);
         
         
+#if !defined(DISABLE_DETECT_OPENCL)
         delete _clProgram;
         delete _clContext;
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
     }
     
     
     void VSMD::_initOpenCl()
     {
+#if !defined(DISABLE_DETECT_OPENCL)
         _initOpenCl_selectDevice();
         _initOpenCl_prepareKernels();
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
     }
     
     
+#if !defined(DISABLE_DETECT_OPENCL)
     void VSMD::_initOpenCl_selectDevice()
     {
         vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
@@ -535,7 +541,6 @@ namespace VidStab
     {
         _clSources.push_back({opencl___blur_h,  opencl___blur_h_len});
         _clSources.push_back({opencl___blur_v,  opencl___blur_v_len});
-        _clSources.push_back({opencl___correl8, opencl___correl8_len});
         
         _clProgram = new cl::Program(*_clContext, _clSources);
         
@@ -547,8 +552,28 @@ namespace VidStab
         
         vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
     }
+#endif /* !defined(DISABLE_DETECT_OPENCL) */
     
     
+    void VSMD::_initMsg()
+    {
+        vs_log_info(_mn.c_str(), "[filter] Info:\n");
+        vs_log_info(_mn.c_str(), "[filter] \tbuilt - " __DATE__ "\n");
+        vs_log_info(_mn.c_str(), "[filter] \tflags - "
+#if !defined(DISABLE_DETECT_OPENCL)
+                                  "OpenCL "
+#endif
+#if defined(USE_DETECT_OMP)
+                                  "OMP "
+#endif
+#if defined(USE_SSE2)
+                                  "SSE2 "
+#endif
+
+                                  "\n");
+    }
+
+
     void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
                              const VSFrameInfo*          aFi)
     {
@@ -580,12 +605,12 @@ namespace VidStab
         }
         
         
-#ifdef USE_OMP
+#ifdef USE_DETECT_OMP
         if (conf.numThreads == 0)
         {
             conf.numThreads = VS_MAX(omp_get_max_threads() - 2, 1);
         }
-        vs_log_info(conf.modName, "Multithreading: use %i threads\n", conf.numThreads);
+        vs_log_info(conf.modName, "[filter] Multithreading: use %i threads\n", conf.numThreads);
 #endif
         
         
@@ -605,13 +630,13 @@ namespace VidStab
         
         if (conf.accuracy < conf.shakiness / 2)
         {
-            vs_log_info(conf.modName, "Accuracy should not be lower than shakiness/2 -- fixed");
+            vs_log_info(conf.modName, "[filter] Accuracy should not be lower than shakiness/2 -- fixed");
             conf.accuracy = conf.shakiness / 2;
         }
         
         if (conf.accuracy > 9 && conf.stepSize > 6)
         {
-            vs_log_info(conf.modName, "For high accuracy use lower stepsize  -- set to 6 now");
+            vs_log_info(conf.modName, "[filter] For high accuracy use lower stepsize  -- set to 6 now");
             conf.stepSize = 6; // maybe 4
         }
         
@@ -694,12 +719,12 @@ namespace VidStab
         fs->maxFields = (conf.accuracy) * fs->fieldNum / 15;
         
         vs_log_info(conf.modName,
-                    "Fieldsize: %i, Maximal translation: %i pixel\n",
+                    "[filter] Fieldsize: %i, Maximal translation: %i pixel\n",
                     fs->fieldSize,
                     fs->maxShift);
                     
         vs_log_info(conf.modName,
-                    "Number of used measurement fields: %i out of %i\n",
+                    "[filter] Number of used measurement fields: %i out of %i\n",
                     fs->maxFields,
                     fs->fieldNum);
     }
@@ -891,6 +916,13 @@ namespace VidStab
                           int                  aSrcStrive,
                           int                  aSize)
     {
+#if defined(DISABLE_DETECT_OPENCL)
+
+        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+
+#else  /* defined(DISABLE_DETECT_OPENCL) */
+
         /*
          * Prepare CL buffers
          */
@@ -942,6 +974,8 @@ namespace VidStab
         clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
         
         clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
+
+#endif /* defined(DISABLE_DETECT_OPENCL) */
     }
     
     
@@ -1522,7 +1556,9 @@ namespace VidStab
         }
         
         
-#ifdef USE_SPIRAL_FIELD_CALC
+#if !defined(DISABLE_SPIRAL_FIELD_CALC)
+        
+        
         unsigned int minerror = UINT_MAX;
         
         for (_Spiral sp; sp < maxShift; sp += stepSize)
@@ -1547,8 +1583,8 @@ namespace VidStab
         
         
 #else
-
-
+        
+        
         /*
          * Here we improve speed by checking first the most probable position
          * then the search paths are most effectively cut. (0,0) is a simple
@@ -1564,105 +1600,8 @@ namespace VidStab
                                               0,
                                               0,
                                               UINT_MAX);
-
-
-
-
-
-        Dbg::Profiler::Data oclAll;
-        Dbg::Profiler::Data oclRun;
-        do
-        {
-            /*
-             * Prepare CL buffers
-             */
-            const std::size_t  size    { std::size_t(md->fi.width * md->fi.height * 1)      };
-            const std::size_t  range   { std::size_t(maxShift * 2U + 1U) & ~3U              };
-            const std::size_t  cnt     { range * range                                      };
-            const std::size_t  rsize   { range * range * sizeof(int)                        };
-            const std::size_t  threads { 8000                                               };
-        
-            int args[]
-            {
-                int(cnt),
-                linesize_c,
-                linesize_p,
-                field->x,
-                field->y,
-                field->size,
-                md->fi.height,
-                offset.x,
-                offset.y,
-                int(range),
-                int(minerror)
-            };
-        
-            vs_log_error(md->conf.modName, "[correlate] Details:\n");
-            vs_log_error(md->conf.modName, "[correlate] \tcanvas_size = %i\n", int(size));
-            vs_log_error(md->conf.modName, "[correlate] \trange       = %i\n", int(range));
-            vs_log_error(md->conf.modName, "[correlate] \tkernels     = %i\n", int(cnt));
-            vs_log_error(md->conf.modName, "[correlate] \trsize       = %i\n", int(rsize));
-            vs_log_error(md->conf.modName, "[correlate] \targs        = %i\n", int(sizeof(args) / sizeof(args[0])));
         
         
-            /*
-             * Create buffers
-             */
-            Dbg::Profiler::Measure profAll { oclAll };
-            OpenCl::Buffer buffer_res(  *md->_clContext, CL_MEM_READ_WRITE, rsize);
-            OpenCl::Buffer buffer_curr( *md->_clContext, CL_MEM_READ_ONLY,  size);
-            OpenCl::Buffer buffer_prev( *md->_clContext, CL_MEM_READ_ONLY,  size);
-            OpenCl::Buffer buffer_args( *md->_clContext, CL_MEM_READ_WRITE, sizeof(args));
-        
-        
-            /*
-             * Process correlation
-             */
-            OpenCl::CommandQueue clQ(*md->_clContext, md->_clDevice);
-        
-            clQ.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
-            clQ.enqueueWriteBuffer(buffer_curr, CL_TRUE, 0, size,         current);
-            clQ.enqueueWriteBuffer(buffer_prev, CL_TRUE, 0, size,         previous);
-        
-            OpenCl::Kernel correlate(*md->_clProgram, "correl8");
-            correlate.setArg(0, buffer_res);
-            correlate.setArg(1, buffer_curr);
-            correlate.setArg(2, buffer_prev);
-            correlate.setArg(3, buffer_args);
-        
-            Dbg::Profiler::Measure profRun { oclRun };
-            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i items on %i threads\n", int(cnt), int(threads));
-            clQ.enqueueNDRangeKernel(correlate, cl::NullRange, cl::NDRange((threads < cnt) ? threads : cnt));
-            profRun.leave();
-        
-            int results[range][range];
-            clQ.enqueueReadBuffer(buffer_res, CL_TRUE, 0, sizeof(results), &results);
-            vs_log_error(md->conf.modName, "[correlate] Results: (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 0, results[0][0], results[0][1], results[0][2], results[0][3], results[0][4], results[0][range - 1]);
-            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 1, results[1][0], results[1][1], results[1][2], results[1][3], results[1][4], results[1][range - 1]);
-            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 2, results[2][0], results[2][1], results[2][2], results[2][3], results[2][4], results[2][range - 1]);
-            vs_log_error(md->conf.modName, "[correlate]          ...\n");
-            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", range - 1, results[range - 1][0], results[range - 1][1], results[range - 1][2], results[range - 1][3], results[range - 1][4], results[range - 1][range - 1]);
-            int max = INT_MIN;
-            for (auto& i : results)
-            {
-                for (auto j : i)
-                {
-                    if (max < j)
-                    {
-                        max = j;
-                    }
-                }
-            }
-            vs_log_error(md->conf.modName, "[correlate]          MAX=%i\n", max);
-        }
-        while (false);
-        vs_log_error(md->conf.modName, "[correlate] Profiler: %lld from %lld us\n", oclRun(), oclAll());
-        
-        
-        
-
-
-
         /*
          * Check all positions...
          */

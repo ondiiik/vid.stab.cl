@@ -49,9 +49,14 @@ add_definitions(-DUSE_SSE2
 endif()
 endif()
 
-if(USE_OMP)
+if(USE_DETECT_OMP)
 add_definitions(-fopenmp
-                -DUSE_OMP)
+                -DUSE_DETECT_OMP)
+endif()
+
+if(DISABLE_DETECT_OPENCL)
+add_definitions(-fopenmp
+                -DDISABLE_DETECT_OPENCL)
 endif()
 
 set(SOURCES

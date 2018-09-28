@@ -5,6 +5,7 @@
  *      Author: ondiiik
  */
 
+#if !defined(DISABLE_DETECT_OPENCL) && !defined(DISABLE_TRANSFORM_OPENCL)
 #include "opencl.hpp"
 
 
@@ -343,3 +344,5 @@ namespace OpenCl
     
     Devices devices {};
 }
+
+#endif /* !defined(DISABLE_DETECT_OPENCL) && !defined(DISABLE_TRANSFORM_OPENCL) */
