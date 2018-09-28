@@ -69,7 +69,7 @@ set(SOURCES
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
     src/cl/opencl___blur_v.c
-    src/cl/opencl___correlate.c)
+    src/cl/opencl___correl8.c)
 
 set(HEADERS
     src/frame_canvas.h
@@ -85,7 +85,8 @@ set(HEADERS
     src/md_exception.hpp
     src/cl/opencl.hpp
     src/cl/opencl___blur_h.h
-    src/cl/opencl___blur_v.h)
+    src/cl/opencl___blur_v.h
+    src/cl/opencl___correl8.h)
 
 
 # Create the vidstab library

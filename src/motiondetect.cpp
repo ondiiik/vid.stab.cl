@@ -65,7 +65,7 @@
 #include "cl/opencl.hpp"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
-#include "cl/opencl___correlate.h"
+#include "cl/opencl___correl8.h"
 
 #include <vector>
 #include <algorithm>
@@ -533,9 +533,9 @@ namespace VidStab
     
     void VSMD::_initOpenCl_prepareKernels()
     {
-        _clSources.push_back({opencl___blur_h,    opencl___blur_h_len});
-        _clSources.push_back({opencl___blur_v,    opencl___blur_v_len});
-        _clSources.push_back({opencl___correlate, opencl___correlate_len});
+        _clSources.push_back({opencl___blur_h,  opencl___blur_h_len});
+        _clSources.push_back({opencl___blur_v,  opencl___blur_v_len});
+        _clSources.push_back({opencl___correl8, opencl___correl8_len});
         
         _clProgram = new cl::Program(*_clContext, _clSources);
         
@@ -1549,14 +1549,15 @@ namespace VidStab
 #else
         Dbg::Profiler::Data oclAll;
         Dbg::Profiler::Data oclRun;
+        do
         {
             /*
              * Prepare CL buffers
              */
-            const std::size_t  size  { std::size_t(md->fi.width * md->fi.height * 1) };
-            const std::size_t  range { std::size_t(maxShift * 2 + 1)                 };
-            const std::size_t  cnt   { range * range                                 };
-            const std::size_t  rsize { range* range * sizeof(int)                   };
+            const std::size_t  size  { std::size_t(md->fi.width * md->fi.height * 1)      };
+            const std::size_t  range { std::size_t(maxShift * 2U + 1U) & ~3U              };
+            const std::size_t  cnt   { range * range                                      };
+            const std::size_t  rsize { range * range * sizeof(int)                        };
         
             int args[]
             {
@@ -1566,10 +1567,9 @@ namespace VidStab
                 field->y,
                 field->size,
                 md->fi.height,
-                1,
                 offset.x,
                 offset.y,
-                maxShift
+                int(range)
             };
         
             vs_log_error(md->conf.modName, "[correlate] Details:\n");
@@ -1578,6 +1578,12 @@ namespace VidStab
             vs_log_error(md->conf.modName, "[correlate] \tkernels     = %i\n", int(cnt));
             vs_log_error(md->conf.modName, "[correlate] \trsize       = %i\n", int(rsize));
             vs_log_error(md->conf.modName, "[correlate] \targs        = %i\n", int(sizeof(args) / sizeof(args[0])));
+
+            if (range > 200)
+            {
+                vs_log_error(md->conf.modName, "[correlate] HIGH RANGE!\n");
+                break;
+            }
         
         
             /*
@@ -1599,7 +1605,7 @@ namespace VidStab
             clQ.enqueueWriteBuffer(buffer_curr, CL_TRUE, 0, size,         current);
             clQ.enqueueWriteBuffer(buffer_prev, CL_TRUE, 0, size,         previous);
         
-            OpenCl::Kernel correlate(*md->_clProgram, "correlate");
+            OpenCl::Kernel correlate(*md->_clProgram, "correl8");
             correlate.setArg(0, buffer_res);
             correlate.setArg(1, buffer_curr);
             correlate.setArg(2, buffer_prev);
@@ -1617,7 +1623,20 @@ namespace VidStab
             vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 2, results[2][0], results[2][1], results[2][2], results[2][3], results[2][4], results[2][range - 1]);
             vs_log_error(md->conf.modName, "[correlate]          ...\n");
             vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", range - 1, results[range - 1][0], results[range - 1][1], results[range - 1][2], results[range - 1][3], results[range - 1][4], results[range - 1][range - 1]);
+            int max = INT_MIN;
+            for (auto& i : results)
+            {
+                for (auto j : i)
+                {
+                    if (max < j)
+                    {
+                        max = j;
+                    }
+                }
+            }
+            vs_log_error(md->conf.modName, "[correlate]          MAX=%i\n", max);
         }
+        while (false);
         vs_log_error(md->conf.modName, "[correlate] Profiler: %lld from %lld us\n", oclRun(), oclAll());
         
         
