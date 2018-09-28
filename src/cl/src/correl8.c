@@ -79,8 +79,8 @@ void kernel correl8(global int*                 result,
             for (int k = 0; k < field_size; ++k)
             {
                 sum += abs((int)curr[0] - (int)prev[0]);
-                curr++;
-                prev++;
+//                curr++;
+//                prev++;
             }
             
             if (sum > threshold)

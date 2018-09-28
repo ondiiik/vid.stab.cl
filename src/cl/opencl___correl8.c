@@ -80,8 +80,8 @@ const char opencl___correl8[] =
 "             for (int k = 0; k < field_size; ++k)                                                         \n"
 "             {                                                                                            \n"
 "                 sum += abs((int)curr[0] - (int)prev[0]);                                                 \n"
-"                 curr++;                                                                                  \n"
-"                 prev++;                                                                                  \n"
+" //                curr++;                                                                                \n"
+" //                prev++;                                                                                \n"
 "             }                                                                                            \n"
 "                                                                                                          \n"
 "             if (sum > threshold)                                                                         \n"
@@ -117,8 +117,8 @@ const char opencl___correl8[] =
 "2_12-s2;int y=_2_13-s2;unsigned int _2_1c=0;global const unsigned char*_2_1a"
 "=_2_14+((x)+(y)*_2_d);global const unsigned char*_2_1b=_2_11+((x+_2_15)+(y+_"
 "2_16)*_2_c);for(int j=0;j<_2_f;++j){for(int k=0;k<_2_f;++k){_2_1c+=abs((int)"
-"_2_1a[0]-(int)_2_1b[0]);_2_1a++;_2_1b++;}if(_2_1c>threshold){break;}_2_1a+=_"
-"2_d;_2_1b+=_2_c;_2_1a-=_2_f;_2_1b-=_2_f;}_2_17[_2_1e]=_2_1c;}}"
+"_2_1a[0]-(int)_2_1b[0]);//_2_1a++;//_2_1b++;}if(_2_1c>threshold){break;}_2_1"
+"a+=_2_d;_2_1b+=_2_c;_2_1a-=_2_f;_2_1b-=_2_f;}_2_17[_2_1e]=_2_1c;}}"
 
 
 #endif /* defined(OPENCL_DBG_MODE) */

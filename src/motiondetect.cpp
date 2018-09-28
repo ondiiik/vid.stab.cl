@@ -1577,7 +1577,7 @@ namespace VidStab
              * Prepare CL buffers
              */
             const std::size_t  size    { std::size_t(md->fi.width * md->fi.height * 1)      };
-            const std::size_t  range   { std::size_t(maxShift * 2U + 1U)                    };
+            const std::size_t  range   { std::size_t(maxShift * 2U + 1U) & ~3U              };
             const std::size_t  cnt     { range * range                                      };
             const std::size_t  rsize   { range * range * sizeof(int)                        };
             const std::size_t  threads { 8000                                               };
