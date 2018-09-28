@@ -50,7 +50,7 @@
 #include "transformtype_operations.h"
 
 
-#define USE_SPIRAL_FIELD_CALC
+//#define USE_SPIRAL_FIELD_CALC
 
 
 /*
@@ -942,10 +942,6 @@ namespace VidStab
         clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
         
         clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
-        
-        
-//        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-//        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
     }
     
     
@@ -1112,7 +1108,7 @@ namespace VidStab
         vs_vector_init(&aMotionscoarse, 0);
         
         fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fi);
-
+        
         if (fi.pFormat > PF_PACKED)
         {
             aMotionscoarse = _calcTransFields(&fieldscoarse,
@@ -1551,6 +1547,80 @@ namespace VidStab
         
         
 #else
+        Dbg::Profiler::Data oclAll;
+        Dbg::Profiler::Data oclRun;
+        {
+            /*
+             * Prepare CL buffers
+             */
+            const std::size_t  size  { std::size_t(md->fi.width * md->fi.height * 1) };
+            const std::size_t  range { std::size_t(maxShift * 2 + 1)                 };
+            const std::size_t  cnt   { range * range                                 };
+            const std::size_t  rsize { range* range * sizeof(int)                   };
+        
+            int args[]
+            {
+                linesize_c,
+                linesize_p,
+                field->x,
+                field->y,
+                field->size,
+                md->fi.height,
+                1,
+                offset.x,
+                offset.y,
+                maxShift
+            };
+        
+            vs_log_error(md->conf.modName, "[correlate] Details:\n");
+            vs_log_error(md->conf.modName, "[correlate] \tcanvas_size = %i\n", int(size));
+            vs_log_error(md->conf.modName, "[correlate] \trange       = %i\n", int(range));
+            vs_log_error(md->conf.modName, "[correlate] \tkernels     = %i\n", int(cnt));
+            vs_log_error(md->conf.modName, "[correlate] \trsize       = %i\n", int(rsize));
+            vs_log_error(md->conf.modName, "[correlate] \targs        = %i\n", int(sizeof(args) / sizeof(args[0])));
+        
+        
+            /*
+             * Create buffers
+             */
+            Dbg::Profiler::Measure profAll { oclAll };
+            OpenCl::Buffer buffer_res(  *md->_clContext, CL_MEM_READ_WRITE, rsize);
+            OpenCl::Buffer buffer_curr( *md->_clContext, CL_MEM_READ_ONLY,  size);
+            OpenCl::Buffer buffer_prev( *md->_clContext, CL_MEM_READ_ONLY,  size);
+            OpenCl::Buffer buffer_args( *md->_clContext, CL_MEM_READ_ONLY,  sizeof(args));
+        
+        
+            /*
+             * Process correlation
+             */
+            OpenCl::CommandQueue clQ(*md->_clContext, md->_clDevice);
+        
+            clQ.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
+            clQ.enqueueWriteBuffer(buffer_curr, CL_TRUE, 0, size,         current);
+            clQ.enqueueWriteBuffer(buffer_prev, CL_TRUE, 0, size,         previous);
+        
+            OpenCl::Kernel correlate(*md->_clProgram, "correlate");
+            correlate.setArg(0, buffer_res);
+            correlate.setArg(1, buffer_curr);
+            correlate.setArg(2, buffer_prev);
+            correlate.setArg(3, buffer_args);
+        
+            Dbg::Profiler::Measure profRun { oclRun };
+            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i\n", int(cnt));
+            clQ.enqueueNDRangeKernel(correlate, cl::NullRange, cl::NDRange(cnt));
+            profRun.leave();
+        
+            int results[range][range];
+            clQ.enqueueReadBuffer(buffer_res, CL_TRUE, 0, sizeof(results), &results);
+            vs_log_error(md->conf.modName, "[correlate] Results: (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 0, results[0][0], results[0][1], results[0][2], results[0][3], results[0][4], results[0][range - 1]);
+            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 1, results[1][0], results[1][1], results[1][2], results[1][3], results[1][4], results[1][range - 1]);
+            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", 2, results[2][0], results[2][1], results[2][2], results[2][3], results[2][4], results[2][range - 1]);
+            vs_log_error(md->conf.modName, "[correlate]          ...\n");
+            vs_log_error(md->conf.modName, "[correlate]          (%i)\t%i,\t%i,\t%i,\t%i,\t%i,\t...\t,%i\n", range - 1, results[range - 1][0], results[range - 1][1], results[range - 1][2], results[range - 1][3], results[range - 1][4], results[range - 1][range - 1]);
+        }
+        vs_log_error(md->conf.modName, "[correlate] Profiler: %lld from %lld us\n", oclRun(), oclAll());
+        
+        
         /*
          * Here we improve speed by checking first the most probable position
          * then the search paths are most effectively cut. (0,0) is a simple
@@ -1566,6 +1636,7 @@ namespace VidStab
                                               0,
                                               0,
                                               UINT_MAX);
+        
         /*
          * Check all positions...
          */

@@ -17,10 +17,11 @@ namespace Dbg
         class Data
         {
         public:
-            Data()
+            Data(unsigned long long aCpuFreqKHz = 1885673ULL)
                 :
-                _enter { 0 },
-                _leave { 0 }
+                _enter      { 0           },
+                _leave      { 0           },
+                _cpuFreqKHz { aCpuFreqKHz }
             {
             
             }
@@ -40,12 +41,13 @@ namespace Dbg
             
             unsigned long long get()
             {
-                return _leave - _enter;
+                return ((_leave - _enter) * 1000ULL) / _cpuFreqKHz;
             }
             
             
             unsigned long long _enter;
             unsigned long long _leave;
+            unsigned long long _cpuFreqKHz;
         };
         
         
@@ -54,7 +56,8 @@ namespace Dbg
         public:
             inline Measure(Data& aData)
                 :
-                _data { aData }
+                _data    { aData },
+                _entered { false }
             {
                 enter();
             }
@@ -69,13 +72,21 @@ namespace Dbg
             
             inline void enter()
             {
-                _data._enter = _rdtsc();
+                if (!_entered)
+                {
+                    _data._enter = _rdtsc();
+                    _entered     = true;
+                }
             }
             
             
             inline void leave()
             {
-                _data._leave = _rdtsc();
+                if (_entered)
+                {
+                    _data._leave = _rdtsc();
+                    _entered     = false;
+                }
             }
             
             
@@ -108,6 +119,7 @@ namespace Dbg
             
             
             Data& _data;
+            bool  _entered;
         };
     }
 }

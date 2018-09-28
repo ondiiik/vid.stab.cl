@@ -274,6 +274,13 @@ namespace VidStab
         
         
         /**
+         * @brief   Sources of code we want to run over OpenCL
+         */
+        cl::Program::Sources _clSources;
+        
+        
+    public:
+        /**
          * @brief   OpenCL device
          */
         cl::Device _clDevice;
@@ -283,12 +290,6 @@ namespace VidStab
          * @brief   OpenCL context (communication channel to device)
          */
         cl::Context* _clContext;
-        
-        
-        /**
-         * @brief   Sources of code we want to run over OpenCL
-         */
-        cl::Program::Sources _clSources;
         
         
         /**
