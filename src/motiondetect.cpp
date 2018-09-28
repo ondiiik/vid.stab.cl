@@ -709,15 +709,10 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
-        Dbg::Profiler::Data selectfieldsProf;
-        Dbg::Profiler::Data fieldfuncProf;
-        
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-        Dbg::Profiler::Measure prof1 { selectfieldsProf };
         VSVector goodflds = _selectfields(fields, contrastfunc);
-        prof1.leave();
         
         
         OMP_SET_THREADS(conf.numThreads)
@@ -726,9 +721,7 @@ namespace VidStab
         {
             int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
             
-            Dbg::Profiler::Measure prof2 { fieldfuncProf };
             LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
-            prof2.leave();
             
             if (m.match >= 0)
             {
@@ -737,13 +730,7 @@ namespace VidStab
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
-        vs_log_error(conf.modName, "\tPROF _selectfields=(%llu), fieldfunc=(%llu * %i)=(%llu) --> %2.2f x slower fieldfunc\n",
-                     selectfieldsProf(),
-                     fieldfuncProf(),
-                     int(vs_vector_size(&goodflds)),
-                     fieldfuncProf() * vs_vector_size(&goodflds),
-                     (float(fieldfuncProf()) * vs_vector_size(&goodflds)) / float(selectfieldsProf()));
-                     
+        
         vs_vector_del(&goodflds);
         
         return localmotions;
@@ -1076,6 +1063,7 @@ namespace VidStab
             VSTransform        t = vsSimpleMotionsToTransform(fi, conf.modName, &motionscoarse);
             fieldsfine.offset    = t;
             fieldsfine.useOffset = 1;
+            fieldsfine.pt        = prepare_transform(&fieldsfine.offset, &fi);
             
             LocalMotions motions2;
             
@@ -1123,6 +1111,8 @@ namespace VidStab
     {
         vs_vector_init(&aMotionscoarse, 0);
         
+        fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fi);
+
         if (fi.pFormat > PF_PACKED)
         {
             aMotionscoarse = _calcTransFields(&fieldscoarse,
@@ -1348,13 +1338,11 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD*                 md,
-                                             VSMotionDetectFields* fs,
-                                             const Field*          field,
-                                             int                   fieldnum)
+    LocalMotion visitor_calcFieldTransPacked(VSMD*                       md,
+                                             const VSMotionDetectFields* fs,
+                                             const Field*                field,
+                                             int                         fieldnum)
     {
-        vs_log_error(md->conf.modName, "\t\t[DBG]PACKED %i\n", int(sizeof(Field)));
-        
         int      tx       = 0;
         int      ty       = 0;
         
@@ -1370,8 +1358,7 @@ namespace VidStab
         
         if (fs->useOffset)
         {
-            PreparedTransform pt = prepare_transform(&fs->offset, &md->fi);
-            offset               = transform_vec(&pt, (Vec*)field);
+            offset = transform_vec(&fs->pt, (Vec*)field);
             
             /*
              * Is the field still in the frame
@@ -1496,12 +1483,11 @@ namespace VidStab
      * Calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD*                 md,
-                                             VSMotionDetectFields* fs,
-                                             const Field*          field,
-                                             int                   fieldnum)
+    LocalMotion visitor_calcFieldTransPlanar(VSMD*                       md,
+                                             const VSMotionDetectFields* fs,
+                                             const Field*                field,
+                                             int                         fieldnum)
     {
-        vs_log_error(md->conf.modName, "\t\t[DBG]PLANAR %i\n", int(sizeof(Field)));
         Vec t { };
         
         uint8_t* current    = md->curr->data[0];
@@ -1519,13 +1505,9 @@ namespace VidStab
         
         if (fs->useOffset)
         {
-            /*
-             * Todo: we could put the preparedtransform into fs
-             */
-            PreparedTransform pt       = prepare_transform(&fs->offset, &md->fi);
-            Vec               fieldpos = {field->x, field->y};
+            Vec fieldpos = {field->x, field->y};
             
-            offset = transform_vec(&pt, &fieldpos) - fieldpos;
+            offset = transform_vec(&fs->pt, &fieldpos) - fieldpos;
             
             
             /*

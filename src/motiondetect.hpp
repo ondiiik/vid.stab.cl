@@ -24,7 +24,7 @@ namespace VidStab
         /* type for a function that calculates the transformation of a certain field
          */
         typedef LocalMotion (*calcFieldTransFunc)(VSMD*,
-                                                  VSMotionDetectFields*,
+                                                  const VSMotionDetectFields*,
                                                   const Field*,
                                                   int);
                                                   
@@ -327,19 +327,19 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD*                 md,
-                                             VSMotionDetectFields* fs,
-                                             const Field*          field,
-                                             int                   fieldnum);
+    LocalMotion visitor_calcFieldTransPacked(VSMD*                       md,
+                                             const VSMotionDetectFields* fs,
+                                             const Field*                field,
+                                             int                         fieldnum);
                                              
                                              
     /* calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD*                 md,
-                                             VSMotionDetectFields* fs,
-                                             const Field*          field,
-                                             int                   fieldnum);
+    LocalMotion visitor_calcFieldTransPlanar(VSMD*                       md,
+                                             const VSMotionDetectFields* fs,
+                                             const Field*                field,
+                                             int                         fieldnum);
                                              
                                              
     /**

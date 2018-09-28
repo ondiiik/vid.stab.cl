@@ -29,6 +29,7 @@
 #include <stdlib.h>
 
 #include "transformtype.h"
+#include "transformtype_operations.h"
 #include "vidstabdefines.h"
 #include "vsvector.h"
 #include "frameinfo.h"
@@ -71,6 +72,7 @@ typedef struct VSMotionDetectFields
     Field* fields;                // measurement fields
     short useOffset;              // if true then the offset us used
     struct VSTransform offset;           // offset for detection (e.g. known from coarse scan)
+    PreparedTransform pt;
 }
 VSMotionDetectFields;
 
