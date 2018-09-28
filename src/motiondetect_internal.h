@@ -37,21 +37,53 @@ double contrastSubImg(unsigned char* const I, const Field* field,
                       int width, int height, int bytesPerPixel);
 
 
-unsigned int compareSubImg_thr(const uint8_t* const I1,
-                               const uint8_t* const I2,
-                               const Field*         field,
-                               int                  width1,
-                               int                  width2,
-                               int                  height,
-                               int                  bytesPerPixel,
-                               int                  d_x,
-                               int                  d_y,
-                               unsigned int         threshold);
-
-
 #ifdef __cplusplus
 }
 #endif
+
+
+class Correlate
+{
+public:
+    Correlate(const uint8_t* aCurrent,
+              const uint8_t* aPrevious,
+              const Field&   aField,
+              int            aWidthCurrent,
+              int            aWidthPrevious,
+              int            aHeight,
+              int            aBpp)
+        :
+        _current       { aCurrent           },
+        _previous      { aPrevious          },
+        _field         { aField             },
+        _widthCurrent  { aWidthCurrent      },
+        _widthPrevious { aWidthPrevious     },
+        _height        { aHeight            },
+        _bpp           { aBpp               },
+        _wbpp          { aBpp * aField.size }
+    {
+
+    }
+
+
+    /**
+     * @brief    Correlate immages
+     */
+    unsigned int operator()(int            aOffsetX,
+                            int            aOffsetY,
+                            unsigned int   aThreshold);
+
+
+private:
+    const uint8_t* const _current;
+    const uint8_t* const _previous;
+    const Field&         _field;
+    const int            _widthCurrent;
+    const int            _widthPrevious;
+    const int            _height;
+    const int            _bpp;
+    const int            _wbpp    = _field.size * _bpp;
+};
 
 
 /*

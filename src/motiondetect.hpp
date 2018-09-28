@@ -116,7 +116,7 @@ namespace VidStab
         void _initOpenCl();
         
         
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
         /**
          * @brief   Select OpenCL device
          */
@@ -127,7 +127,7 @@ namespace VidStab
          * @brief   Prepare OpenCL kernels (calculator code)
          */
         void _initOpenCl_prepareKernels();
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif /* defined(USE_OPENCL) */
         
         
         /**
@@ -281,7 +281,7 @@ namespace VidStab
         std::string _mn;
         
         
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL
          */
@@ -305,7 +305,7 @@ namespace VidStab
          * @brief   Compiled binary of code we want to run over OpenCL
          */
         cl::Program* _clProgram;
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif /* defined(USE_OPENCL) */
     };
     
     

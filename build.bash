@@ -5,7 +5,7 @@ ROLE="$2"
 cd "$DIRECTORY" || exit 1
 
 cmake \
-    -DUSE_DETECT_OMP=ON \
+    -DUSE_OMP=ON \
     -DUSE_SSE2=ON \
     -DDISABLE_DETECT_OPENCL=OFF \
     -DCMAKE_VERBOSE_MAKEFILE=FALSE \

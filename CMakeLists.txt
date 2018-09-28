@@ -19,11 +19,11 @@ endif()
 option(BUILD_SHARED_LIBS "build shared libraries instead of static libraries"
        ON)
 
-option(USE_OMP  "use parallelization use OMP" ON)
-option(USE_SSE2 "use SSE2 optimization"       ON)
+option(USE_OMP    "use parallelization over OMP"    ON)
+option(USE_SSE2   "use SSE2 optimization"           ON)
+option(USE_OPENCL "use parallelization over OpenCL" ON)
 
 add_definitions(-fPIC
-                -DOPENCL_DBG_MODE=1
                 -DCL_HPP_TARGET_OPENCL_VERSION=110
                 -DCL_HPP_MINIMUM_OPENCL_VERSION=110)
 
@@ -49,14 +49,14 @@ add_definitions(-DUSE_SSE2
 endif()
 endif()
 
-if(USE_DETECT_OMP)
+if(USE_OMP)
 add_definitions(-fopenmp
-                -DUSE_DETECT_OMP)
+                -DUSE_OMP)
 endif()
 
-if(DISABLE_DETECT_OPENCL)
+if(USE_OPENCL)
 add_definitions(-fopenmp
-                -DDISABLE_DETECT_OPENCL)
+                -DUSE_OPENCL)
 endif()
 
 set(SOURCES

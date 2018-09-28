@@ -35,9 +35,7 @@
 
 #define USE_SSE2_CMP_HOR
 #define SSE2_CMP_SUM_ROWS 8
-#endif
 
-#ifdef USE_SSE2
 namespace
 {
     unsigned char _full[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -355,92 +353,6 @@ unsigned int compareSubImg_thr_sse2(unsigned char* const I1,
 }
 #endif // USE_SSE2
 
-
-#ifdef USE_SSE2_ASM
-unsigned int compareSubImg_thr_sse2_asm(unsigned char* const I1, unsigned char* const I2,
-                                        const Field* field,
-                                        int width1, int width2, int height,
-                                        int bytesPerPixel, int d_x, int d_y,
-                                        unsigned int treshold)
-{
-    unsigned char* p1 = NULL;
-    unsigned char* p2 = NULL;
-    int s2 = field->size / 2;
-    unsigned int sum = 0;
-    
-    static unsigned char mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-    p1 = I1 + ((field->x - s2) + (field->y - s2) * width1) * bytesPerPixel;
-    p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
-    asm (
-        "xor %0,%0\n"
-        "pxor %%xmm4,%%xmm4\n"         //8 x 16bit partial sums
-        "movdqu (%3),%%xmm3\n"         //mask
-        
-        //main loop
-        "movl %4,%%edx\n"              //edx = field->size * bytesPerPixel / 16
-        "mov $8,%%ecx\n"               //cx = 8
-        "1:\n"
-        
-        //calc intermediate sum of abs differences for 16 bytes
-        "movdqu (%1),%%xmm0\n"       //p1
-        "movdqu (%2),%%xmm1\n"       //p2
-        "movdqu %%xmm0,%%xmm2\n"     //xmm2 = xmm0
-        "psubusb %%xmm1,%%xmm0\n"    //xmm0 = xmm0 - xmm1 (by bytes)
-        "psubusb %%xmm2,%%xmm1\n"    //xmm1 = xmm1 - xmm2 (by bytes)
-        "paddusb %%xmm1,%%xmm0\n"    //xmm0 = xmm0 + xmm1 (absolute difference)
-        "movdqu %%xmm0,%%xmm2\n"     //xmm2 = xmm0
-        "pand %%xmm3,%%xmm2\n"       //xmm2 = xmm2 & xmm3 (apply mask)
-        "psrldq $1,%%xmm0\n"         //xmm0 = xmm0 >> 8 (shift by 1 byte)
-        "pand %%xmm3,%%xmm0\n"       //xmm0 = xmm0 & xmm3 (apply mask)
-        "paddusw %%xmm0,%%xmm4\n"    //xmm4 = xmm4 + xmm0 (by words)
-        "paddusw %%xmm2,%%xmm4\n"    //xmm4 = xmm4 + xmm2 (by words)
-        
-        "add $16,%1\n"               //move to next 16 bytes (p1)
-        "add $16,%2\n"               //move to next 16 bytes (p2)
-        
-        //check if we need flush sum (i.e. xmm4 is about to saturate)
-        "dec %%ecx\n"
-        "jnz 2f\n"                   //skip flushing if not
-        //flushing...
-        "movdqu %%xmm4,%%xmm0\n"
-        "psrldq $8,%%xmm0\n"
-        "paddusw %%xmm0,%%xmm4\n"
-        "movdqu %%xmm4,%%xmm0\n"
-        "psrldq $4,%%xmm0\n"
-        "paddusw %%xmm0,%%xmm4\n"
-        "movdqu %%xmm4,%%xmm0\n"
-        "psrldq $2,%%xmm0\n"
-        "paddusw %%xmm0,%%xmm4\n"
-        "movd %%xmm4,%%ecx\n"
-        "and $0xFFFF,%%ecx\n"
-        "addl %%ecx,%0\n"
-        "pxor %%xmm4,%%xmm4\n"       //clearing xmm4
-        "mov $8,%%ecx\n"             //cx = 8
-        
-        //check if we need to go to another line
-        "2:\n"
-        "dec %%edx\n"
-        "jnz 1b\n"                   //skip if not
-        
-        //move p1 and p2 to the next line
-        "add %5,%1\n"
-        "add %5,%2\n"
-        "cmp %7,%0\n"                //if (sum > treshold)
-        "ja 3f\n"                    //    break;
-        "movl %4,%%edx\n"
-        
-        //check if all lines done
-        "decl %6\n"
-        "jnz 1b\n"                   //if not, continue looping
-        "3:\n"
-        :"=r"(sum)
-        :"r"(p1), "r"(p2), "r"(mask), "g"(field->size * bytesPerPixel / 16), "g"((unsigned char*)((width1 - field->size) * bytesPerPixel)), "g"(field->size), "g"(treshold), "0"(sum)
-        :"%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%ecx", "%edx"
-    );
-    // TODO width2 is not properly used here
-    return sum;
-}
-#endif // USE_SSE2_ASM
 
 /*
  * Local variables:

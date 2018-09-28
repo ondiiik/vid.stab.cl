@@ -32,7 +32,14 @@
 #include <string.h>
 #include <assert.h>
 
-#ifdef USE_DETECT_OMP
+#ifdef USE_SSE2
+#include <emmintrin.h>
+
+#define USE_SSE2_CMP_HOR
+#define SSE2_CMP_SUM_ROWS 8
+#endif
+
+#ifdef USE_OMP
 #   include <omp.h>
 #   define  OMP_CRITICAL _Pragma("omp critical(localmotions_append)")
 #   define  OMP_SET_THREADS(_nt_) \
@@ -242,6 +249,11 @@ namespace
     {
         return ci1.contrast < ci2.contrast;
     }
+    
+    
+#if defined(USE_SSE2)
+    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+#endif
 }
 
 
@@ -393,54 +405,6 @@ double contrastSubImg(unsigned char* const I,
 
 
 
-
-/**
- * @brief    plain C implementation of compareSubImg (without ORC)
- */
-unsigned int compareSubImg_thr(const uint8_t* aCurrent,
-                               const uint8_t* aPrevious,
-                               const Field*   aField,
-                               int            aWidthCurrent,
-                               int            aWidthPrevious,
-                               int            aHeight,
-                               int            aBpp,
-                               int            aOffsetX,
-                               int            aOffsetY,
-                               unsigned int   aThreshold)
-{
-    unsigned s2 = aField->size / 2;
-    unsigned x  = aField->x - s2;
-    unsigned y  = aField->y - s2;
-    
-    unsigned int   sum  = 0;
-    const uint8_t* curr = aCurrent  + (x            +  y             * aWidthCurrent)  * aBpp;
-    const uint8_t* prev = aPrevious + (x + aOffsetX + (y + aOffsetY) * aWidthPrevious) * aBpp;
-    
-    for (int j = 0; j < aField->size; ++j)
-    {
-        for (int k = 0; k < aField->size * aBpp; k++)
-        {
-            sum += abs(int(*curr) - int(*prev));
-            curr++;
-            prev++;
-        }
-        
-        if (sum > aThreshold)
-        {
-            /*
-             * No need to calculate any longer: worse than the best match
-             */
-            break;
-        }
-        
-        curr += (aWidthCurrent  - aField->size) * aBpp;
-        prev += (aWidthPrevious - aField->size) * aBpp;
-    }
-    
-    return sum;
-}
-
-
 namespace VidStab
 {
     VSMD::VSMD(const char*                 aModName,
@@ -451,12 +415,12 @@ namespace VidStab
         fi          { aMd->fi  },
         firstFrame  { true     },
         _mn         { aModName }
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
         ,
         _clDevice   {          },
         _clContext  { nullptr  },
         _clProgram  { nullptr  }
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif
     {
         _initMsg();
         _initOpenCl();
@@ -483,23 +447,23 @@ namespace VidStab
         vsFrameFree(&currtmp);
         
         
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
         delete _clProgram;
         delete _clContext;
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif
     }
     
     
     void VSMD::_initOpenCl()
     {
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
         _initOpenCl_selectDevice();
         _initOpenCl_prepareKernels();
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif
     }
     
     
-#if !defined(DISABLE_DETECT_OPENCL)
+#if defined(USE_OPENCL)
     void VSMD::_initOpenCl_selectDevice()
     {
         vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
@@ -552,7 +516,7 @@ namespace VidStab
         
         vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
     }
-#endif /* !defined(DISABLE_DETECT_OPENCL) */
+#endif /* !defined(USE_OPENCL) */
     
     
     void VSMD::_initMsg()
@@ -560,20 +524,20 @@ namespace VidStab
         vs_log_info(_mn.c_str(), "[filter] Info:\n");
         vs_log_info(_mn.c_str(), "[filter] \tbuilt - " __DATE__ "\n");
         vs_log_info(_mn.c_str(), "[filter] \tflags - "
-#if !defined(DISABLE_DETECT_OPENCL)
-                                  "OpenCL "
+#if defined(USE_OPENCL)
+                    "OpenCL "
 #endif
-#if defined(USE_DETECT_OMP)
-                                  "OMP "
+#if defined(USE_OMP)
+                    "OMP "
 #endif
 #if defined(USE_SSE2)
-                                  "SSE2 "
+                    "SSE2 "
 #endif
-
-                                  "\n");
+                    
+                    "\n");
     }
-
-
+    
+    
     void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
                              const VSFrameInfo*          aFi)
     {
@@ -605,10 +569,10 @@ namespace VidStab
         }
         
         
-#ifdef USE_DETECT_OMP
+#ifdef USE_OMP
         if (conf.numThreads == 0)
         {
-            conf.numThreads = VS_MAX(omp_get_max_threads() - 2, 1);
+            conf.numThreads = VS_MAX(omp_get_max_threads(), 1);
         }
         vs_log_info(conf.modName, "[filter] Multithreading: use %i threads\n", conf.numThreads);
 #endif
@@ -651,7 +615,7 @@ namespace VidStab
         int fieldSize     = VS_MAX(16, minDimension / 10);
         int fieldSizeFine = VS_MAX(6,  minDimension / 60);
         
-#if defined(USE_SSE2) || defined(USE_SSE2_ASM)
+#if defined(USE_SSE2)
         fieldSize     = (fieldSize     / 16 + 1) * 16;
         fieldSizeFine = (fieldSizeFine / 16 + 1) * 16;
 #endif
@@ -916,13 +880,7 @@ namespace VidStab
                           int                  aSrcStrive,
                           int                  aSize)
     {
-#if defined(DISABLE_DETECT_OPENCL)
-
-        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-
-#else  /* defined(DISABLE_DETECT_OPENCL) */
-
+#if defined(USE_OPENCL)
         /*
          * Prepare CL buffers
          */
@@ -974,8 +932,13 @@ namespace VidStab
         clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
         
         clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
+        
+#else  /* defined(USE_OPENCL) */
 
-#endif /* defined(DISABLE_DETECT_OPENCL) */
+        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+
+#endif /* defined(USE_OPENCL) */
     }
     
     
@@ -1373,15 +1336,15 @@ namespace VidStab
                                              const Field*                field,
                                              int                         fieldnum)
     {
-        int      tx       = 0;
-        int      ty       = 0;
+        int            tx       = 0;
+        int            ty       = 0;
         
-        uint8_t* current  = md->curr->data[0];
-        uint8_t* previous = md->prev.data[0];
-        int      width1   = md->curr->linesize[0] / 3; // linesize in pixels
-        int      width2   = md->prev.linesize[0]  / 3; // linesize in pixels
-        int      stepSize = fs->stepSize;
-        int      maxShift = fs->maxShift;
+        const uint8_t* current  = md->curr->data[0];
+        const uint8_t* previous = md->prev.data[0];
+        int            width1   = md->curr->linesize[0] / 3; // linesize in pixels
+        int            width2   = md->prev.linesize[0]  / 3; // linesize in pixels
+        int            stepSize = fs->stepSize;
+        int            maxShift = fs->maxShift;
         
         Vec offset              = { 0, 0};
         LocalMotion lm          = null_localmotion();
@@ -1405,17 +1368,20 @@ namespace VidStab
          * Here we improve speed by checking first the most probable position
          * then the search paths are most effectively cut. (0,0) is a simple start
          */
-        unsigned int minerror = compareSubImg(current,
-                                              previous,
-                                              field,
-                                              width1,
-                                              width2,
-                                              md->fi.height,
-                                              3,
-                                              offset.x,
-                                              offset.y,
-                                              UINT_MAX);
-                                              
+        Correlate correlate
+        {
+            current,
+            previous,
+            *field,
+            width1,
+            width2,
+            md->fi.height,
+            3
+        };
+        
+        unsigned int minerror = correlate(offset.x, offset.y, UINT_MAX);
+        
+        
         /*
          * Check all positions...
          */
@@ -1431,17 +1397,10 @@ namespace VidStab
                     continue;
                 }
                 
-                unsigned int error = compareSubImg(current,
-                                                   previous,
-                                                   field,
-                                                   width1,
-                                                   width2,
-                                                   md->fi.height,
-                                                   3,
-                                                   i + offset.x,
-                                                   j + offset.y,
-                                                   minerror);
-                                                   
+                unsigned int error = correlate(i + offset.x,
+                                               j + offset.y,
+                                               minerror);
+                                               
                 if (error < minerror)
                 {
                     minerror = error;
@@ -1472,17 +1431,11 @@ namespace VidStab
                          */
                         continue;
                     }
-                    unsigned int error = compareSubImg(current,
-                                                       previous,
-                                                       field,
-                                                       width1,
-                                                       width2,
-                                                       md->fi.height,
-                                                       3,
-                                                       i + offset.x,
-                                                       j + offset.y,
-                                                       minerror);
-                                                       
+                    
+                    unsigned int error = correlate(i + offset.x,
+                                                   j + offset.y,
+                                                   minerror);
+                                                   
                     if (error < minerror)
                     {
                         minerror = error;
@@ -1556,6 +1509,17 @@ namespace VidStab
         }
         
         
+        Correlate correlate
+        {
+            current,
+            previous,
+            *field,
+            linesize_c,
+            linesize_p,
+            md->fi.height,
+            1
+        };
+        
 #if !defined(DISABLE_SPIRAL_FIELD_CALC)
         
         
@@ -1563,17 +1527,10 @@ namespace VidStab
         
         for (_Spiral sp; sp < maxShift; sp += stepSize)
         {
-            unsigned int error = compareSubImg(current,
-                                               previous,
-                                               field,
-                                               linesize_c,
-                                               linesize_p,
-                                               md->fi.height,
-                                               1,
-                                               sp.i.x + offset.x,
-                                               sp.i.y + offset.y,
-                                               minerror);
-                                               
+            unsigned int error = correlate(sp.i.x + offset.x,
+                                           sp.i.y + offset.y,
+                                           minerror);
+                                           
             if (error < minerror)
             {
                 minerror = error;
@@ -1590,16 +1547,7 @@ namespace VidStab
          * then the search paths are most effectively cut. (0,0) is a simple
          * start
          */
-        unsigned int minerror = compareSubImg(current,
-                                              previous,
-                                              field,
-                                              linesize_c,
-                                              linesize_p,
-                                              md->fi.height,
-                                              1,
-                                              0,
-                                              0,
-                                              UINT_MAX);
+        unsigned int minerror = correlate(0, 0, UINT_MAX);
         
         
         /*
@@ -1617,16 +1565,9 @@ namespace VidStab
                     continue;
                 }
         
-                unsigned int error = compareSubImg(current,
-                                                   previous,
-                                                   field,
-                                                   linesize_c,
-                                                   linesize_p,
-                                                   md->fi.height,
-                                                   1,
-                                                   i + offset.x,
-                                                   j + offset.y,
-                                                   minerror);
+                unsigned int error = correlate(i + offset.x,
+                                               j + offset.y,
+                                               minerror);
         
                 if (error < minerror)
                 {
@@ -1662,17 +1603,10 @@ namespace VidStab
                         continue;
                     }
                     
-                    unsigned int error = compareSubImg(current,
-                                                       previous,
-                                                       field,
-                                                       linesize_c,
-                                                       linesize_p,
-                                                       md->fi.height,
-                                                       1,
-                                                       i + offset.x,
-                                                       j + offset.y,
-                                                       minerror);
-                                                       
+                    unsigned int error = correlate(i + offset.x,
+                                                   j + offset.y,
+                                                   minerror);
+                                                   
                     if (error < minerror)
                     {
                         minerror = error;
@@ -1726,6 +1660,200 @@ namespace VidStab
 #endif
     }
 }
+
+
+#if defined(USE_SSE2)
+
+
+unsigned int Correlate::operator ()(int          aOffsetX,
+                                    int          aOffsetY,
+                                    unsigned int aThreshold)
+{
+#ifndef USE_SSE2_CMP_HOR
+    unsigned char summes[16];
+#endif
+    
+    
+    __m128i        xmmsum  = _mm_setzero_si128();
+    __m128i        xmmmask = _mm_loadu_si128((__m128i const*)_mask);
+    
+    int            s2      = _field.size / 2;
+    const uint8_t* curr    = _current  + ((_field.x - s2           ) + (_field.y - s2           ) * _widthCurrent)  * _bpp;
+    const uint8_t* prev    = _previous + ((_field.x - s2 + aOffsetX) + (_field.y - s2 + aOffsetY) * _widthPrevious) * _bpp;
+    unsigned int   sum     = 0;
+    unsigned char  row     = 0;
+    
+    for (int j = 0; j < _field.size; j++)
+    {
+        for (int k = 0; k < _wbpp; k += 16)
+        {
+            {
+                __m128i xmm0 = _mm_loadu_si128((__m128i const*)curr);
+                __m128i xmm1 = _mm_loadu_si128((__m128i const*)prev);
+                
+                __m128i xmm2 = _mm_subs_epu8(xmm0, xmm1);
+                xmm0         = _mm_subs_epu8(xmm1, xmm0);
+                xmm0         = _mm_adds_epu8(xmm0, xmm2);
+                
+                xmm1         = _mm_and_si128(xmm0, xmmmask);
+                xmm0         = _mm_srli_si128(xmm0, 1);
+                xmm0         = _mm_and_si128(xmm0, xmmmask);
+                
+                xmmsum       = _mm_adds_epu16(xmmsum, xmm0);
+                xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+            }
+            
+            curr += 16;
+            prev += 16;
+            
+            row++;
+            if (row == SSE2_CMP_SUM_ROWS)
+            {
+                row = 0;
+                
+#ifdef USE_SSE2_CMP_HOR
+                {
+                    __m128i xmm1 = _mm_srli_si128(xmmsum, 8);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+                    
+                    xmm1         = _mm_srli_si128(xmmsum, 4);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+                    
+                    xmm1         = _mm_srli_si128(xmmsum, 2);
+                    xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+                    
+                    sum         += _mm_extract_epi16(xmmsum, 0);
+                }
+#else
+                _mm_storeu_si128((__m128i*)summes, xmmsum);
+                
+                for (int i = 0; i < 16; i += 2)
+                {
+                    sum += summes[i] + summes[i + 1] * 256;
+                }
+#endif
+                xmmsum = _mm_setzero_si128();
+            }
+        }
+        
+        if (sum > aThreshold)
+        {
+            break;
+        }
+        
+        curr += (_widthCurrent  - _field.size) * _bpp;
+        prev += (_widthPrevious - _field.size) * _bpp;
+    }
+    
+#if (SSE2_CMP_SUM_ROWS != 1) && \
+    (SSE2_CMP_SUM_ROWS != 2) && \
+    (SSE2_CMP_SUM_ROWS != 4) && \
+    (SSE2_CMP_SUM_ROWS != 8) && \
+    (SSE2_CMP_SUM_ROWS != 16)
+    //process all data left unprocessed
+    //this part can be safely ignored if
+    //SSE_SUM_ROWS = {1, 2, 4, 8, 16}
+#ifdef USE_SSE2_CMP_HOR
+    {
+        __m128i xmm1 = _mm_srli_si128(xmmsum, 8);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+        
+        xmm1         = _mm_srli_si128(xmmsum, 4);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+        
+        xmm1         = _mm_srli_si128(xmmsum, 2);
+        xmmsum       = _mm_adds_epu16(xmmsum, xmm1);
+        
+        sum         += _mm_extract_epi16(xmmsum, 0);
+    }
+#else
+    _mm_storeu_si128((__m128i*)summes, xmmsum);
+    for (i = 0; i < 16; i += 2)
+    {
+        sum += summes[i] + summes[i + 1] * 256;
+    }
+#endif
+#endif
+    
+    return sum;
+}
+
+
+#elif defined(USE_ORC)
+
+
+unsigned int Correlate::operator ()(int          aOffsetX,
+                                    int          aOffsetY,
+                                    unsigned int aThreshold)
+{
+    const int      s2 = _field.size / 2;
+    unsigned char* p1  = _current  + ((_field.x - s2)            + (_field.y - s2)            * _widthCurrent)  * _bpp;
+    unsigned char* p2  = _previous + ((_field.x - s2 + aOffsetX) + (_field.y - s2 + aOffsetY) * _widthPrevious) * _bpp;
+    
+    unsigned int sum = 0;
+    
+    for (int j = 0; j < _field.size; j++)
+    {
+        unsigned int s = 0;
+        image_line_difference_optimized(&s, p1, p2, _field.size * _bpp);
+        
+        sum += s;
+        
+        if (sum > aThreshold) // no need to calculate any longer: worse than the best match
+        {
+            break;
+        }
+        
+        p1 += _widthCurrent  * _bpp;
+        p2 += _widthPrevious * _bpp;
+    }
+    
+    
+    return sum;
+}
+
+
+#else
+
+
+unsigned int Correlate::operator ()(int          aOffsetX,
+                                    int          aOffsetY,
+                                    unsigned int aThreshold)
+{
+    unsigned s2 = _field.size / 2;
+    unsigned x  = _field.x - s2;
+    unsigned y  = _field.y - s2;
+    
+    unsigned int   sum  = 0;
+    const uint8_t* curr = _current  + (x            +  y             * _widthCurrent)  * _bpp;
+    const uint8_t* prev = _previous + (x + aOffsetX + (y + aOffsetY) * _widthPrevious) * _bpp;
+    
+    for (int j = 0; j < _field.size; ++j)
+    {
+        for (int k = 0; k < _field.size * _bpp; k++)
+        {
+            sum += abs(int(*curr) - int(*prev));
+            curr++;
+            prev++;
+        }
+        
+        if (sum > aThreshold)
+        {
+            /*
+             * No need to calculate any longer: worse than the best match
+             */
+            break;
+        }
+        
+        curr += (_widthCurrent  - _field.size) * _bpp;
+        prev += (_widthPrevious - _field.size) * _bpp;
+    }
+    
+    return sum;
+}
+
+
+#endif
 
 
 /*
