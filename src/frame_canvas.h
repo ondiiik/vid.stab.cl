@@ -20,9 +20,9 @@ namespace Frame
     {
     public:
         Canvas(uint8_t* aBuf,
-                int      aWidth,
-                int      aHeight,
-                int      aBpp)
+               int      aWidth,
+               int      aHeight,
+               int      aBpp)
             :
             dim    { aWidth, aHeight },
             buf    { aBuf            },
@@ -85,7 +85,7 @@ namespace Frame
             if (div.y == 0) // horizontal line
             {
                 Vec pix1 { aPix1 };
-
+                
                 if (div.x < 0)
                 {
                     pix1   =  aPix2;
@@ -111,7 +111,7 @@ namespace Frame
             if (div.x == 0) // vertical line
             {
                 Vec pix1 { aPix1 };
-
+                
                 if (div.y < 0)
                 {
                     pix1   = aPix2;
@@ -152,6 +152,58 @@ namespace Frame
                 }
             }
         }
+        
+        
+        /**
+         * draws a rectangle (not filled) at the given position x,y (center) in the given color
+         at the first channel
+        */
+        void drawRectangle(int           x,
+                           int           y,
+                           int           sizex,
+                           int           sizey,
+                           unsigned char color)
+        {
+            unsigned       szX2 = sizex / 2;
+            unsigned       szY2 = sizey / 2;
+            unsigned char* p    = (*this)(x - szX2, y - szY2);
+            
+            for (int k = 0; k < sizex; k++)
+            {
+                *p = color;    // upper line
+                p += bpp;
+            }
+            
+            
+            p = (*this)(x - szX2, y + szY2);
+            
+            for (int k = 0; k < sizex; k++)
+            {
+                *p = color;    // lower line
+                p += bpp;
+            }
+            
+            
+            p             = (*this)(x - szX2, y - szY2);
+            unsigned wbpp = dim.x * bpp;
+            
+            for (int k = 0; k < sizey; k++)
+            {
+                *p = color;    // left line
+                p += wbpp;
+            }
+            
+            
+            p = (*this)(x + szX2, y - szY2);
+            
+            for (int k = 0; k < sizey; k++)
+            {
+                *p = color;    // right line
+                p += wbpp;
+            }
+        }
+        
+        
         
         
         const Common::Vect<int> dim;    /**< @brief Canvas dimensions */

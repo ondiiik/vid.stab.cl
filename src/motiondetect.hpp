@@ -9,6 +9,7 @@
 
 #include "motiondetect.h"
 #include "cl/opencl.hpp"
+#include "frame_canvas.h"
 #include <string>
 
 
@@ -234,23 +235,27 @@ namespace VidStab
          * @brief   Draw results of detection
          * @param   num_motions Number of motions
          */
-        void _draw(int           num_motions,
-                   LocalMotions& motionscoarse,
-                   LocalMotions& motionsfine);
+        void _draw(Frame::Canvas&      canvas,
+                   int                 num_motions,
+                   const LocalMotions& motionscoarse,
+                   const LocalMotions& motionsfine);
                    
                    
         /** draws the field scanning area */
-        void _drawFieldScanArea(const LocalMotion* lm,
+        void _drawFieldScanArea(Frame::Canvas&     canvas,
+                                const LocalMotion* lm,
                                 int                maxShift);
                                 
                                 
         /** draws the field */
-        void _drawField(const LocalMotion* lm,
+        void _drawField(Frame::Canvas&     canvas,
+                        const LocalMotion* lm,
                         short              box);
                         
                         
         /** draws the transform data of this field */
-        void _drawFieldTrans(const LocalMotion* lm,
+        void _drawFieldTrans(Frame::Canvas&     canvas,
+                             const LocalMotion* lm,
                              int                color);
                              
                              

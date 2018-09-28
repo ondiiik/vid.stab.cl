@@ -37,10 +37,6 @@ double contrastSubImg(unsigned char* const I, const Field* field,
                       int width, int height, int bytesPerPixel);
 
 
-void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel,
-                   int x, int y, int sizex, int sizey, unsigned char color);
-
-
 unsigned int compareSubImg_thr(const uint8_t* const I1,
                                const uint8_t* const I2,
                                const Field*         field,

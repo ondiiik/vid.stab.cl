@@ -398,43 +398,6 @@ double contrastSubImg(unsigned char* const I,
 
 
 /**
- * draws a rectangle (not filled) at the given position x,y (center) in the given color
- at the first channel
-*/
-void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel, int x,
-                   int y, int sizex, int sizey, unsigned char color)
-{
-
-    unsigned char* p;
-    int k;
-    p = I + ((x - sizex / 2) + (y - sizey / 2) * width) * bytesPerPixel;
-    for (k = 0; k < sizex; k++)
-    {
-        *p = color;    // upper line
-        p += bytesPerPixel;
-    }
-    p = I + ((x - sizex / 2) + (y + sizey / 2) * width) * bytesPerPixel;
-    for (k = 0; k < sizex; k++)
-    {
-        *p = color;    // lower line
-        p += bytesPerPixel;
-    }
-    p = I + ((x - sizex / 2) + (y - sizey / 2) * width) * bytesPerPixel;
-    for (k = 0; k < sizey; k++)
-    {
-        *p = color;    // left line
-        p += width * bytesPerPixel;
-    }
-    p = I + ((x + sizex / 2) + (y - sizey / 2) * width) * bytesPerPixel;
-    for (k = 0; k < sizey; k++)
-    {
-        *p = color;    // right line
-        p += width * bytesPerPixel;
-    }
-}
-
-
-/**
  * @brief    plain C implementation of compareSubImg (without ORC)
  */
 unsigned int compareSubImg_thr(const uint8_t* aCurrent,
@@ -451,7 +414,7 @@ unsigned int compareSubImg_thr(const uint8_t* aCurrent,
     unsigned s2 = aField->size / 2;
     unsigned x  = aField->x - s2;
     unsigned y  = aField->y - s2;
-
+    
     unsigned int   sum  = 0;
     const uint8_t* curr = aCurrent  + (x            +  y             * aWidthCurrent)  * aBpp;
     const uint8_t* prev = aPrevious + (x + aOffsetX + (y + aOffsetY) * aWidthPrevious) * aBpp;
@@ -1147,7 +1110,16 @@ namespace VidStab
         if (conf.show)
         {
             currorig = *aFrame;
-            _draw(num_motions, motionscoarse, motionsfine);
+            
+            Frame::Canvas canvas
+            {
+                currorig.data[0],
+                currorig.linesize[0],
+                fi.height,
+                1
+            };
+            
+            _draw(canvas, num_motions, motionscoarse, motionsfine);
         }
         
         *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
@@ -1175,15 +1147,16 @@ namespace VidStab
     }
     
     
-    void VSMD::_draw(int           num_motions,
-                     LocalMotions& motionscoarse,
-                     LocalMotions& motionsfine)
+    void VSMD::_draw(Frame::Canvas&       canvas,
+                     int                  num_motions,
+                     const LocalMotions&  motionscoarse,
+                     const LocalMotions&  motionsfine)
     {
         if (conf.show > 1)
         {
             for (int i = 0; i < num_motions; i++)
             {
-                _drawFieldScanArea(LMGet(&motionscoarse, i), fieldscoarse.maxShift);
+                _drawFieldScanArea(canvas, LMGet(&motionscoarse, i), fieldscoarse.maxShift);
             }
         }
         
@@ -1192,51 +1165,48 @@ namespace VidStab
         
         for (int i = 0; i < num_motions; i++)
         {
-            _drawField(LMGet(&motionscoarse, i), 1);
+            _drawField(canvas, LMGet(&motionscoarse, i), 1);
         }
         
         for (int i = 0; i < num_motions_fine; i++)
         {
-            _drawField(LMGet(&motionsfine, i), 0);
+            _drawField(canvas, LMGet(&motionsfine, i), 0);
         }
         
         for (int i = 0; i < num_motions; i++)
         {
-            _drawFieldTrans(LMGet(&motionscoarse, i), 180);
+            _drawFieldTrans(canvas, LMGet(&motionscoarse, i), 180);
         }
         
         for (int i = 0; i < num_motions_fine; i++)
         {
-            _drawFieldTrans(LMGet(&motionsfine, i), 64);
+            _drawFieldTrans(canvas, LMGet(&motionsfine, i), 64);
         }
     }
     
     
-    void VSMD::_drawFieldScanArea(const LocalMotion* lm,
+    void VSMD::_drawFieldScanArea(Frame::Canvas&     canvas,
+                                  const LocalMotion* lm,
                                   int                maxShift)
     {
         if (fi.pFormat <= PF_PACKED)
         {
-            drawRectangle(currorig.data[0],
-                          currorig.linesize[0],
-                          fi.height,
-                          1,
-                          lm->f.x,
-                          lm->f.y,
-                          lm->f.size + 2 * maxShift,
-                          lm->f.size + 2 * maxShift,
-                          80);
+            canvas.drawRectangle(lm->f.x,
+                                 lm->f.y,
+                                 lm->f.size + 2 * maxShift,
+                                 lm->f.size + 2 * maxShift,
+                                 80);
         }
     }
     
     
-    void VSMD::_drawField(const LocalMotion* lm,
+    void VSMD::_drawField(Frame::Canvas&     canvas,
+                          const LocalMotion* lm,
                           short              box)
     {
         if (fi.pFormat <= PF_PACKED)
         {
-            Frame::Canvas canvas { currorig.data[0], currorig.linesize[0], fi.height, 1};
-            Vec           size   { lm->f.size, lm->f.size                              };
+            Vec size { lm->f.size, lm->f.size };
             
             if (box)
             {
@@ -1244,21 +1214,24 @@ namespace VidStab
             }
             else
             {
-                drawRectangle(currorig.data[0], currorig.linesize[0], fi.height, 1,
-                              lm->f.x, lm->f.y, lm->f.size, lm->f.size, /*lm->match >100 ? 100 :*/ 40);
+                canvas.drawRectangle(lm->f.x,
+                                     lm->f.y,
+                                     lm->f.size,
+                                     lm->f.size,
+                                     40);
             }
         }
     }
     
     
-    void VSMD::_drawFieldTrans(const LocalMotion* lm,
+    void VSMD::_drawFieldTrans(Frame::Canvas&     canvas,
+                               const LocalMotion* lm,
                                int                color)
     {
         if (fi.pFormat <= PF_PACKED)
         {
-            Vec           end    { Vec(lm->f) + lm->v                                  };
-            Vec           size   { 5, 5                                                };
-            Frame::Canvas canvas { currorig.data[0], currorig.linesize[0], fi.height, 1};
+            Vec           end    { Vec(lm->f) + lm->v };
+            Vec           size   { 5, 5               };
             
             canvas.drawBox( Vec(lm->f),         size, 0);   // draw center
             canvas.drawBox( Vec(lm->f) + lm->v, size, 250); // draw translation
