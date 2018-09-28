@@ -58,25 +58,6 @@ typedef struct VSMotionDetectConfig
 VSMotionDetectConfig;
 
 
-/** structure for motion detection fields */
-typedef struct VSMotionDetectFields
-{
-    /* maximum number of pixels we expect the shift of subsequent frames */
-    int maxShift;
-    int stepSize;                 // stepsize for detection
-    int fieldNum;                 // number of measurement fields
-    int maxFields;                // maximum number of fields used (selected by contrast)
-    double contrastThreshold;     // fields with lower contrast are discarded
-    int fieldSize;                // size = min(md->width, md->height)/10;
-    int fieldRows;                // number of rows
-    Field* fields;                // measurement fields
-    short useOffset;              // if true then the offset us used
-    struct VSTransform offset;           // offset for detection (e.g. known from coarse scan)
-    PreparedTransform pt;
-}
-VSMotionDetectFields;
-
-
 /**
  * @brief   Data structure for motion detection part of deshaking
  */
@@ -134,6 +115,24 @@ const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* md);
 
 #ifdef __cplusplus
 }
+
+
+/** structure for motion detection fields */
+struct VSMotionDetectFields
+{
+    /* maximum number of pixels we expect the shift of subsequent frames */
+    int maxShift;
+    int stepSize;                 // stepsize for detection
+    int fieldNum;                 // number of measurement fields
+    int maxFields;                // maximum number of fields used (selected by contrast)
+    double contrastThreshold;     // fields with lower contrast are discarded
+    int fieldSize;                // size = min(md->width, md->height)/10;
+    int fieldRows;                // number of rows
+    Field* fields;                // measurement fields
+    short useOffset;              // if true then the offset us used
+    struct VSTransform offset;           // offset for detection (e.g. known from coarse scan)
+    PreparedTransform pt;
+};
 #endif
 
 

@@ -28,8 +28,6 @@
 
 
 #ifdef __cplusplus
-extern "C" {
-#endif
 
 
 /// helper macro to access a localmotion in the VSVector
@@ -165,8 +163,6 @@ inline static int myfloor(float x)
 }
 
 
-#ifdef __cplusplus
-}
 #endif
 
 

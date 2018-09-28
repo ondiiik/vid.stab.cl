@@ -28,6 +28,13 @@
 
 
 #ifdef __cplusplus
+
+/** calculates rotation angle for the given transform and
+ * field with respect to the given center-point
+ */
+double vsCalcAngle(const LocalMotion* lm, int center_x, int center_y);
+
+
 extern "C" {
 #endif
 
@@ -38,10 +45,6 @@ int vsLocalmotions2Transforms(struct VSTransformData*   td,
                               const VSManyLocalMotions* motions,
                               struct VSTransformations* trans );
 
-/** calculates rotation angle for the given transform and
- * field with respect to the given center-point
- */
-double vsCalcAngle(const LocalMotion* lm, int center_x, int center_y);
 
 /** calculates the transformation that caused the observed motions.
     Using a simple cleaned-means approach to eliminate outliers.

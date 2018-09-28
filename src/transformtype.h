@@ -25,6 +25,9 @@
 #include "vsvector.h"
 
 
+#ifdef __cplusplus
+
+
 #include "common_vect.h"
 
 
@@ -59,8 +62,6 @@ public:
     int size;
 };
 
-
-#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -84,23 +85,22 @@ typedef struct VSTransform
 VSTransform;
 
 
-/* structure to hold information about local motion.
- */
-typedef struct LocalMotion
-{
-    Vec   v;
-    Field f;
-    double contrast; // local contrast of the measurement field
-    double match;    // quality of match
-}
-LocalMotion;
-
-
 typedef VSVector LocalMotions;
 
 
 #ifdef __cplusplus
 }
+
+
+/* structure to hold information about local motion.
+ */
+struct LocalMotion
+{
+    Vec   v;
+    Field f;
+    double contrast; // local contrast of the measurement field
+    double match;    // quality of match
+};
 #endif
 
 
