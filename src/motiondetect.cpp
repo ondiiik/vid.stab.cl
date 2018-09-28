@@ -58,6 +58,7 @@
  */
 #include "motiondetect.hpp"
 #include "md_exception.hpp"
+#include "frame_canvas.h"
 
 #include "cl/opencl.hpp"
 #include "cl/opencl___blur_h.h"
@@ -212,6 +213,8 @@ namespace
         int        _step;
         _Direction _dir;
     };
+    
+    
     
     
     const char* _fmt2str(VSPixelFormat aFmt)
@@ -410,27 +413,6 @@ double contrastSubImg(unsigned char* const I,
 
 
 
-/**
- * draws a box at the given position x,y (center) in the given color
- (the same for all channels)
-*/
-void drawBox(unsigned char* I, int width, int height, int bytesPerPixel, int x,
-             int y, int sizex, int sizey, unsigned char color)
-{
-
-    unsigned char* p = NULL;
-    int j, k;
-    p = I + ((x - sizex / 2) + (y - sizey / 2) * width) * bytesPerPixel;
-    for (j = 0; j < sizey; j++)
-    {
-        for (k = 0; k < sizex * bytesPerPixel; k++)
-        {
-            *p = color;
-            p++;
-        }
-        p += (width - sizex) * bytesPerPixel;
-    }
-}
 
 /**
  * draws a rectangle (not filled) at the given position x,y (center) in the given color
@@ -465,76 +447,6 @@ void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel, i
     {
         *p = color;    // right line
         p += width * bytesPerPixel;
-    }
-}
-
-/**
- * draws a line from a to b with given thickness(not filled) at the given position x,y (center) in the given color
- at the first channel
-*/
-void drawLine(unsigned char* I,
-              int width,
-              int height,
-              int bytesPerPixel,
-              Vec* a,
-              Vec* b,
-              int thickness,
-              unsigned char color)
-{
-    unsigned char* p;
-    Vec div = *b - *a;
-    if (div.y == 0) // horizontal line
-    {
-        if (div.x < 0)
-        {
-            *a = *b;
-            div.x *= -1;
-        }
-        for (int r = -thickness / 2; r <= thickness / 2; r++)
-        {
-            p = I + ((a->x) + (a->y + r) * width) * bytesPerPixel;
-            for (int k = 0; k <= div.x; k++)
-            {
-                *p = color;
-                p += bytesPerPixel;
-            }
-        }
-    }
-    else
-    {
-        if (div.x == 0) // vertical line
-        {
-            if (div.y < 0)
-            {
-                *a = *b;
-                div.y *= -1;
-            }
-            for (int r = -thickness / 2; r <= thickness / 2; r++)
-            {
-                p = I + ((a->x + r) + (a->y) * width) * bytesPerPixel;
-                for (int k = 0; k <= div.y; k++)
-                {
-                    *p = color;
-                    p += width * bytesPerPixel;
-                }
-            }
-        }
-        else
-        {
-            double m = (double)div.x / (double)div.y;
-            int horlen = thickness + fabs(m);
-            for ( int c = 0; c <= abs(div.y); c++)
-            {
-                int dy = div.y < 0 ? -c : c;
-                int x = a->x + m * dy - horlen / 2;
-                p = I + (x + (a->y + dy) * width) * bytesPerPixel;
-                for ( int k = 0; k <= horlen; k++)
-                {
-                    *p = color;
-                    p += bytesPerPixel;
-                }
-            }
-        }
     }
 }
 
@@ -1345,10 +1257,12 @@ namespace VidStab
     {
         if (fi.pFormat <= PF_PACKED)
         {
+            Frame::Canvas canvas { currorig.data[0], currorig.linesize[0], fi.height, 1};
+            Vec           size   { lm->f.size, lm->f.size                              };
+            
             if (box)
             {
-                drawBox(currorig.data[0], currorig.linesize[0], fi.height, 1,
-                        lm->f.x, lm->f.y, lm->f.size, lm->f.size, /*lm->match >100 ? 100 :*/ 40);
+                canvas.drawBox(Vec(lm->f), size, 40);
             }
             else
             {
@@ -1364,13 +1278,13 @@ namespace VidStab
     {
         if (fi.pFormat <= PF_PACKED)
         {
-            Vec end = field_to_vec(lm->f) + lm->v;
-            drawBox(currorig.data[0], currorig.linesize[0], fi.height, 1,
-                    lm->f.x, lm->f.y, 5, 5, 0); // draw center
-            drawBox(currorig.data[0], currorig.linesize[0], fi.height, 1,
-                    lm->f.x + lm->v.x, lm->f.y + lm->v.y, 5, 5, 250); // draw translation
-            drawLine(currorig.data[0], currorig.linesize[0], fi.height, 1,
-                     (Vec*)&lm->f, &end, 3, color);
+            Vec           end    { Vec(lm->f) + lm->v                                  };
+            Vec           size   { 5, 5                                                };
+            Frame::Canvas canvas { currorig.data[0], currorig.linesize[0], fi.height, 1};
+            
+            canvas.drawBox( Vec(lm->f),         size, 0);   // draw center
+            canvas.drawBox( Vec(lm->f) + lm->v, size, 250); // draw translation
+            canvas.drawLine(Vec(lm->f), end, 3, color);
         }
     }
     
@@ -1669,7 +1583,7 @@ namespace VidStab
             
             offset = transform_vec(&pt, &fieldpos) - fieldpos;
             
-
+            
             /*
              * Is the field still in the frame
              */

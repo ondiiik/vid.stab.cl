@@ -25,72 +25,39 @@
 #include "vsvector.h"
 
 
+#include "common_vect.h"
+
+
+typedef Common::Vect<int> Vec;
+
 
 /**
- * @brief   Represents x y coordinates vector
+ * @brief   Represents x y and size of a measurement field
  */
-template <typename _Tp> struct Vect
+class Field : public Vec
 {
-    Vect()
+public:
+    Field()
         :
-        x { _Tp(0) },
-        y { _Tp(0) }
+        Vec  {   },
+        size { 0 }
     {
     
     }
     
     
-    Vect(_Tp aX,
-         _Tp aY)
+    Field(int aX,
+          int aY,
+          int aSize)
         :
-        x { aX },
-        y { aY }
+        Vec  { aX, aY },
+        size { aSize  }
     {
     
     }
     
-    
-    inline Vect& operator-=(const Vect& aSrc)
-    {
-        this->x -= aSrc.x;
-        this->y -= aSrc.y;
-        return *this;
-    }
-    
-    
-    inline Vect operator-(const Vect& aSrc)
-    {
-        ;
-        Vect r { *this };
-        r -= aSrc;
-        return r;
-    }
-
-
-    inline Vect& operator+=(const Vect& aSrc)
-    {
-        this->x += aSrc.x;
-        this->y += aSrc.y;
-        return *this;
-    }
-
-
-    inline Vect operator+(const Vect& aSrc)
-    {
-        ;
-        Vect r { *this };
-        r += aSrc;
-        return r;
-    }
-
-
-    _Tp x;
-    _Tp y;
+    int size;
 };
-
-
-typedef Vect<int> Vec;
-
 
 
 #ifdef __cplusplus
@@ -117,21 +84,11 @@ typedef struct VSTransform
 VSTransform;
 
 
-/** stores x y and size of a measurement field */
-typedef struct Field
-{
-    int x;     // middle position x
-    int y;     // middle position y
-    int size;  // size of field
-}
-Field;
-
-
 /* structure to hold information about local motion.
  */
 typedef struct LocalMotion
 {
-    Vec v;
+    Vec   v;
     Field f;
     double contrast; // local contrast of the measurement field
     double match;    // quality of match

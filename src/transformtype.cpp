@@ -149,12 +149,6 @@ void transform_vec_double(double* x, double* y, const PreparedTransform* pt, con
     *y = -pt->zsin_a * rx + pt->zcos_a * ry + pt->t->y + pt->c_y;
 }
 
-Vec field_to_vec(Field f)
-{
-    Vec r = {f.x, f.y};
-    return r;
-}
-
 /* compares a transform with respect to x (for sort function) */
 int cmp_trans_x(const void* t1, const void* t2)
 {

@@ -71,6 +71,8 @@ set(SOURCES
     src/cl/opencl___blur_v.c)
 
 set(HEADERS
+    src/frame_canvas.h
+    src/common_vect.h
     src/frameinfo.h
     src/transformtype.h
     src/libvidstab.h

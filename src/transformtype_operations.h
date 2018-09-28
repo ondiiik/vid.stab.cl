@@ -69,8 +69,6 @@ PreparedTransform prepare_transform(const struct VSTransform* t, const VSFrameIn
 Vec transform_vec(const PreparedTransform* t, const Vec* v);
 void transform_vec_double(double* x, double* y, const PreparedTransform* t, const Vec* v);
 
-Vec field_to_vec(Field f);
-
 /* compares a transform with respect to x (for sort function) */
 int cmp_trans_x(const void* t1, const void* t2);
 /* compares a transform with respect to y (for sort function) */
