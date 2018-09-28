@@ -1547,6 +1547,28 @@ namespace VidStab
         
         
 #else
+
+
+        /*
+         * Here we improve speed by checking first the most probable position
+         * then the search paths are most effectively cut. (0,0) is a simple
+         * start
+         */
+        unsigned int minerror = compareSubImg(current,
+                                              previous,
+                                              field,
+                                              linesize_c,
+                                              linesize_p,
+                                              md->fi.height,
+                                              1,
+                                              0,
+                                              0,
+                                              UINT_MAX);
+
+
+
+
+
         Dbg::Profiler::Data oclAll;
         Dbg::Profiler::Data oclRun;
         do
@@ -1571,7 +1593,8 @@ namespace VidStab
                 md->fi.height,
                 offset.x,
                 offset.y,
-                int(range)
+                int(range),
+                int(minerror)
             };
         
             vs_log_error(md->conf.modName, "[correlate] Details:\n");
@@ -1580,12 +1603,6 @@ namespace VidStab
             vs_log_error(md->conf.modName, "[correlate] \tkernels     = %i\n", int(cnt));
             vs_log_error(md->conf.modName, "[correlate] \trsize       = %i\n", int(rsize));
             vs_log_error(md->conf.modName, "[correlate] \targs        = %i\n", int(sizeof(args) / sizeof(args[0])));
-
-//            if (range > 200)
-//            {
-//                vs_log_error(md->conf.modName, "[correlate] HIGH RANGE!\n");
-//                break;
-//            }
         
         
             /*
@@ -1595,7 +1612,7 @@ namespace VidStab
             OpenCl::Buffer buffer_res(  *md->_clContext, CL_MEM_READ_WRITE, rsize);
             OpenCl::Buffer buffer_curr( *md->_clContext, CL_MEM_READ_ONLY,  size);
             OpenCl::Buffer buffer_prev( *md->_clContext, CL_MEM_READ_ONLY,  size);
-            OpenCl::Buffer buffer_args( *md->_clContext, CL_MEM_READ_ONLY,  sizeof(args));
+            OpenCl::Buffer buffer_args( *md->_clContext, CL_MEM_READ_WRITE, sizeof(args));
         
         
             /*
@@ -1614,7 +1631,7 @@ namespace VidStab
             correlate.setArg(3, buffer_args);
         
             Dbg::Profiler::Measure profRun { oclRun };
-            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i items on 512 threads\n", int(cnt));
+            vs_log_error(md->conf.modName, "[correlate] OpenCL RUN: %i items on %i threads\n", int(cnt), int(threads));
             clQ.enqueueNDRangeKernel(correlate, cl::NullRange, cl::NDRange((threads < cnt) ? threads : cnt));
             profRun.leave();
         
@@ -1642,22 +1659,10 @@ namespace VidStab
         vs_log_error(md->conf.modName, "[correlate] Profiler: %lld from %lld us\n", oclRun(), oclAll());
         
         
-        /*
-         * Here we improve speed by checking first the most probable position
-         * then the search paths are most effectively cut. (0,0) is a simple
-         * start
-         */
-        unsigned int minerror = compareSubImg(current,
-                                              previous,
-                                              field,
-                                              linesize_c,
-                                              linesize_p,
-                                              md->fi.height,
-                                              1,
-                                              0,
-                                              0,
-                                              UINT_MAX);
         
+
+
+
         /*
          * Check all positions...
          */

@@ -1,6 +1,7 @@
 #ifdef __OPENCL_EDIT__
 #define kernel
 #define global
+#define local
 #endif
 /**
  * @brief   OpenCL kernel used for calculation of corelation.
@@ -25,6 +26,7 @@ enum Correl8_ArgIdx
     CORREL8___OFFSET_X,       /**< @brief X Offset */
     CORREL8___OFFSET_Y,       /**< @brief Y Offset */
     CORREL8___MAX_SHIFT,      /**< @brief Maximal correlation shift */
+    CORREL8___THRESHOLD,      /**< @brief Threshold (is there already some other better measurement?) */
     __CORREL8___ARGS_CNT      /**< @brief Count of arguments */
 };
 
@@ -40,7 +42,7 @@ enum Correl8_ArgIdx
 void kernel correl8(global int*                 result,
                     global const unsigned char* current,
                     global const unsigned char* previous,
-                    global const int*           args)
+                    global int*                 args)
 {
     const int items         = args[CORREL8___ITEMS];
     const int widthCurrent  = args[CORREL8___WIDTH_CURRENT];
@@ -52,6 +54,7 @@ void kernel correl8(global int*                 result,
     const int offsX         = args[CORREL8___OFFSET_X];
     const int offsY         = args[CORREL8___OFFSET_Y];
     const int maxShift      = args[CORREL8___MAX_SHIFT];
+    const int threshold     = args[CORREL8___THRESHOLD];
     
     const int cnt   = get_global_size(0);
     const int ratio = items / cnt;
@@ -62,15 +65,15 @@ void kernel correl8(global int*                 result,
     {
         const int offsetX = offsX + idx % maxShift;
         const int offsetY = offsY + idx / maxShift;
-
+        
         int s2 = field_size / 2;
         int x  = field_x - s2;
         int y  = field_y - s2;
-
+        
         unsigned int                sum  = 0;
         global const unsigned char* curr = current  + ((x          ) + (y          ) * widthCurrent);
         global const unsigned char* prev = previous + ((x + offsetX) + (y + offsetY) * widthPrevious);
-
+        
         for (int j = 0; j < field_size; ++j)
         {
             for (int k = 0; k < field_size; ++k)
@@ -79,13 +82,18 @@ void kernel correl8(global int*                 result,
                 curr++;
                 prev++;
             }
-
+            
+            if (sum > threshold)
+            {
+                break;
+            }
+            
             curr += widthCurrent;
             prev += widthPrevious;
             curr -= field_size;
             prev -= field_size;
         }
-
+        
         result[idx] = sum;
     }
 }

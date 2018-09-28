@@ -1,6 +1,7 @@
 #ifdef __OPENCL_EDIT__
 #define kernel
 #define global
+#define local
 #endif
 /**
  * @brief   OpenCL kernel used for horizontal bluring.

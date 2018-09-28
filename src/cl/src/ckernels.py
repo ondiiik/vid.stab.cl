@@ -144,7 +144,7 @@ def _buildKernel(kernel, kidx):
     print("Processing kernel '" + kernelIn + "' --> '" + kernelOut + "'")
     
     fi    = open(kernelIn, "r")
-    lines = fi.readlines()[4:]
+    lines = fi.readlines()[5:]
     fi.close()
     
     txt = ""
