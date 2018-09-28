@@ -69,7 +69,7 @@ set(SOURCES
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
     src/cl/opencl___blur_v.c
-    src/cl/opencl___corelate.c)
+    src/cl/opencl___correlate.c)
 
 set(HEADERS
     src/frame_canvas.h

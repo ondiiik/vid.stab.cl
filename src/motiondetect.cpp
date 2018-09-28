@@ -65,7 +65,7 @@
 #include "cl/opencl.hpp"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
-#include "cl/opencl___corelate.h"
+#include "cl/opencl___correlate.h"
 
 #include <vector>
 #include <algorithm>
@@ -437,8 +437,8 @@ void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel, i
 /**
  * @brief    plain C implementation of compareSubImg (without ORC)
  */
-unsigned int compareSubImg_thr(uint8_t* const aCurrent,
-                               uint8_t* const aPrevious,
+unsigned int compareSubImg_thr(const uint8_t* aCurrent,
+                               const uint8_t* aPrevious,
                                const Field*   aField,
                                int            aWidthCurrent,
                                int            aWidthPrevious,
@@ -448,18 +448,21 @@ unsigned int compareSubImg_thr(uint8_t* const aCurrent,
                                int            aOffsetY,
                                unsigned int   aThreshold)
 {
-    int            s2       = aField->size / 2;
-    unsigned int   sum      = 0;
-    unsigned char* current  = aCurrent  + ((aField->x - s2)            + (aField->y - s2)            * aWidthCurrent)  * aBpp;
-    unsigned char* previous = aPrevious + ((aField->x - s2 + aOffsetX) + (aField->y - s2 + aOffsetY) * aWidthPrevious) * aBpp;
+    unsigned s2 = aField->size / 2;
+    unsigned x  = aField->x - s2;
+    unsigned y  = aField->y - s2;
+
+    unsigned int   sum  = 0;
+    const uint8_t* curr = aCurrent  + (x            +  y             * aWidthCurrent)  * aBpp;
+    const uint8_t* prev = aPrevious + (x + aOffsetX + (y + aOffsetY) * aWidthPrevious) * aBpp;
     
     for (int j = 0; j < aField->size; ++j)
     {
         for (int k = 0; k < aField->size * aBpp; k++)
         {
-            sum += abs((int) * current - (int) * previous);
-            current++;
-            previous++;
+            sum += abs(int(*curr) - int(*prev));
+            curr++;
+            prev++;
         }
         
         if (sum > aThreshold)
@@ -470,8 +473,8 @@ unsigned int compareSubImg_thr(uint8_t* const aCurrent,
             break;
         }
         
-        current  += (aWidthCurrent  - aField->size) * aBpp;
-        previous += (aWidthPrevious - aField->size) * aBpp;
+        curr += (aWidthCurrent  - aField->size) * aBpp;
+        prev += (aWidthPrevious - aField->size) * aBpp;
     }
     
     return sum;
@@ -567,9 +570,9 @@ namespace VidStab
     
     void VSMD::_initOpenCl_prepareKernels()
     {
-        _clSources.push_back({opencl___blur_h,   opencl___blur_h_len});
-        _clSources.push_back({opencl___blur_v,   opencl___blur_v_len});
-        _clSources.push_back({opencl___corelate, opencl___corelate_len});
+        _clSources.push_back({opencl___blur_h,    opencl___blur_h_len});
+        _clSources.push_back({opencl___blur_v,    opencl___blur_v_len});
+        _clSources.push_back({opencl___correlate, opencl___correlate_len});
         
         _clProgram = new cl::Program(*_clContext, _clSources);
         
