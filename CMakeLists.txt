@@ -68,7 +68,8 @@ set(SOURCES
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
-    src/cl/opencl___blur_v.c)
+    src/cl/opencl___blur_v.c
+    src/cl/opencl___corelate.c)
 
 set(HEADERS
     src/frame_canvas.h

@@ -54,7 +54,32 @@ kernels  = [
                        [ "src"                  ],
                        [ "acc"                  ],
                    ]
-               ]
+               ],
+               
+               [
+                   "corelate.c",
+                   [
+                       [ "BLUR_V___DST_STRIVE"  ],
+                       [ "BLUR_V___SRC_STRIVE"  ],
+                       [ "__BLUR_V___ARGS_CNT"  ],
+                       [ "BLUR_V___HEIGHT"      ],
+                       [ "BLUR_V___SIZE"        ],
+                       [ "BLUR_V___WIDTH"       ],
+                       [ "dst_strive"           ],
+                       [ "src_strive"           ],
+                       [ "current"              ],
+                       [ "height"               ],
+                       [ "start"                ],
+                       [ "width"                ],
+                       [ "size2"                ],
+                       [ "size"                 ],
+                       [ "args"                 ],
+                       [ "dst"                  ],
+                       [ "end"                  ],
+                       [ "src"                  ],
+                       [ "acc"                  ],
+                   ]
+               ],
            ]
 
 

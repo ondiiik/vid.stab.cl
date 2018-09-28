@@ -65,6 +65,7 @@
 #include "cl/opencl.hpp"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
+#include "cl/opencl___corelate.h"
 
 #include <vector>
 #include <algorithm>
@@ -433,58 +434,44 @@ void drawRectangle(unsigned char* I, int width, int height, int bytesPerPixel, i
 }
 
 
-// void addTrans(VSMotionDetect* md, struct VSTransform sl) {
-//   if (!md->transs) {
-//     md->transs = vs_list_new(0);
-//   }
-//   vs_list_append_dup(md->transs, &sl, sizeof(sl));
-// }
-
-// struct VSTransform getLastVSTransform(VSMotionDetect* md){
-//   if (!md->transs || !md->transs->head) {
-//     return null_transform();
-//   }
-//   return *((struct VSTransform*)md->transs->tail);
-// }
-
-
-//#ifdef TESTING
-/// plain C implementation of compareSubImg (without ORC)
-unsigned int compareSubImg_thr(unsigned char* const I1,
-                               unsigned char* const I2,
-                               const Field*         field,
-                               int                  width1,
-                               int                  width2,
-                               int                  height,
-                               int                  bytesPerPixel,
-                               int                  d_x,
-                               int                  d_y,
-                               unsigned int         threshold)
+/**
+ * @brief    plain C implementation of compareSubImg (without ORC)
+ */
+unsigned int compareSubImg_thr(uint8_t* const aCurrent,
+                               uint8_t* const aPrevious,
+                               const Field*   aField,
+                               int            aWidthCurrent,
+                               int            aWidthPrevious,
+                               int            aHeight,
+                               int            aBpp,
+                               int            aOffsetX,
+                               int            aOffsetY,
+                               unsigned int   aThreshold)
 {
-    unsigned char* p1  = NULL;
-    unsigned char* p2  = NULL;
-    int            s2  = field->size / 2;
-    unsigned int   sum = 0;
+    int            s2       = aField->size / 2;
+    unsigned int   sum      = 0;
+    unsigned char* current  = aCurrent  + ((aField->x - s2)            + (aField->y - s2)            * aWidthCurrent)  * aBpp;
+    unsigned char* previous = aPrevious + ((aField->x - s2 + aOffsetX) + (aField->y - s2 + aOffsetY) * aWidthPrevious) * aBpp;
     
-    p1 = I1 + ((field->x - s2)       + (field->y - s2)       * width1) * bytesPerPixel;
-    p2 = I2 + ((field->x - s2 + d_x) + (field->y - s2 + d_y) * width2) * bytesPerPixel;
-    
-    for (int j = 0; j < field->size; j++)
+    for (int j = 0; j < aField->size; ++j)
     {
-        for (int k = 0; k < field->size * bytesPerPixel; k++)
+        for (int k = 0; k < aField->size * aBpp; k++)
         {
-            sum += abs((int) * p1 - (int) * p2);
-            p1++;
-            p2++;
+            sum += abs((int) * current - (int) * previous);
+            current++;
+            previous++;
         }
         
-        if (sum > threshold) // no need to calculate any longer: worse than the best match
+        if (sum > aThreshold)
         {
+            /*
+             * No need to calculate any longer: worse than the best match
+             */
             break;
         }
         
-        p1 += (width1 - field->size) * bytesPerPixel;
-        p2 += (width2 - field->size) * bytesPerPixel;
+        current  += (aWidthCurrent  - aField->size) * aBpp;
+        previous += (aWidthPrevious - aField->size) * aBpp;
     }
     
     return sum;
@@ -580,8 +567,9 @@ namespace VidStab
     
     void VSMD::_initOpenCl_prepareKernels()
     {
-        _clSources.push_back({opencl___blur_h, opencl___blur_h_len});
-        _clSources.push_back({opencl___blur_v, opencl___blur_v_len});
+        _clSources.push_back({opencl___blur_h,   opencl___blur_h_len});
+        _clSources.push_back({opencl___blur_v,   opencl___blur_v_len});
+        _clSources.push_back({opencl___corelate, opencl___corelate_len});
         
         _clProgram = new cl::Program(*_clContext, _clSources);
         
@@ -1396,17 +1384,17 @@ namespace VidStab
                                              const Field*          field,
                                              int                   fieldnum)
     {
-        vs_log_error(md->conf.modName, "\t\t[DBG]PACKED\n");
+        vs_log_error(md->conf.modName, "\t\t[DBG]PACKED %i\n", int(sizeof(Field)));
         
         int      tx       = 0;
         int      ty       = 0;
         
         uint8_t* current  = md->curr->data[0];
         uint8_t* previous = md->prev.data[0];
-        int      width1         = md->curr->linesize[0] / 3; // linesize in pixels
-        int      width2         = md->prev.linesize[0]  / 3; // linesize in pixels
-        int      stepSize       = fs->stepSize;
-        int      maxShift       = fs->maxShift;
+        int      width1   = md->curr->linesize[0] / 3; // linesize in pixels
+        int      width2   = md->prev.linesize[0]  / 3; // linesize in pixels
+        int      stepSize = fs->stepSize;
+        int      maxShift = fs->maxShift;
         
         Vec offset              = { 0, 0};
         LocalMotion lm          = null_localmotion();
@@ -1544,10 +1532,10 @@ namespace VidStab
                                              const Field*          field,
                                              int                   fieldnum)
     {
-        vs_log_error(md->conf.modName, "\t\t[DBG]PLANAR\n");
+        vs_log_error(md->conf.modName, "\t\t[DBG]PLANAR %i\n", int(sizeof(Field)));
         Vec t { };
         
-        uint8_t* current   = md->curr->data[0];
+        uint8_t* current    = md->curr->data[0];
         uint8_t* previous   = md->prev.data[0];
         int      linesize_c = md->curr->linesize[0];
         int      linesize_p = md->prev.linesize[0];

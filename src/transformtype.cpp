@@ -133,7 +133,8 @@ PreparedTransform prepare_transform(const struct VSTransform* t,
     return pt;
 }
 
-Vec transform_vec(const PreparedTransform* pt, const Vec* v)
+Vec transform_vec(const PreparedTransform* pt,
+                  const Vec*               v)
 {
     double x, y;
     transform_vec_double(&x, &y, pt, v);
