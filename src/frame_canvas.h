@@ -9,6 +9,7 @@
 
 #include "common_vect.h"
 #include <cstdint>
+#include <cmath>
 
 
 namespace Frame

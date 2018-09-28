@@ -33,7 +33,7 @@
 /*
  * C++ includes
  */
-#include "motiondetect.hpp"
+#include "motiondetect.h"
 
 using namespace VidStab;
 

@@ -60,13 +60,13 @@
 /*
  * C++ includes
  */
-#include "motiondetect.hpp"
-#include "md_exception.hpp"
+#include "motiondetect.h"
+#include "md_exception.h"
 #include "frame_canvas.h"
 
 #include "dbg_profiler.h"
 
-#include "cl/opencl.hpp"
+#include "cl/opencl.h"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
 #include "cl/opencl___correl8.h"

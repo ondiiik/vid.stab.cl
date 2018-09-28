@@ -7,7 +7,7 @@
 
 
 #if defined(USE_OPENCL)
-#include "opencl.hpp"
+#include "opencl.h"
 
 
 namespace OpenCl
