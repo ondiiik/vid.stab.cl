@@ -618,12 +618,12 @@ namespace VidStab
         fieldSizeFine = (fieldSizeFine / 16 + 1) * 16;
 #endif
         
-        _initFields(&fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
-        _initFields(&fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
+        _initFields(fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
+        _initFields(fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
     }
     
     
-    void VSMD::_initFields(VSMotionDetectFields* fs,
+    void VSMD::_initFields(VSMotionDetectFields& fs,
                            int                   size,
                            int                   maxShift,
                            int                   stepSize,
@@ -631,32 +631,32 @@ namespace VidStab
                            int                   spacing,
                            double                contrastThreshold)
     {
-        fs->fieldSize         = size;
-        fs->maxShift          = maxShift;
-        fs->stepSize          = stepSize;
-        fs->useOffset         = 0;
-        fs->contrastThreshold = contrastThreshold;
+        fs.fieldSize         = size;
+        fs.maxShift          = maxShift;
+        fs.stepSize          = stepSize;
+        fs.useOffset         = 0;
+        fs.contrastThreshold = contrastThreshold;
         
-        int rows = VS_MAX(3, (fiInfoC.height - fs->maxShift * 2) / (size + spacing) -1);
-        int cols = VS_MAX(3, (fiInfoC.width  - fs->maxShift * 2) / (size + spacing) -1);
+        int rows = VS_MAX(3, (fiInfoC.height - fs.maxShift * 2) / (size + spacing) -1);
+        int cols = VS_MAX(3, (fiInfoC.width  - fs.maxShift * 2) / (size + spacing) -1);
         
         // make sure that the remaining rows have the same length
-        fs->fieldNum  = rows * cols;
-        fs->fieldRows = rows;
+        fs.fieldNum  = rows * cols;
+        fs.fieldRows = rows;
         
-        if (!(fs->fields = (Field*)vs_malloc(sizeof(Field) * fs->fieldNum)))
+        if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
         {
             throw VD_EXCEPTION("Allocation failed!");
         }
         else
         {
-            int border = fs->stepSize;
+            int border = fs.stepSize;
             // the border is the amount by which the field centers
             // have to be away from the image boundary
             // (stepsize is added in case shift is increased through stepsize)
             if (keepBorder)
             {
-                border = size / 2 + fs->maxShift + fs->stepSize;
+                border = size / 2 + fs.maxShift + fs.stepSize;
             }
             int step_x = (fiInfoC.width  - 2 * border) / VS_MAX(cols - 1, 1);
             int step_y = (fiInfoC.height - 2 * border) / VS_MAX(rows - 1, 1);
@@ -667,36 +667,36 @@ namespace VidStab
                 {
                     int idx = j * cols + i;
                     
-                    fs->fields[idx].x    = border + i * step_x;
-                    fs->fields[idx].y    = border + j * step_y;
-                    fs->fields[idx].size = size;
+                    fs.fields[idx].x    = border + i * step_x;
+                    fs.fields[idx].y    = border + j * step_y;
+                    fs.fields[idx].size = size;
                 }
             }
         }
         
         
-        fs->maxFields = (conf.accuracy) * fs->fieldNum / 15;
+        fs.maxFields = (conf.accuracy) * fs.fieldNum / 15;
         
         vs_log_info(conf.modName,
                     "[filter] Fieldsize: %i, Maximal translation: %i pixel\n",
-                    fs->fieldSize,
-                    fs->maxShift);
+                    fs.fieldSize,
+                    fs.maxShift);
                     
         vs_log_info(conf.modName,
                     "[filter] Number of used measurement fields: %i out of %i\n",
-                    fs->maxFields,
-                    fs->fieldNum);
+                    fs.maxFields,
+                    fs.fieldNum);
     }
     
     
-    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields* fields,
+    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields& fields,
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
         LocalMotions    localmotions;
-        vs_vector_init(&localmotions, fields->maxFields);
+        vs_vector_init(&localmotions, fields.maxFields);
         
-
+        
         std::vector<ContrastIdx> goodflds {};
         _selectfields(goodflds, fields, contrastfunc);
         
@@ -710,12 +710,12 @@ namespace VidStab
         {
             int i = goodflds[index].index;
             
-            LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
+            LocalMotion m = fieldfunc(*this, fields, fields.fields[i], i); // e.g. calcFieldTransPlanar
             
             if (m.match >= 0)
             {
                 m.contrast = goodflds[index].contrast;
-
+                
 #if defined(USE_OMP)
                 #pragma omp critical(localmotions_append)
 #endif
@@ -723,7 +723,6 @@ namespace VidStab
             }
         }
         
-
         return localmotions;
     }
     
@@ -1035,13 +1034,13 @@ namespace VidStab
             
             if (fiInfoC.pFormat > PF_PACKED)
             {
-                motions2 = _calcTransFields(&fieldsfine,
+                motions2 = _calcTransFields(fieldsfine,
                                             visitor_calcFieldTransPacked,
                                             visitor_contrastSubImgPacked);
             }
             else
             {
-                motions2 = _calcTransFields(&fieldsfine,
+                motions2 = _calcTransFields(fieldsfine,
                                             visitor_calcFieldTransPlanar,
                                             visitor_contrastSubImgPlanar);
             }
@@ -1086,13 +1085,13 @@ namespace VidStab
         
         if (fiInfoC.pFormat > PF_PACKED)
         {
-            aMotionscoarse = _calcTransFields(&fieldscoarse,
+            aMotionscoarse = _calcTransFields(fieldscoarse,
                                               visitor_calcFieldTransPacked,
                                               visitor_contrastSubImgPacked);
         }
         else
         {
-            aMotionscoarse = _calcTransFields(&fieldscoarse,
+            aMotionscoarse = _calcTransFields(fieldscoarse,
                                               visitor_calcFieldTransPlanar,
                                               visitor_contrastSubImgPlanar);
         }
@@ -1202,24 +1201,24 @@ namespace VidStab
      * quality, so typically we use all.
      */
     void VSMD::_selectfields(std::vector<ContrastIdx>& goodflds,
-                             VSMotionDetectFields*     fs,
+                             VSMotionDetectFields&     fs,
                              contrastSubImgFunc        contrastfunc)
     {
         /*
          * Calculate contrast for each field
          */
-        std::vector<ContrastIdx> ci { size_t(fs->fieldNum) };
+        std::vector<ContrastIdx> ci { size_t(fs.fieldNum) };
         
         
-        Field* f   = fs->fields;
+        Field* f   = fs.fields;
         int    idx = 0;
         
         for (auto& i : ci)
         {
-            i.contrast = contrastfunc(this, f);
+            i.contrast = contrastfunc(*this, *f);
             i.index    = idx;
             
-            if (i.contrast < fs->contrastThreshold)
+            if (i.contrast < fs.contrastThreshold)
             {
                 i.contrast = 0;
             }
@@ -1236,14 +1235,14 @@ namespace VidStab
          * from each segment the best fields.
          */
         std::vector<ContrastIdx> ci_segms { ci.begin(), ci.end()         };
-        int                             numsegms { fs->fieldRows + 1            };
-        int                             segmlen  { fs->fieldNum  / numsegms + 1 };
+        int                             numsegms { fs.fieldRows + 1            };
+        int                             segmlen  { fs.fieldNum  / numsegms + 1 };
         
         for (int i = 0; i < numsegms; i++)
         {
             int startindex = segmlen * i;
             int endindex   = segmlen * (i + 1);
-            endindex       = (endindex > fs->fieldNum) ? fs->fieldNum : endindex;
+            endindex       = (endindex > fs.fieldNum) ? fs.fieldNum : endindex;
             
             /*
              * Sort within segment
@@ -1255,7 +1254,7 @@ namespace VidStab
             /*
              * Take maxfields / numsegms
              */
-            for (int j = 0; j < (fs->maxFields / numsegms); j++)
+            for (int j = 0; j < (fs.maxFields / numsegms); j++)
             {
                 if ((startindex + j) >= endindex)
                 {
@@ -1278,7 +1277,7 @@ namespace VidStab
          * Split the frame list into rows+1 segments.
          * Check whether enough fields are selected.
          */
-        int remaining = fs->maxFields - goodflds.size();
+        int remaining = fs.maxFields - goodflds.size();
         
         if (remaining > 0)
         {
@@ -1286,7 +1285,7 @@ namespace VidStab
              * Take the remaining from the leftovers
              */
             auto b = ci_segms.begin();
-            std::sort(b, b + fs->fieldNum, _cmp_Contrast);
+            std::sort(b, b + fs.fieldNum, _cmp_Contrast);
             
             for (int j = 0; j < remaining; j++)
             {
@@ -1302,33 +1301,33 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD*                       md,
-                                             const VSMotionDetectFields* fs,
-                                             const Field*                field,
+    LocalMotion visitor_calcFieldTransPacked(VSMD&                       md,
+                                             const VSMotionDetectFields& fs,
+                                             const Field&                field,
                                              int                         fieldnum)
     {
         int                tx       = 0;
         int                ty       = 0;
         
-        const Frame::Plane curr     = md->curr[0];
-        const Frame::Plane prev     = md->prev[0];
+        const Frame::Plane curr     = md.curr[0];
+        const Frame::Plane prev     = md.prev[0];
         int                width1   = curr.lineSize() / 3;
         int                width2   = prev.lineSize() / 3;
-        int                stepSize = fs->stepSize;
-        int                maxShift = fs->maxShift;
+        int                stepSize = fs.stepSize;
+        int                maxShift = fs.maxShift;
         
         Vec offset              = { 0, 0};
         LocalMotion lm          = null_localmotion();
         
-        if (fs->useOffset)
+        if (fs.useOffset)
         {
-            offset = transform_vec(&fs->pt, (Vec*)field);
+            offset = transform_vec(&fs.pt, (Vec*)&field);
             
             /*
              * Is the field still in the frame
              */
-            if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md->fiInfoC.width) ||
-                ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md->fiInfoC.height))
+            if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md.fiInfoC.width) ||
+                ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md.fiInfoC.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1343,10 +1342,10 @@ namespace VidStab
         {
             curr.buff(),
             prev.buff(),
-            *field,
+            field,
             width1,
             width2,
-            md->fiInfoC.height,
+            md.fiInfoC.height,
             3
         };
         
@@ -1424,10 +1423,10 @@ namespace VidStab
             return lm;
         }
         
-        lm.f     = *field;
+        lm.f     = field;
         lm.v.x   = tx + offset.x;
         lm.v.y   = ty + offset.y;
-        lm.match = ((double)minerror) / (field->size * field->size);
+        lm.match = ((double)minerror) / (field.size * field.size);
         
         return lm;
     }
@@ -1437,39 +1436,39 @@ namespace VidStab
      * Calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD*                       md,
-                                             const VSMotionDetectFields* fs,
-                                             const Field*                field,
+    LocalMotion visitor_calcFieldTransPlanar(VSMD&                       md,
+                                             const VSMotionDetectFields& fs,
+                                             const Field&                field,
                                              int                         fieldnum)
     {
         Vec                t      {             };
-        const Frame::Plane curr = { md->curr[0] };
-        const Frame::Plane prev = { md->prev[0] };
+        const Frame::Plane curr = { md.curr[0] };
+        const Frame::Plane prev = { md.prev[0] };
         
         /*
          * We only use the luminance part of the image
          */
-        int         stepSize = fs->stepSize;
-        int         maxShift = fs->maxShift;
+        int         stepSize = fs.stepSize;
+        int         maxShift = fs.maxShift;
         LocalMotion lm       = null_localmotion();
         Vec         offset { };
         
-        if (fs->useOffset)
+        if (fs.useOffset)
         {
-            Vec fieldpos = {field->x, field->y};
+            Vec fieldpos = {field.x, field.y};
             
-            offset = transform_vec(&fs->pt, &fieldpos) - fieldpos;
+            offset = transform_vec(&fs.pt, &fieldpos) - fieldpos;
             
             
             /*
              * Is the field still in the frame
              */
-            int s2 = field->size / 2;
+            int s2 = field.size / 2;
             
             if (unlikely((fieldpos.x + offset.x - s2 - maxShift - stepSize) < 0             ||
-                         (fieldpos.x + offset.x + s2 + maxShift + stepSize) >= md->fiInfoC.width ||
+                         (fieldpos.x + offset.x + s2 + maxShift + stepSize) >= md.fiInfoC.width ||
                          (fieldpos.y + offset.y - s2 - maxShift - stepSize) < 0             ||
-                         (fieldpos.y + offset.y + s2 + maxShift + stepSize) >= md->fiInfoC.height))
+                         (fieldpos.y + offset.y + s2 + maxShift + stepSize) >= md.fiInfoC.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1481,10 +1480,10 @@ namespace VidStab
         {
             curr.buff(),
             prev.buff(),
-            *field,
+            field,
             curr.lineSize(),
             prev.lineSize(),
-            md->fiInfoC.height,
+            md.fiInfoC.height,
             1
         };
         
@@ -1597,42 +1596,42 @@ namespace VidStab
             return lm;
         }
         
-        lm.f     = *field;
+        lm.f     = field;
         lm.v.x   = t.x + offset.x;
         lm.v.y   = t.y + offset.y;
-        lm.match = ((double) minerror) / (field->size * field->size);
+        lm.match = ((double) minerror) / (field.size * field.size);
         
         return lm;
     }
     
     
-    double visitor_contrastSubImgPacked(VSMD*        md,
-                                        const Field* field)
+    double visitor_contrastSubImgPacked(VSMD&        md,
+                                        const Field& field)
     {
-        Frame::Plane pl { md->curr[0] };
+        Frame::Plane pl { md.curr[0] };
         int linesize2 = pl.lineSize() / 3; // linesize in pixels
         
-        return (contrastSubImg(pl.buff() + 0, field, linesize2, md->fiInfoC.height, 3) +
-                contrastSubImg(pl.buff() + 1, field, linesize2, md->fiInfoC.height, 3) +
-                contrastSubImg(pl.buff() + 2, field, linesize2, md->fiInfoC.height, 3)) / 3;
+        return (contrastSubImg(pl.buff() + 0, &field, linesize2, md.fi.height(), 3) +
+                contrastSubImg(pl.buff() + 1, &field, linesize2, md.fi.height(), 3) +
+                contrastSubImg(pl.buff() + 2, &field, linesize2, md.fi.height(), 3)) / 3;
     }
     
     
-    double visitor_contrastSubImgPlanar(VSMD*        md,
-                                        const Field* field)
+    double visitor_contrastSubImgPlanar(VSMD&        md,
+                                        const Field& field)
     {
-        Frame::Plane pl { md->curr[0] };
+        Frame::Plane pl { md.curr[0] };
         
 #ifdef USE_SSE2
         return contrastSubImg1_SSE(pl.buff(),
-                                   field,
+                                   &field,
                                    pl.lineSize(),
-                                   md->fiInfoC.height);
+                                   md.fi.height());
 #else
         return contrastSubImg(pl.buff(),
-                              field,
+                              &field,
                               pl.lineSize(),
-                              md->fiInfoC.height,
+                              md.fi.height(),
                               1);
 #endif
     }

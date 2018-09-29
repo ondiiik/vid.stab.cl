@@ -84,16 +84,16 @@ namespace VidStab
     public:
         /* type for a function that calculates the transformation of a certain field
          */
-        typedef LocalMotion (*calcFieldTransFunc)(VSMD*,
-                                                  const VSMotionDetectFields*,
-                                                  const Field*,
+        typedef LocalMotion (*calcFieldTransFunc)(VSMD&,
+                                                  const VSMotionDetectFields&,
+                                                  const Field&,
                                                   int);
                                                   
                                                   
         /* type for a function that calculates the contrast of a certain field
          */
-        typedef double (*contrastSubImgFunc)(VSMD*,
-                                             const Field*);
+        typedef double (*contrastSubImgFunc)(VSMD&,
+                                             const Field&);
                                              
                                              
         /**
@@ -248,7 +248,7 @@ namespace VidStab
          * if border is set then they are placed savely
          * away from the border for maxShift
         */
-        void _initFields(VSMotionDetectFields* fs,
+        void _initFields(VSMotionDetectFields& fs,
                          int                   fieldSize,
                          int                   maxShift,
                          int                   stepSize,
@@ -264,7 +264,7 @@ namespace VidStab
          *   check theses fields for vertical and horizontal transformation
          *   use minimal difference of all possible positions
          */
-        LocalMotions _calcTransFields(VSMotionDetectFields* fields,
+        LocalMotions _calcTransFields(VSMotionDetectFields& fields,
                                       calcFieldTransFunc    fieldfunc,
                                       contrastSubImgFunc    contrastfunc);
                                       
@@ -366,10 +366,10 @@ namespace VidStab
            We may simplify here by using random. People want high quality, so typically we use all.
         */
         void _selectfields(std::vector<ContrastIdx>& goodflds,
-                                                VSMotionDetectFields*     fs,
-                                                contrastSubImgFunc        contrastfunc);
-                                                
-                                                
+                           VSMotionDetectFields&     fs,
+                           contrastSubImgFunc        contrastfunc);
+                           
+                           
         /**
          * @brief   Module name
          */
@@ -433,18 +433,18 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD*                       md,
-                                             const VSMotionDetectFields* fs,
-                                             const Field*                field,
+    LocalMotion visitor_calcFieldTransPacked(VSMD&                       md,
+                                             const VSMotionDetectFields& fs,
+                                             const Field&                field,
                                              int                         fieldnum);
                                              
                                              
     /* calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD*                       md,
-                                             const VSMotionDetectFields* fs,
-                                             const Field*                field,
+    LocalMotion visitor_calcFieldTransPlanar(VSMD&                       md,
+                                             const VSMotionDetectFields& fs,
+                                             const Field&                field,
                                              int                         fieldnum);
                                              
                                              
@@ -452,11 +452,11 @@ namespace VidStab
        \see contrastSubImg_Michelson three times called with bytesPerPixel=3
        for all channels
     */
-    double visitor_contrastSubImgPacked(VSMD*        md,
-                                        const Field* field);
+    double visitor_contrastSubImgPacked(VSMD&        md,
+                                        const Field& field);
                                         
                                         
     /** \see contrastSubImg*/
-    double visitor_contrastSubImgPlanar(VSMD*        md,
-                                        const Field* field);
+    double visitor_contrastSubImgPlanar(VSMD&        md,
+                                        const Field& field);
 }
