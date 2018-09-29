@@ -357,7 +357,10 @@ int transformPlanar(VSTransformData* td,
     
     if (t.alpha == 0 && t.x == 0 && t.y == 0 && t.zoom == 0)
     {
-        if (vsFramesEqual(&td->src, &td->destbuf))
+        Frame::Frame fsrc { td->src,     td->fiSrc  };
+        Frame::Frame fdst { td->destbuf, td->fiDest };
+
+        if (fsrc == fdst)
         {
             return VS_OK;    // noop
         }

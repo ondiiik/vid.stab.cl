@@ -233,9 +233,9 @@ namespace Frame
             buff     { aSrc.buff     },
             lineSize { aSrc.lineSize }
         {
-
+        
         }
-
+        
         const uint8_t* buff;
         int            lineSize;
     };
@@ -245,22 +245,33 @@ namespace Frame
     {
     public:
         Frame(VSFrame&    aFrame,
-              const Info& aInfo)
-            :
-            _frame { aFrame },
-            _info  { aInfo  }
-        {
-        
-        }
-        
-        
+              const Info& aInfo);
+              
+              
         Frame(const VSFrame& aFrame,
-              const Info&    aInfo)
-            :
-            _frame { const_cast<VSFrame&>(aFrame) },
-            _info  { aInfo                        }
-        {
+              const Info&    aInfo);
+              
+              
+        /**
+         * @brief   Compare frame
+         * @param   aSrc    Source frame
+         * @return  Comparison result
+         * @retval  true    Frames are coming from the same source
+         * @retval  false   Frames are not coming from the same source
+         */
+        bool operator==(const Frame& aSrc);
         
+        
+        /**
+         * @brief   Compare frame
+         * @param   aSrc    Source frame
+         * @return  Comparison result
+         * @retval  true    Frames are coming from the same source
+         * @retval  false   Frames are not coming from the same source
+         */
+        inline bool operator!=(const Frame& aSrc)
+        {
+            return !(*this == aSrc);
         }
         
         
@@ -295,9 +306,15 @@ namespace Frame
         
         
         /**
-         * @brief   Allocates memory for a frame
+         * @brief   Allocates memory for frame
          */
-        void allocate();
+        void alloc();
+        
+        
+        /**
+         * @brief   Free memory for frame
+         */
+        void free();
         
         
         /**
@@ -329,14 +346,16 @@ namespace Frame
         
         
     private:
+        /**
+         * @brief   Post-initializer called from constructor
+         */
+        void _init();
+        
+        
         VSFrame&    _frame;
         const Info& _info;
     };
 }
-
-
-/// compares two frames for identity (based in data[0])
-int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
 
 
 /// copies the given plane number from src to dest
@@ -349,7 +368,3 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
     Do not call vsFrameFree() on it.
  */
 void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi);
-
-
-/// frees memory
-void vsFrameFree(VSFrame* frame);

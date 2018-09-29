@@ -314,6 +314,12 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
         vs_log_error(modName, "%s\n", exc.what());
         return VS_ERROR;
     }
+    catch (...)
+    {
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
+    }
     
     
     vs_log_info(modName,
@@ -420,10 +426,10 @@ namespace VidStab
         fiInfoC     { aMd->fi            },
         firstFrame  { true               },
         fi          { fiInfoC            },
-        curr        { currPrepFrameC, fi },
-        currPrep    { currPrepFrameC, fi },
-        currTmp     { currTmpFrameC,  fi },
-        prev        { prevFrameC,     fi },
+        curr        { _currPrepFrameC, fi },
+        currPrep    { _currPrepFrameC, fi },
+        currTmp     { _currTmpFrameC,  fi },
+        prev        { _prevFrameC,     fi },
         _mn         { aModName           }
 #if defined(USE_OPENCL)
         ,
@@ -452,9 +458,9 @@ namespace VidStab
             fieldsfine.fields = 0;
         }
         
-        vsFrameFree(&prevFrameC);
-        vsFrameFree(&currPrepFrameC);
-        vsFrameFree(&currTmpFrameC);
+        prev.free();
+        currPrep.free();
+        currTmp.free();
         
         
 #if defined(USE_OPENCL)
@@ -589,11 +595,11 @@ namespace VidStab
         
         
         Frame::Info  finf   { fiInfoC             };
-        Frame::Frame fprev  { prevFrameC,     finf };
-        Frame::Frame fcurrT { currTmpFrameC,  finf };
-        Frame::Frame fcurrP { currPrepFrameC, finf };
+        Frame::Frame fprev  { _prevFrameC,     finf };
+        Frame::Frame fcurrT { _currTmpFrameC,  finf };
+        Frame::Frame fcurrP { _currPrepFrameC, finf };
         
-        fprev.allocate();
+        fprev.alloc();
         fcurrT.forget();
         fcurrP.forget();
         
@@ -633,8 +639,8 @@ namespace VidStab
         _initFields(&fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
         _initFields(&fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
         
-        fcurrP.allocate();
-        fcurrT.allocate();
+        fcurrP.alloc();
+        fcurrT.alloc();
     }
     
     
@@ -790,9 +796,9 @@ namespace VidStab
         {
             *(_blurBox
             (
-                currPrepFrameC,
+                _currPrepFrameC,
                 aFrame,
-                currTmpFrameC,
+                _currTmpFrameC,
                 fiInfoC,
                 stepSize,
                 _BoxBlurNoColor
@@ -827,7 +833,7 @@ namespace VidStab
         if (&aBuffer == nullptr)
         {
             Frame::Frame f { buf, fi };
-            f.allocate();
+            f.alloc();
             localbuffer = 1;
         }
         else
@@ -889,7 +895,8 @@ namespace VidStab
         
         if (localbuffer)
         {
-            vsFrameFree(&buf);
+            Frame::Frame f { buf, fi };
+            f.free();
         }
         
         return &aDst;
@@ -1857,15 +1864,15 @@ unsigned int Correlate::operator ()(int          aOffsetX,
     
     unsigned int   sum  = 0;
     const uint8_t* currFrameC = _current  + (x            +  y             * _widthCurrent)  * _bpp;
-    const uint8_t* prevFrameC = _previous + (x + aOffsetX + (y + aOffsetY) * _widthPrevious) * _bpp;
+    const uint8_t* _prevFrameC = _previous + (x + aOffsetX + (y + aOffsetY) * _widthPrevious) * _bpp;
     
     for (int j = 0; j < _field.size; ++j)
     {
         for (int k = 0; k < _field.size * _bpp; k++)
         {
-            sum += abs(int(*currFrameC) - int(*prevFrameC));
+            sum += abs(int(*currFrameC) - int(*_prevFrameC));
             currFrameC++;
-            prevFrameC++;
+            _prevFrameC++;
         }
         
         if (sum > aThreshold)
@@ -1877,7 +1884,7 @@ unsigned int Correlate::operator ()(int          aOffsetX,
         }
         
         currFrameC += (_widthCurrent  - _field.size) * _bpp;
-        prevFrameC += (_widthPrevious - _field.size) * _bpp;
+        _prevFrameC += (_widthPrevious - _field.size) * _bpp;
     }
     
     return sum;

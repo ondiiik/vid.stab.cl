@@ -32,7 +32,7 @@ namespace VidStab
             va_start(args, aFmt);
             
             
-            snprintf(_errTxt, _bufSize, "[%s]\t%s:%i\n", aModule, aFunc, aLine);
+            snprintf(_errTxt, _bufSize, "[%s] %s:%i\t", aModule, aFunc, aLine);
             
             std::size_t idx = strnlen(_errTxt, _bufSize);
             
@@ -41,7 +41,7 @@ namespace VidStab
                 vsnprintf(_errTxt + idx, _bufSize - idx - 1, aFmt, args);
             }
             
-            va_end(                            args);
+            va_end(args);
         }
         
         

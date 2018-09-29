@@ -24,6 +24,7 @@
 
 #include "frameinfo.h"
 #include "vidstabdefines.h"
+#include "common_cutils.h"
 #include <cassert>
 #include <cstring>
 
@@ -95,12 +96,6 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
 }
 
 
-int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2)
-{
-    return frame1 && frame2 && ((frame1 == frame2) || (frame1->data[0] == frame2->data[0]));
-}
-
-
 void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane)
 {
@@ -144,7 +139,7 @@ void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
     for (int i = 0; i < fi->planes; i++)
     {
         auto& info {frm.info()};
-
+        
         int w = info.sublineWidth( i);
         int h = info.sublineHeight(i);
         
@@ -155,30 +150,47 @@ void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
     }
 }
 
-void vsFrameFree(VSFrame* frame)
-{
-    int plane;
-    
-    for (plane = 0; plane < 4; plane++)
-    {
-        if (frame->data[plane])
-        {
-            vs_free(frame->data[plane]);
-        }
-        
-        frame->data[plane] = 0;
-        frame->linesize[plane] = 0;
-    }
-}
-
 
 namespace Frame
 {
-    void Frame::allocate()
+    Frame::Frame(VSFrame&    aFrame,
+                 const Info& aInfo)
+        :
+        _frame { aFrame },
+        _info  { aInfo  }
+    {
+        _init();
+    }
+    
+    
+    Frame::Frame(const VSFrame& aFrame,
+                 const Info&    aInfo)
+        :
+        _frame { const_cast<VSFrame&>(aFrame) },
+        _info  { aInfo                        }
+    {
+        _init();
+    }
+    
+    
+    void Frame::_init()
+    {
+        if (_info.planes() > int(COMMON_ARRAY_ITEMS_CNT(_frame.data)))
+        {
+            throw VidStab::VD_EXCEPTION("Too many planes (%i)! Maximum is %i!",
+                                        _info.planes(),
+                                        int(COMMON_ARRAY_ITEMS_CNT(_frame.data)));
+        }
+    }
+    
+    
+    void Frame::alloc()
     {
         forget();
         
-        for (int i = 0, e = _info.planes(); i < e; ++i)
+        int planes = _info.planes();
+        
+        for (int i = 0; i < planes; ++i)
         {
             auto size = _info.calcSize(i);
             
@@ -190,6 +202,19 @@ namespace Frame
             _frame.data[i]     = new uint8_t[size];
             _frame.linesize[i] = _info.calcLineWidth(i);
             memset(_frame.data[i], 0, size);
+        }
+    }
+    
+    
+    void Frame::free()
+    {
+        int planes = _info.planes();
+        
+        for (int i = 0; i < planes; ++i)
+        {
+            delete _frame.data[i];
+            _frame.data[i]     = nullptr;
+            _frame.linesize[i] = 0;
         }
     }
     
@@ -212,6 +237,7 @@ namespace Frame
             throw VidStab::VD_EXCEPTION("Copy of incompatible frames!");
         }
         
+        
         for (int i = 0, e = _info.planes(); i < e; ++i)
         {
             auto size = _info.calcSize(i);
@@ -219,6 +245,12 @@ namespace Frame
         }
         
         return *this;
+    }
+    
+    
+    bool Frame::operator ==(const Frame& aSrc)
+    {
+        return (&_frame == &aSrc._frame) || (_frame.data[0] == aSrc._frame.data[0]);
     }
     
     

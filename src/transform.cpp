@@ -156,14 +156,14 @@ void vsTransformDataCleanup(struct VSTransformData* td)
     
     if (td->srcMalloced && !fsrc.empty())
     {
-        vsFrameFree(&td->src);
+        fsrc.free();
     }
     
     Frame::Frame fdst { td->destbuf, Frame::Info(td->fiDest) };
     
     if ((td->conf.crop == VSKeepBorder) && !fdst.empty())
     {
-        vsFrameFree(&td->destbuf);
+        fdst.free();
     }
 }
 
@@ -185,7 +185,7 @@ int vsTransformPrepare(struct VSTransformData* td,
         
         if (ftd.empty())
         {
-            ftd.allocate();
+            ftd.alloc();
             td->srcMalloced = 1;
         }
         
@@ -205,7 +205,7 @@ int vsTransformPrepare(struct VSTransformData* td,
         {
             // if we keep the borders, we need a second buffer to store
             //  the previous stabilized frame, so we use destbuf
-            ftd.allocate();
+            ftd.alloc();
             
             // if we keep borders, save first frame into the background buffer (destbuf)
             ftd = fsrc;
@@ -219,7 +219,8 @@ int vsTransformPrepare(struct VSTransformData* td,
     return VS_OK;
 }
 
-int vsDoTransform(struct VSTransformData* td, struct VSTransform t)
+int vsDoTransform(struct VSTransformData* td,
+                  struct VSTransform      t)
 {
     if (td->fiSrc.pFormat < PF_PACKED)
     {

@@ -124,12 +124,27 @@ namespace VidStab
         VSMotionDetectFields fieldscoarse;
         VSMotionDetectFields fieldsfine;
         
-        VSFrame              currPrepFrameC;   // Current pre-processed frame
-        VSFrame              currTmpFrameC;    // temporary buffer for blurring
-        VSFrame              prevFrameC;       // frame buffer for last frame (copied)
-        bool                 firstFrame;       // true if we have a valid previous frame
+    private:
+        /**
+         * @brief Current pre-processed frame storage
+         */
+        VSFrame _currPrepFrameC;
         
-        int                  frameNum;
+        /**
+         * @brief Temporary buffer for blurring storage
+         */
+        VSFrame _currTmpFrameC;
+        
+        /**
+         * @brief Frame buffer for last frame (copied) storage
+         */
+        VSFrame _prevFrameC;
+        
+        
+    public:
+        bool firstFrame;       // true if we have a valid previous frame
+        
+        int frameNum;
         
         
         
@@ -145,7 +160,7 @@ namespace VidStab
          * @brief   Current frame
          */
         Frame::Frame curr;
-
+        
         /**
          * @brief   Current preprocessed frame
          * @note    Wrapper around C interface structure
