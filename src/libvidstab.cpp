@@ -22,7 +22,6 @@
  *
  */
 #include "libvidstab.h"
-#include "vs_exception.h"
 #include "vidstabdefines.h"
 
 
@@ -31,10 +30,12 @@
 #include <cstdlib>
 #include <cstdarg>
 
+#include "vs_exception.h"
+
 
 namespace
 {
-    const char moduleName[] = "VidStab";
+    const char moduleName[] { "VidStab" };
 }
 
 

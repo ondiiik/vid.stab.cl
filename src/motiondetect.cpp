@@ -92,7 +92,7 @@ contrast_idx;
 
 namespace
 {
-    const char moduleName[] = "Detect";
+    const char moduleName[] { "Detect" };
 
 
     class _Spiral
@@ -583,14 +583,14 @@ namespace VidStab
 #endif
         
         
-        vsFrameAllocate(&prev, &fi);
-        if (vsFrameIsNull(&prev))
-        {
-            throw VD_EXCEPTION("Allocation failed!");
-        }
-        
-        vsFrameNull(&currPrep);
-        vsFrameNull(&currtmp);
+        Frame::Info  finf   { fi             };
+        Frame::Frame fprev  { prev,     finf };
+        Frame::Frame fcurrT { currtmp,  finf };
+        Frame::Frame fcurrP { currPrep, finf };
+
+        fprev.allocate();
+        fcurrT.clear();
+        fcurrP.clear();
         
         frameNum        = 0;
         
@@ -628,8 +628,8 @@ namespace VidStab
         _initFields(&fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
         _initFields(&fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
         
-        vsFrameAllocate(&currPrep, &fi);
-        vsFrameAllocate(&currtmp,  &fi);
+        fcurrP.allocate();
+        fcurrT.allocate();
     }
     
     
@@ -802,12 +802,14 @@ namespace VidStab
         }
         
         
-        VSFrame buf;
-        int     localbuffer = 0;
+        VSFrame     buf;
+        int         localbuffer { 0   };
+        Frame::Info fi          { aFi };
         
         if (&aBuffer == nullptr)
         {
-            vsFrameAllocate(&buf, &aFi);
+            Frame::Frame f { buf, fi };
+            f.allocate();
             localbuffer = 1;
         }
         else
@@ -844,8 +846,8 @@ namespace VidStab
                         _blurBoxHV(aDst.data[plane],
                                    buf.data[plane],
                                    aSrc.data[plane],
-                                   aFi.width  >> vsGetPlaneWidthSubS( &aFi, plane),
-                                   aFi.height >> vsGetPlaneHeightSubS(&aFi, plane),
+                                   fi.sublineHeight(plane),
+                                   fi.sublineWidth(plane),
                                    buf.linesize[plane],
                                    aSrc.linesize[plane],
                                    size2);

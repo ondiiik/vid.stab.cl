@@ -12,7 +12,7 @@
 
 namespace
 {
-    const char moduleName[] = "OpenCL";
+    const char moduleName[] { "OpenCL" };
 }
 
 

@@ -23,30 +23,197 @@
  *
  */
 #include "libvidstab.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include <inttypes.h>
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "common_vect.h"
+#include  <cstddef>
 
 
 // use it to calculate the CHROMA sizes (rounding is correct)
 #define CHROMA_SIZE(width,log2sub)  (-(-(width) >> (log2sub)))
 
 
-/// returns the subsampling shift amount, horizonatally for the given plane
-int vsGetPlaneWidthSubS(const VSFrameInfo* fi, int plane);
+namespace Frame
+{
+    class Info
+    {
+    public:
+        Info(const VSFrameInfo& aInfo)
+            :
+            _info { aInfo }
+        {
+        
+        }
 
 
-/// returns the subsampling shift amount, vertically for the given plane
-int vsGetPlaneHeightSubS(const VSFrameInfo* fi, int plane);
+        inline int planes() const
+        {
+            return _info.planes;
+        }
+        
+        
+        inline int pixFormat() const
+        {
+            return _info.pFormat;
+        }
+        
+        
+        inline int bpp() const
+        {
+            return _info.bytesPerPixel;
+        }
+        
+        
+        inline int width() const
+        {
+            return _info.width;
+        }
+        
+        
+        inline int height() const
+        {
+            return _info.height;
+        }
+        
+        
+        inline Common::Vect<int> dim() const
+        {
+            return Common::Vect<int>(_info.width, _info.height);
+        }
+        
+        
+        /**
+         * @brief  Returns the subsampling shift amount horizonatally
+         *         for the given plane
+         *
+         */
+        int subsampleWidth(int aPlane) const
+        {
+            if (aPlane == 1)
+            {
+                return 1;
+            }
+            
+            if (aPlane != 2)
+            {
+                return 0;
+            }
+            
+            if (_info.log2ChromaW)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        
+        
+        /**
+         * @brief  Packed line width
+         */
+        int sublineWidth(int aPlane) const
+        {
+            return int(unsigned(_info.width) >> subsampleWidth(aPlane));
+        }
+        
+        
+        /**
+         * @brief  Packed row height
+         */
+        int sublineHeight(int aPlane) const
+        {
+            return int(unsigned(_info.height) >> subsampleHeight(aPlane));
+        }
+        
+        
+        /**
+         * @brief   Returns the subsampling shift amount vertically for
+         *          the given plane
+         */
+        int subsampleHeight(int aPlane) const
+        {
+            if (aPlane == 1)
+            {
+                return 1;
+            }
+            
+            if (aPlane != 2)
+            {
+                return 0;
+            }
+            
+            if (_info.log2ChromaH)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        
+        
+        std::size_t calcSize(unsigned aPlane) const;
+        
+        
+        inline int calcLineWidth(unsigned aPlane) const
+        {
+            if (pixFormat() < PF_PACKED)
+            {
+                return int(unsigned(_info.width) >> subsampleWidth(aPlane));
+            }
+            else
+            {
+                return int(_info.width * bpp());
+            }
+        }
+        
+        
+    private:
+        const VSFrameInfo& _info;
+    };
+    
+    
+    class Frame
+    {
+    public:
+        Frame(VSFrame&    aFrame,
+              const Info& aInfo)
+            :
+            _frame { aFrame },
+            _info  { aInfo  }
+        {
+        
+        }
 
 
-/// zero initialization
-void vsFrameNull(VSFrame* frame);
+        /**
+         * @brief   Allocates memory for a frame
+         */
+        void allocate();
+        
+        
+        /**
+         * @brief   Zero initialization
+         */
+        void clear();
+        
+        
+        /**
+         * @brief   Frame information object getter
+         * @return  Frame information object
+         */
+        inline const Info& info() const
+        {
+            return _info;
+        }
+        
+        
+    private:
+        VSFrame&    _frame;
+        const Info& _info;
+    };
+}
 
 
 /// returns true if frame is null (data[0]==0)
@@ -55,11 +222,6 @@ int vsFrameIsNull(const VSFrame* frame);
 
 /// compares two frames for identity (based in data[0])
 int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
-
-
-/// allocates memory for a frame
-void vsFrameAllocate(VSFrame*           frame,
-                     const VSFrameInfo* fi);
 
 
 /// copies the given plane number from src to dest
@@ -80,20 +242,3 @@ void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi);
 
 /// frees memory
 void vsFrameFree(VSFrame* frame);
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

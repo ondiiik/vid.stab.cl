@@ -94,16 +94,23 @@ const VSFrameInfo* vsTransformGetDestFrameInfo(const struct VSTransformData* td)
 int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConfig* conf,
                         const VSFrameInfo* fi_src, const VSFrameInfo* fi_dest)
 {
-    td->conf = *conf;
+    td->conf   = *conf;
     
-    td->fiSrc = *fi_src;
+    td->fiSrc  = *fi_src;
     td->fiDest = *fi_dest;
     
-    vsFrameNull(&td->src);
-    td->srcMalloced = 0;
+    Frame::Info  isrc  { *fi_src                 };
+    Frame::Info  idst  { *fi_dest                };
     
-    vsFrameNull(&td->destbuf);
-    vsFrameNull(&td->dest);
+    Frame::Frame fsrc  { td->src,     td->fiSrc  };
+    Frame::Frame fdst  { td->dest,    td->fiDest };
+    Frame::Frame fdstB { td->destbuf, td->fiDest };
+    
+    fsrc.clear();
+    fdst.clear();
+    fdstB.clear();
+    
+    td->srcMalloced = 0;
     
     if (td->conf.maxShift > td->fiDest.width / 2)
     {
@@ -163,11 +170,14 @@ int vsTransformPrepare(struct VSTransformData* td,
     // we first copy the frame to td->src and then overwrite the destination
     // with the transformed version
     td->dest = *dest;
+    
     if (src == dest || td->srcMalloced) // in place operation: we have to copy the src first
     {
         if (vsFrameIsNull(&td->src))
         {
-            vsFrameAllocate(&td->src, &td->fiSrc);
+            Frame::Frame f { td->src, Frame::Info { td->fiSrc } };
+            f.allocate();
+            
             td->srcMalloced = 1;
         }
         if (vsFrameIsNull(&td->src))
@@ -187,7 +197,9 @@ int vsTransformPrepare(struct VSTransformData* td,
         {
             // if we keep the borders, we need a second buffer to store
             //  the previous stabilized frame, so we use destbuf
-            vsFrameAllocate(&td->destbuf, &td->fiDest);
+            Frame::Frame f { td->destbuf, Frame::Info { td->fiDest } };
+            f.allocate();
+            
             if (vsFrameIsNull(&td->destbuf))
             {
                 vs_log_error(td->conf.modName, "vs_malloc failed\n");
@@ -518,7 +530,7 @@ int vsPreprocessTransforms(struct VSTransformData*   td,
             ts[i].y     = VS_CLAMP(ts[i].y, -td->conf.maxShift, td->conf.maxShift);
         }
     }
-
+    
     if (td->conf.maxAngle != - 1.0)
     {
         for (int i = 0; i < trans->len; i++)
@@ -526,7 +538,7 @@ int vsPreprocessTransforms(struct VSTransformData*   td,
             ts[i].alpha = VS_CLAMP(ts[i].alpha, -td->conf.maxAngle, td->conf.maxAngle);
         }
     }
-        
+    
     /* Calc optimal zoom (1)
      *  cheap algo is to only consider translations
      *  uses cleaned max and min to eliminate 99% of transforms

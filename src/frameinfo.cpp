@@ -24,8 +24,17 @@
 
 #include "frameinfo.h"
 #include "vidstabdefines.h"
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
+
+#include "vs_exception.h"
+
+
+namespace
+{
+    const char moduleName[] { "frame" };
+}
+
 
 int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pFormat)
 {
@@ -85,63 +94,15 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
     return 1;
 }
 
-int vsGetPlaneWidthSubS(const VSFrameInfo* fi, int plane)
-{
-    return plane == 1 || plane == 2 ? fi->log2ChromaW : 0;
-}
-
-int vsGetPlaneHeightSubS(const VSFrameInfo* fi, int plane)
-{
-    return  plane == 1 || plane == 2 ? fi->log2ChromaH : 0;
-}
-
 int vsFrameIsNull(const VSFrame* frame)
 {
-    return frame == 0 || frame->data[0] == 0;
+    return (frame == 0) || (frame->data[0] == 0);
 }
 
 
 int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2)
 {
-    return frame1 && frame2 && (frame1 == frame2 || frame1->data[0] == frame2->data[0]);
-}
-
-void vsFrameNull(VSFrame* frame)
-{
-    memset(frame, 0, sizeof(*frame));
-}
-
-void vsFrameAllocate(VSFrame* frame, const VSFrameInfo* fi)
-{
-    vsFrameNull(frame);
-    if (fi->pFormat < PF_PACKED)
-    {
-        int i;
-        assert(fi->planes > 0 && fi->planes <= 4);
-        for (i = 0; i < fi->planes; i++)
-        {
-            int w = fi->width  >> vsGetPlaneWidthSubS(fi, i);
-            int h = fi->height >> vsGetPlaneHeightSubS(fi, i);
-            frame->data[i] = (uint8_t*)vs_zalloc(w * h * sizeof(uint8_t));
-            frame->linesize[i] = w;
-            if (frame->data[i] == 0)
-            {
-                vs_log_error("vid.stab", "out of memory: cannot allocated buffer");
-            }
-        }
-    }
-    else
-    {
-        assert(fi->planes == 1);
-        int w = fi->width;
-        int h = fi->height;
-        frame->data[0] = (uint8_t*)vs_zalloc(w * h * sizeof(uint8_t) * fi->bytesPerPixel);
-        frame->linesize[0] = w * fi->bytesPerPixel;
-        if (frame->data[0] == 0)
-        {
-            vs_log_error("vid.stab", "out of memory: cannot allocated buffer");
-        }
-    }
+    return frame1 && frame2 && ((frame1 == frame2) || (frame1->data[0] == frame2->data[0]));
 }
 
 
@@ -149,7 +110,11 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane)
 {
     assert(src->data[plane]);
-    int h = fi->height >> vsGetPlaneHeightSubS(fi, plane);
+
+    const Frame::Info  finf { *fi };
+
+    int h = finf.sublineHeight(plane);
+
     if (src->linesize[plane] == dest->linesize[plane])
     {
         memcpy(dest->data[plane], src->data[plane], src->linesize[plane] *  h * sizeof(uint8_t));
@@ -158,7 +123,9 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
     {
         uint8_t* d = dest->data[plane];
         const uint8_t* s = src->data[plane];
-        int w = fi->width  >> vsGetPlaneWidthSubS(fi, plane);
+
+        int w = finf.sublineWidth(plane);
+
         for (; h > 0; h--)
         {
             memcpy(d, s, sizeof(uint8_t) * w);
@@ -174,7 +141,7 @@ void vsFrameCopy(VSFrame*           dest,
                  const VSFrameInfo* fi)
 {
     assert((fi->planes > 0) && (fi->planes <= 4));
-
+    
     for (int plane = 0; plane < fi->planes; plane++)
     {
         vsFrameCopyPlane(dest, src, fi, plane);
@@ -185,29 +152,93 @@ void vsFrameCopy(VSFrame*           dest,
 void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
 {
     assert(fi->planes > 0 && fi->planes <= 4);
-    vsFrameNull(frame);
+
+    Frame::Info  finf { *fi          };
+    Frame::Frame frm  { *frame, finf };
+
+    frm.clear();
+
     long int offset = 0;
-    int i;
-    for (i = 0; i < fi->planes; i++)
+
+    for (int i = 0; i < fi->planes; i++)
     {
-        int w = fi->width  >> vsGetPlaneWidthSubS(fi, i);
-        int h = fi->height >> vsGetPlaneHeightSubS(fi, i);
-        frame->data[i] = img + offset;
-        frame->linesize[i] = w * fi->bytesPerPixel;
-        offset += h * w * fi->bytesPerPixel;
+        int w = finf.sublineWidth( i);
+        int h = finf.sublineHeight(i);
+
+        frame->data[i]     = img + offset;
+        frame->linesize[i] = w * finf.bpp();
+
+        offset            += h * w * finf.bpp();
     }
 }
 
 void vsFrameFree(VSFrame* frame)
 {
     int plane;
+    
     for (plane = 0; plane < 4; plane++)
     {
         if (frame->data[plane])
         {
             vs_free(frame->data[plane]);
         }
+        
         frame->data[plane] = 0;
         frame->linesize[plane] = 0;
+    }
+}
+
+
+namespace Frame
+{
+    void Frame::allocate()
+    {
+        clear();
+        
+        for (int i = 0, e = _info.planes(); i < e; ++i)
+        {
+            auto size = _info.calcSize(i);
+            
+            if (0 == size)
+            {
+                throw VidStab::VD_EXCEPTION("Unexpected plane %i!", i);
+            }
+            
+            _frame.data[i]     = new uint8_t[size];
+            _frame.linesize[i] = _info.calcLineWidth(i);
+        }
+    }
+    
+    
+    void Frame::clear()
+    {
+        memset(&_frame, 0, sizeof(_frame));
+    }
+    
+    
+    std::size_t Info::calcSize(unsigned aPlane) const
+    {
+        if (pixFormat() < PF_PACKED)
+        {
+            if (aPlane < 4)
+            {
+                return sublineWidth(aPlane) * sublineHeight(aPlane);
+            }
+            else
+            {
+                return 0;
+            }
+        }
+        else
+        {
+            if (aPlane < 1)
+            {
+                return (_info.width * _info.height * bpp());
+            }
+            else
+            {
+                return 0;
+            }
+        }
     }
 }

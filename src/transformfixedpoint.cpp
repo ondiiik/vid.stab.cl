@@ -367,13 +367,15 @@ int transformPlanar(struct VSTransformData* td, struct VSTransform t)
         }
     }
     
-    int plane;
-    for (plane = 0; plane < td->fiSrc.planes; plane++)
+    for (int plane = 0; plane < td->fiSrc.planes; plane++)
     {
         dat_1  = td->src.data[plane];
         dat_2  = td->destbuf.data[plane];
-        int wsub = vsGetPlaneWidthSubS(&td->fiSrc, plane);
-        int hsub = vsGetPlaneHeightSubS(&td->fiSrc, plane);
+
+        Frame::Info finf { td->fiSrc };
+        int wsub =  finf.subsampleWidth( plane);
+        int hsub =  finf.subsampleHeight(plane);
+
         int dw = CHROMA_SIZE(td->fiDest.width, wsub);
         int dh = CHROMA_SIZE(td->fiDest.height, hsub);
         int sw = CHROMA_SIZE(td->fiSrc.width, wsub);
