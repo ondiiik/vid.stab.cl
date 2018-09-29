@@ -106,9 +106,9 @@ int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConf
     Frame::Frame fdst  { td->dest,    td->fiDest };
     Frame::Frame fdstB { td->destbuf, td->fiDest };
     
-    fsrc.clear();
-    fdst.clear();
-    fdstB.clear();
+    fsrc.forget();
+    fdst.forget();
+    fdstB.forget();
     
     td->srcMalloced = 0;
     
@@ -152,11 +152,16 @@ int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConf
 
 void vsTransformDataCleanup(struct VSTransformData* td)
 {
-    if (td->srcMalloced && !vsFrameIsNull(&td->src))
+    Frame::Frame fsrc { td->src, Frame::Info(td->fiSrc) };
+    
+    if (td->srcMalloced && !fsrc.empty())
     {
         vsFrameFree(&td->src);
     }
-    if (td->conf.crop == VSKeepBorder && !vsFrameIsNull(&td->destbuf))
+    
+    Frame::Frame fdst { td->destbuf, Frame::Info(td->fiDest) };
+    
+    if ((td->conf.crop == VSKeepBorder) && !fdst.empty())
     {
         vsFrameFree(&td->destbuf);
     }
@@ -171,48 +176,46 @@ int vsTransformPrepare(struct VSTransformData* td,
     // with the transformed version
     td->dest = *dest;
     
-    if (src == dest || td->srcMalloced) // in place operation: we have to copy the src first
+    Frame::Info        isrc { td->fiSrc  };
+    const Frame::Frame fsrc { *src, isrc };
+    
+    if ((src == dest) || td->srcMalloced) // in place operation: we have to copy the src first
     {
-        if (vsFrameIsNull(&td->src))
+        Frame::Frame ftd  { td->src, isrc };
+        
+        if (ftd.empty())
         {
-            Frame::Frame f { td->src, Frame::Info { td->fiSrc } };
-            f.allocate();
-            
+            ftd.allocate();
             td->srcMalloced = 1;
         }
-        if (vsFrameIsNull(&td->src))
-        {
-            vs_log_error(td->conf.modName, "vs_malloc failed\n");
-            return VS_ERROR;
-        }
-        vsFrameCopy(&td->src, src, &td->fiSrc);
+        
+        ftd = fsrc;
     }
-    else   // otherwise no copy needed
+    else // otherwise no copy needed
     {
         td->src = *src;
     }
+    
+    
     if (td->conf.crop == VSKeepBorder)
     {
-        if (vsFrameIsNull(&td->destbuf))
+        Frame::Frame ftd { td->destbuf, isrc };
+        
+        if (ftd.empty())
         {
             // if we keep the borders, we need a second buffer to store
             //  the previous stabilized frame, so we use destbuf
-            Frame::Frame f { td->destbuf, Frame::Info { td->fiDest } };
-            f.allocate();
+            ftd.allocate();
             
-            if (vsFrameIsNull(&td->destbuf))
-            {
-                vs_log_error(td->conf.modName, "vs_malloc failed\n");
-                return VS_ERROR;
-            }
             // if we keep borders, save first frame into the background buffer (destbuf)
-            vsFrameCopy(&td->destbuf, src, &td->fiSrc); // here we have to take care
+            ftd = fsrc;
         }
     }
     else   // otherwise we directly operate on the destination
     {
         td->destbuf = *dest;
     }
+    
     return VS_OK;
 }
 
@@ -235,8 +238,11 @@ int vsTransformFinish(struct VSTransformData* td)
     {
         // we have to store our result to video buffer
         // note: destbuf stores stabilized frame to be the default for next frame
-        vsFrameCopy(&td->dest, &td->destbuf, &td->fiSrc);
+        Frame::Frame fdst { td->dest,    td->fiDest };
+        Frame::Frame fsrc { td->destbuf, td->fiDest };
+        fdst = fsrc;
     }
+
     return VS_OK;
 }
 

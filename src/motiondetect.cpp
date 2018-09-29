@@ -93,8 +93,8 @@ contrast_idx;
 namespace
 {
     const char moduleName[] { "Detect" };
-
-
+    
+    
     class _Spiral
     {
     public:
@@ -287,7 +287,7 @@ void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
 const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
 {
     const VSMD& md = VSMD2Inst(aMd);
-    return     &md.fi;
+    return     &md.fiInfoC;
 }
 
 
@@ -417,9 +417,14 @@ namespace VidStab
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fi          { aMd->fi  },
-        firstFrame  { true     },
-        _mn         { aModName }
+        fiInfoC     { aMd->fi            },
+        firstFrame  { true               },
+        fi          { fiInfoC            },
+        curr        { currPrepFrameC, fi },
+        currPrep    { currPrepFrameC, fi },
+        currTmp     { currTmpFrameC,  fi },
+        prev        { prevFrameC,     fi },
+        _mn         { aModName           }
 #if defined(USE_OPENCL)
         ,
         _clDevice   {          },
@@ -447,9 +452,9 @@ namespace VidStab
             fieldsfine.fields = 0;
         }
         
-        vsFrameFree(&prev);
-        vsFrameFree(&currPrep);
-        vsFrameFree(&currtmp);
+        vsFrameFree(&prevFrameC);
+        vsFrameFree(&currPrepFrameC);
+        vsFrameFree(&currTmpFrameC);
         
         
 #if defined(USE_OPENCL)
@@ -560,17 +565,17 @@ namespace VidStab
         }
         
         conf = *aConf;
-        fi   = *aFi;
+        fiInfoC   = *aFi;
         
         
         /*
          * Is requested pixel format supported by us?
          */
-        if ((fi.pFormat <= PF_NONE)   ||
-            (fi.pFormat == PF_PACKED) ||
-            (fi.pFormat >= PF_NUMBER))
+        if ((fiInfoC.pFormat <= PF_NONE)   ||
+            (fiInfoC.pFormat == PF_PACKED) ||
+            (fiInfoC.pFormat >= PF_NUMBER))
         {
-            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fi.pFormat);
+            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fiInfoC.pFormat);
         }
         
         
@@ -583,14 +588,14 @@ namespace VidStab
 #endif
         
         
-        Frame::Info  finf   { fi             };
-        Frame::Frame fprev  { prev,     finf };
-        Frame::Frame fcurrT { currtmp,  finf };
-        Frame::Frame fcurrP { currPrep, finf };
-
+        Frame::Info  finf   { fiInfoC             };
+        Frame::Frame fprev  { prevFrameC,     finf };
+        Frame::Frame fcurrT { currTmpFrameC,  finf };
+        Frame::Frame fcurrP { currPrepFrameC, finf };
+        
         fprev.allocate();
-        fcurrT.clear();
-        fcurrP.clear();
+        fcurrT.forget();
+        fcurrP.forget();
         
         frameNum        = 0;
         
@@ -609,7 +614,7 @@ namespace VidStab
             conf.stepSize = 6; // maybe 4
         }
         
-        int minDimension  = VS_MIN(fi.width, fi.height);
+        int minDimension  = VS_MIN(fiInfoC.width, fiInfoC.height);
         //  shift: shakiness 1: height/40; 10: height/4
         //  maxShift = VS_MAX(4,(minDimension*conf.shakiness)/40);
         //  size: shakiness 1: height/40; 10: height/6 (clipped)
@@ -647,8 +652,8 @@ namespace VidStab
         fs->useOffset         = 0;
         fs->contrastThreshold = contrastThreshold;
         
-        int rows = VS_MAX(3, (fi.height - fs->maxShift * 2) / (size + spacing) -1);
-        int cols = VS_MAX(3, (fi.width  - fs->maxShift * 2) / (size + spacing) -1);
+        int rows = VS_MAX(3, (fiInfoC.height - fs->maxShift * 2) / (size + spacing) -1);
+        int cols = VS_MAX(3, (fiInfoC.width  - fs->maxShift * 2) / (size + spacing) -1);
         
         // make sure that the remaining rows have the same length
         fs->fieldNum  = rows * cols;
@@ -668,8 +673,8 @@ namespace VidStab
             {
                 border = size / 2 + fs->maxShift + fs->stepSize;
             }
-            int step_x = (fi.width  - 2 * border) / VS_MAX(cols - 1, 1);
-            int step_y = (fi.height - 2 * border) / VS_MAX(rows - 1, 1);
+            int step_x = (fiInfoC.width  - 2 * border) / VS_MAX(cols - 1, 1);
+            int step_y = (fiInfoC.height - 2 * border) / VS_MAX(rows - 1, 1);
             
             for (int j = 0; j < rows; j++)
             {
@@ -751,7 +756,7 @@ namespace VidStab
             /*
              * For tripod we keep a certain reference frame
              */
-            vsFrameCopy(&prev, curr, &fi);
+            prev = curr;
         }
         
         frameNum++;
@@ -762,7 +767,7 @@ namespace VidStab
     {
         int stepSize;
         
-        if (fi.pFormat > PF_PACKED)
+        if (fiInfoC.pFormat > PF_PACKED)
         {
             /*
              * We could calculate a gray-scale version and use
@@ -780,12 +785,25 @@ namespace VidStab
             stepSize = conf.stepSize;
         }
         
-        curr = _blurBox(currPrep,
-                        aFrame,
-                        currtmp,
-                        fi,
-                        stepSize,
-                        _BoxBlurNoColor);
+        
+        Frame::Frame f
+        {
+            *(_blurBox
+            (
+                currPrepFrameC,
+                aFrame,
+                currTmpFrameC,
+                fiInfoC,
+                stepSize,
+                _BoxBlurNoColor
+            )),
+            fi
+        };
+        
+        /*
+         * Physical copy of instance is required instead of copy operator
+         */
+        memcpy(&curr, &f, sizeof(curr));
     }
     
     
@@ -941,10 +959,10 @@ namespace VidStab
         clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
         
 #else  /* defined(USE_OPENCL) */
-
+        
         _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
         _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-
+        
 #endif /* defined(USE_OPENCL) */
     }
     
@@ -1060,14 +1078,14 @@ namespace VidStab
             /*
              * Calculates transformation and perform another scan with small fields
              */
-            VSTransform        t = vsSimpleMotionsToTransform(fi, conf.modName, &motionscoarse);
+            VSTransform        t = vsSimpleMotionsToTransform(fiInfoC, conf.modName, &motionscoarse);
             fieldsfine.offset    = t;
             fieldsfine.useOffset = 1;
-            fieldsfine.pt        = prepare_transform(&fieldsfine.offset, &fi);
+            fieldsfine.pt        = prepare_transform(&fieldsfine.offset, &fiInfoC);
             
             LocalMotions motions2;
             
-            if (fi.pFormat > PF_PACKED)
+            if (fiInfoC.pFormat > PF_PACKED)
             {
                 motions2 = _calcTransFields(&fieldsfine,
                                             visitor_calcFieldTransPacked,
@@ -1096,7 +1114,7 @@ namespace VidStab
             {
                 aFrame.data[0],
                 aFrame.linesize[0],
-                fi.height,
+                fiInfoC.height,
                 1
             };
             
@@ -1111,9 +1129,9 @@ namespace VidStab
     {
         vs_vector_init(&aMotionscoarse, 0);
         
-        fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fi);
+        fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fiInfoC);
         
-        if (fi.pFormat > PF_PACKED)
+        if (fiInfoC.pFormat > PF_PACKED)
         {
             aMotionscoarse = _calcTransFields(&fieldscoarse,
                                               visitor_calcFieldTransPacked,
@@ -1172,7 +1190,7 @@ namespace VidStab
                                   const LocalMotion* lm,
                                   int                maxShift)
     {
-        if (fi.pFormat <= PF_PACKED)
+        if (fiInfoC.pFormat <= PF_PACKED)
         {
             canvas.drawRectangle(lm->f.x,
                                  lm->f.y,
@@ -1187,7 +1205,7 @@ namespace VidStab
                           const LocalMotion* lm,
                           short              box)
     {
-        if (fi.pFormat <= PF_PACKED)
+        if (fiInfoC.pFormat <= PF_PACKED)
         {
             Vec size { lm->f.size, lm->f.size };
             
@@ -1211,7 +1229,7 @@ namespace VidStab
                                const LocalMotion* lm,
                                int                color)
     {
-        if (fi.pFormat <= PF_PACKED)
+        if (fiInfoC.pFormat <= PF_PACKED)
         {
             Vec           end    { Vec(lm->f) + lm->v };
             Vec           size   { 5, 5               };
@@ -1343,15 +1361,15 @@ namespace VidStab
                                              const Field*                field,
                                              int                         fieldnum)
     {
-        int            tx       = 0;
-        int            ty       = 0;
+        int               tx       = 0;
+        int               ty       = 0;
         
-        const uint8_t* current  = md->curr->data[0];
-        const uint8_t* previous = md->prev.data[0];
-        int            width1   = md->curr->linesize[0] / 3; // linesize in pixels
-        int            width2   = md->prev.linesize[0]  / 3; // linesize in pixels
-        int            stepSize = fs->stepSize;
-        int            maxShift = fs->maxShift;
+        Frame::ConstPlane curr     = md->curr[0];
+        Frame::ConstPlane prev     = md->prev[0];
+        int               width1   = curr.lineSize / 3;
+        int               width2   = prev.lineSize / 3;
+        int               stepSize = fs->stepSize;
+        int               maxShift = fs->maxShift;
         
         Vec offset              = { 0, 0};
         LocalMotion lm          = null_localmotion();
@@ -1363,8 +1381,8 @@ namespace VidStab
             /*
              * Is the field still in the frame
              */
-            if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md->fi.width) ||
-                ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md->fi.height))
+            if (((offset.x - maxShift - stepSize) < 0) || ((offset.x + maxShift + stepSize) >= md->fiInfoC.width) ||
+                ((offset.y - maxShift - stepSize) < 0) || ((offset.y + maxShift + stepSize) >= md->fiInfoC.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1377,12 +1395,12 @@ namespace VidStab
          */
         Correlate correlate
         {
-            current,
-            previous,
+            curr.buff,
+            prev.buff,
             *field,
             width1,
             width2,
-            md->fi.height,
+            md->fiInfoC.height,
             3
         };
         
@@ -1478,12 +1496,9 @@ namespace VidStab
                                              const Field*                field,
                                              int                         fieldnum)
     {
-        Vec t { };
-        
-        uint8_t* current    = md->curr->data[0];
-        uint8_t* previous   = md->prev.data[0];
-        int      linesize_c = md->curr->linesize[0];
-        int      linesize_p = md->prev.linesize[0];
+        Vec               t      {             };
+        Frame::ConstPlane curr = { md->curr[0] };
+        Frame::ConstPlane prev = { md->prev[0] };
         
         /*
          * We only use the luminance part of the image
@@ -1506,9 +1521,9 @@ namespace VidStab
             int s2 = field->size / 2;
             
             if (unlikely((fieldpos.x + offset.x - s2 - maxShift - stepSize) < 0             ||
-                         (fieldpos.x + offset.x + s2 + maxShift + stepSize) >= md->fi.width ||
+                         (fieldpos.x + offset.x + s2 + maxShift + stepSize) >= md->fiInfoC.width ||
                          (fieldpos.y + offset.y - s2 - maxShift - stepSize) < 0             ||
-                         (fieldpos.y + offset.y + s2 + maxShift + stepSize) >= md->fi.height))
+                         (fieldpos.y + offset.y + s2 + maxShift + stepSize) >= md->fiInfoC.height))
             {
                 lm.match = -1;
                 return lm;
@@ -1518,12 +1533,12 @@ namespace VidStab
         
         Correlate correlate
         {
-            current,
-            previous,
+            curr.buff,
+            prev.buff,
             *field,
-            linesize_c,
-            linesize_p,
-            md->fi.height,
+            curr.lineSize,
+            prev.lineSize,
+            md->fiInfoC.height,
             1
         };
         
@@ -1648,22 +1663,31 @@ namespace VidStab
     double visitor_contrastSubImgPacked(VSMD*        md,
                                         const Field* field)
     {
-        unsigned char* const I         = md->curr->data[0];
-        int                  linesize2 = md->curr->linesize[0] / 3; // linesize in pixels
+        Frame::Plane pl { md->curr[0] };
+        int linesize2 = pl.lineSize / 3; // linesize in pixels
         
-        return (contrastSubImg(I + 0, field, linesize2, md->fi.height, 3) +
-                contrastSubImg(I + 1, field, linesize2, md->fi.height, 3) +
-                contrastSubImg(I + 2, field, linesize2, md->fi.height, 3)) / 3;
+        return (contrastSubImg(pl.buff + 0, field, linesize2, md->fiInfoC.height, 3) +
+                contrastSubImg(pl.buff + 1, field, linesize2, md->fiInfoC.height, 3) +
+                contrastSubImg(pl.buff + 2, field, linesize2, md->fiInfoC.height, 3)) / 3;
     }
     
     
     double visitor_contrastSubImgPlanar(VSMD*        md,
                                         const Field* field)
     {
+        Frame::Plane pl { md->curr[0] };
+        
 #ifdef USE_SSE2
-        return contrastSubImg1_SSE(md->curr->data[0], field, md->curr->linesize[0], md->fi.height);
+        return contrastSubImg1_SSE(pl.buff,
+                                   field,
+                                   pl.lineSize,
+                                   md->fiInfoC.height);
 #else
-        return contrastSubImg(md->curr->data[0], field, md->curr->linesize[0], md->fi.height, 1);
+        return contrastSubImg(pl.buff,
+                              field,
+                              pl.lineSize,
+                              md->fiInfoC.height,
+                              1);
 #endif
     }
 }
@@ -1832,16 +1856,16 @@ unsigned int Correlate::operator ()(int          aOffsetX,
     unsigned y  = _field.y - s2;
     
     unsigned int   sum  = 0;
-    const uint8_t* curr = _current  + (x            +  y             * _widthCurrent)  * _bpp;
-    const uint8_t* prev = _previous + (x + aOffsetX + (y + aOffsetY) * _widthPrevious) * _bpp;
+    const uint8_t* currFrameC = _current  + (x            +  y             * _widthCurrent)  * _bpp;
+    const uint8_t* prevFrameC = _previous + (x + aOffsetX + (y + aOffsetY) * _widthPrevious) * _bpp;
     
     for (int j = 0; j < _field.size; ++j)
     {
         for (int k = 0; k < _field.size * _bpp; k++)
         {
-            sum += abs(int(*curr) - int(*prev));
-            curr++;
-            prev++;
+            sum += abs(int(*currFrameC) - int(*prevFrameC));
+            currFrameC++;
+            prevFrameC++;
         }
         
         if (sum > aThreshold)
@@ -1852,8 +1876,8 @@ unsigned int Correlate::operator ()(int          aOffsetX,
             break;
         }
         
-        curr += (_widthCurrent  - _field.size) * _bpp;
-        prev += (_widthPrevious - _field.size) * _bpp;
+        currFrameC += (_widthCurrent  - _field.size) * _bpp;
+        prevFrameC += (_widthPrevious - _field.size) * _bpp;
     }
     
     return sum;

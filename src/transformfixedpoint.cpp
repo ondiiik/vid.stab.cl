@@ -349,7 +349,8 @@ int transformPacked(struct VSTransformData* td, struct VSTransform t)
  *  for angle and zoom we use val<<16
  *
  */
-int transformPlanar(struct VSTransformData* td, struct VSTransform t)
+int transformPlanar(VSTransformData* td,
+                    VSTransform      t)
 {
     int32_t x = 0, y = 0;
     uint8_t* dat_1, *dat_2;
@@ -362,7 +363,9 @@ int transformPlanar(struct VSTransformData* td, struct VSTransform t)
         }
         else
         {
-            vsFrameCopy(&td->destbuf, &td->src, &td->fiSrc);
+            Frame::Frame fdst { td->destbuf, td->fiDest };
+            Frame::Frame fsrc { td->src,     td->fiSrc  };
+            fdst = fsrc;
             return VS_OK;
         }
     }
@@ -371,11 +374,11 @@ int transformPlanar(struct VSTransformData* td, struct VSTransform t)
     {
         dat_1  = td->src.data[plane];
         dat_2  = td->destbuf.data[plane];
-
+        
         Frame::Info finf { td->fiSrc };
         int wsub =  finf.subsampleWidth( plane);
         int hsub =  finf.subsampleHeight(plane);
-
+        
         int dw = CHROMA_SIZE(td->fiDest.width, wsub);
         int dh = CHROMA_SIZE(td->fiDest.height, hsub);
         int sw = CHROMA_SIZE(td->fiSrc.width, wsub);

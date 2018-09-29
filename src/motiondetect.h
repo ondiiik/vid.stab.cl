@@ -77,14 +77,14 @@ namespace VidStab
                                                   const VSMotionDetectFields*,
                                                   const Field*,
                                                   int);
-
-
+                                                  
+                                                  
         /* type for a function that calculates the contrast of a certain field
          */
         typedef double (*contrastSubImgFunc)(VSMD*,
                                              const Field*);
-
-
+                                             
+                                             
         /**
          * @brief   Construct data structure for motion detection part of deshaking
          *
@@ -97,14 +97,14 @@ namespace VidStab
              VSMotionDetect*             aMd,
              const VSMotionDetectConfig* aConf,
              const VSFrameInfo*          aFi);
-
-
+             
+             
         /**
          * @brief   Destroy VSDM
          */
         virtual ~VSMD();
-
-
+        
+        
         /**
          * @brief   process motion detection
          * @param   aMotions    Last frame motions
@@ -112,27 +112,61 @@ namespace VidStab
          */
         void operator()(LocalMotions* aMotions,
                         VSFrame&      aFrame);
-
-
+                        
+                        
         /**
          * @brief   Reference to parent C instance
          */
-        VSFrameInfo&         fi;
-
+        VSFrameInfo&         fiInfoC;
+        
         VSMotionDetectConfig conf;
-
+        
         VSMotionDetectFields fieldscoarse;
         VSMotionDetectFields fieldsfine;
-
-        const VSFrame*       curr;       // Current pre-processed frame
-        VSFrame              currPrep;   // Current pre-processed frame
-        VSFrame              currtmp;    // temporary buffer for blurring
-        VSFrame              prev;       // frame buffer for last frame (copied)
-        bool                 firstFrame; // true if we have a valid previous frame
-
+        
+        VSFrame              currPrepFrameC;   // Current pre-processed frame
+        VSFrame              currTmpFrameC;    // temporary buffer for blurring
+        VSFrame              prevFrameC;       // frame buffer for last frame (copied)
+        bool                 firstFrame;       // true if we have a valid previous frame
+        
         int                  frameNum;
+        
+        
+        
+        
+        /**
+         * @brief   Processing frames info
+         * @note    Wrapper around C interface structure
+         *          @ref VidStab::VSMD::fiInfoC
+         */
+        Frame::Info fi;
+        
+        /**
+         * @brief   Current frame
+         */
+        Frame::Frame curr;
 
-
+        /**
+         * @brief   Current preprocessed frame
+         * @note    Wrapper around C interface structure
+         *          @ref VidStab::VSMD::currPrepFrameC
+         */
+        Frame::Frame currPrep;
+        
+        /**
+         * @brief   Temporary buffer used for bluring
+         * @note    Wrapper around C interface structure
+         *          @ref VidStab::VSMD::currTmpFrameC
+         */
+        Frame::Frame currTmp;
+        
+        /**
+         * @brief   Copy of previous frame
+         * @note    Wrapper around C interface structure
+         *          @ref VidStab::VSMD::prevFrameC
+         */
+        Frame::Frame prev;
+        
     private:
         /**
          * @brief   Blur mode
@@ -143,14 +177,14 @@ namespace VidStab
             _BoxBlurKeepColor, /**< @brief Copy original color channels */
             _BoxBlurNoColor    /**< @brief Do not touch color channels in dest */
         };
-
-
+        
+        
         /**
          * @brief   Show message with information about filter
          */
         void _initMsg();
-
-
+        
+        
         /**
          * @brief   Core filter initialization
          * @param   aConf   Initial configuration
@@ -158,28 +192,28 @@ namespace VidStab
          */
         void _initVsDetect(const VSMotionDetectConfig* aConf,
                            const VSFrameInfo*          aFi);
-
-
+                           
+                           
         /**
          * @brief   Initialize OpenCL engine
          */
         void _initOpenCl();
-
-
+        
+        
 #if defined(USE_OPENCL)
         /**
          * @brief   Select OpenCL device
          */
         void _initOpenCl_selectDevice();
-
-
+        
+        
         /**
          * @brief   Prepare OpenCL kernels (calculator code)
          */
         void _initOpenCl_prepareKernels();
 #endif /* defined(USE_OPENCL) */
-
-
+        
+        
         /**
          * @brief   Initialise measurement fields on the frame.
          *
@@ -195,8 +229,8 @@ namespace VidStab
                          short                 border,
                          int                   spacing,
                          double                contrastThreshold);
-
-
+                         
+                         
         /* tries to register current frame onto previous frame.
          *   Algorithm:
          *   discards fields with low contrast
@@ -207,8 +241,8 @@ namespace VidStab
         LocalMotions _calcTransFields(VSMotionDetectFields* fields,
                                       calcFieldTransFunc    fieldfunc,
                                       contrastSubImgFunc    contrastfunc);
-
-
+                                      
+                                      
         /**
          * @brief   Smoothen image to do better motion detection
          *
@@ -218,8 +252,8 @@ namespace VidStab
          * @param   aFrame  Current frame
          */
         void _blur(const VSFrame& aFrame);
-
-
+        
+        
         /**
          * @brief   Performs a boxblur operation on src and stores results in dest
          *
@@ -240,8 +274,8 @@ namespace VidStab
                                 const VSFrameInfo& aFi,
                                 unsigned int       aStepSize,
                                 _BoxBlurColorMode  aColormode);
-
-
+                                
+                                
         void _blurBoxHV(unsigned char*       dst,
                         unsigned char*       tmp,
                         const unsigned char* src,
@@ -250,8 +284,8 @@ namespace VidStab
                         int                  dst_strive,
                         int                  src_strive,
                         int                  size);
-
-
+                        
+                        
         static void _blurBoxH(unsigned char*       dst,
                               const unsigned char* src,
                               int                  width,
@@ -259,8 +293,8 @@ namespace VidStab
                               int                  dst_strive,
                               int                  src_strive,
                               int                  size);
-
-
+                              
+                              
         static void _blurBoxV(unsigned char*       dst,
                               const unsigned char* src,
                               int                  width,
@@ -268,8 +302,8 @@ namespace VidStab
                               int                  dst_strive,
                               int                  src_strive,
                               int                  size);
-
-
+                              
+                              
         /**
          * @brief       Detect motion
          *
@@ -278,16 +312,16 @@ namespace VidStab
          */
         void _detect(LocalMotions* aMotions,
                      VSFrame&      aFrame);
-
-
+                     
+                     
         /**
          * @brief   Detect motion - contrast part
          * @param   aMotionscoarse    Coarse motion results
          * @return  Number of detected motions
          */
         int _detectContrast(LocalMotions& aMotionscoarse);
-
-
+        
+        
         /**
          * @brief   Draw results of detection
          * @param   num_motions Number of motions
@@ -296,26 +330,26 @@ namespace VidStab
                    int                 num_motions,
                    const LocalMotions& motionscoarse,
                    const LocalMotions& motionsfine);
-
-
+                   
+                   
         /** draws the field scanning area */
         void _drawFieldScanArea(Frame::Canvas&     canvas,
                                 const LocalMotion* lm,
                                 int                maxShift);
-
-
+                                
+                                
         /** draws the field */
         void _drawField(Frame::Canvas&     canvas,
                         const LocalMotion* lm,
                         short              box);
-
-
+                        
+                        
         /** draws the transform data of this field */
         void _drawFieldTrans(Frame::Canvas&     canvas,
                              const LocalMotion* lm,
                              int                color);
-
-
+                             
+                             
         /* select only the best 'maxfields' fields
            first calc contrasts then select from each part of the
            frame some fields
@@ -323,42 +357,42 @@ namespace VidStab
         */
         VSVector _selectfields(VSMotionDetectFields* fs,
                                contrastSubImgFunc    contrastfunc);
-
-
+                               
+                               
         /**
          * @brief   Module name
          */
         std::string _mn;
-
-
+        
+        
 #if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL
          */
         cl::Program::Sources _clSources;
-
-
+        
+        
     public:
         /**
          * @brief   OpenCL device
          */
         cl::Device _clDevice;
-
-
+        
+        
         /**
          * @brief   OpenCL context (communication channel to device)
          */
         cl::Context* _clContext;
-
-
+        
+        
         /**
          * @brief   Compiled binary of code we want to run over OpenCL
          */
         cl::Program* _clProgram;
 #endif /* defined(USE_OPENCL) */
     };
-
-
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -370,8 +404,8 @@ namespace VidStab
         VSMD* const md = (VSMD*)aMd->_inst;
         return *md;
     }
-
-
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -383,8 +417,8 @@ namespace VidStab
         const VSMD* const md = (VSMD*)aMd->_inst;
         return *md;
     }
-
-
+    
+    
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
@@ -392,8 +426,8 @@ namespace VidStab
                                              const VSMotionDetectFields* fs,
                                              const Field*                field,
                                              int                         fieldnum);
-
-
+                                             
+                                             
     /* calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
@@ -401,16 +435,16 @@ namespace VidStab
                                              const VSMotionDetectFields* fs,
                                              const Field*                field,
                                              int                         fieldnum);
-
-
+                                             
+                                             
     /**
        \see contrastSubImg_Michelson three times called with bytesPerPixel=3
        for all channels
     */
     double visitor_contrastSubImgPacked(VSMD*        md,
                                         const Field* field);
-
-
+                                        
+                                        
     /** \see contrastSubImg*/
     double visitor_contrastSubImgPlanar(VSMD*        md,
                                         const Field* field);

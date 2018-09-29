@@ -94,11 +94,6 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
     return 1;
 }
 
-int vsFrameIsNull(const VSFrame* frame)
-{
-    return (frame == 0) || (frame->data[0] == 0);
-}
-
 
 int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2)
 {
@@ -110,11 +105,11 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane)
 {
     assert(src->data[plane]);
-
+    
     const Frame::Info  finf { *fi };
-
+    
     int h = finf.sublineHeight(plane);
-
+    
     if (src->linesize[plane] == dest->linesize[plane])
     {
         memcpy(dest->data[plane], src->data[plane], src->linesize[plane] *  h * sizeof(uint8_t));
@@ -123,9 +118,9 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
     {
         uint8_t* d = dest->data[plane];
         const uint8_t* s = src->data[plane];
-
+        
         int w = finf.sublineWidth(plane);
-
+        
         for (; h > 0; h--)
         {
             memcpy(d, s, sizeof(uint8_t) * w);
@@ -136,39 +131,27 @@ void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
 }
 
 
-void vsFrameCopy(VSFrame*           dest,
-                 const VSFrame*     src,
-                 const VSFrameInfo* fi)
-{
-    assert((fi->planes > 0) && (fi->planes <= 4));
-    
-    for (int plane = 0; plane < fi->planes; plane++)
-    {
-        vsFrameCopyPlane(dest, src, fi, plane);
-    }
-}
-
-
 void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
 {
     assert(fi->planes > 0 && fi->planes <= 4);
-
-    Frame::Info  finf { *fi          };
-    Frame::Frame frm  { *frame, finf };
-
-    frm.clear();
-
+    
+    Frame::Frame frm  { *frame, *fi };
+    
+    frm.forget();
+    
     long int offset = 0;
-
+    
     for (int i = 0; i < fi->planes; i++)
     {
-        int w = finf.sublineWidth( i);
-        int h = finf.sublineHeight(i);
+        auto& info {frm.info()};
 
+        int w = info.sublineWidth( i);
+        int h = info.sublineHeight(i);
+        
         frame->data[i]     = img + offset;
-        frame->linesize[i] = w * finf.bpp();
-
-        offset            += h * w * finf.bpp();
+        frame->linesize[i] = w * info.bpp();
+        
+        offset            += h * w * info.bpp();
     }
 }
 
@@ -193,7 +176,7 @@ namespace Frame
 {
     void Frame::allocate()
     {
-        clear();
+        forget();
         
         for (int i = 0, e = _info.planes(); i < e; ++i)
         {
@@ -206,13 +189,36 @@ namespace Frame
             
             _frame.data[i]     = new uint8_t[size];
             _frame.linesize[i] = _info.calcLineWidth(i);
+            memset(_frame.data[i], 0, size);
         }
     }
     
     
-    void Frame::clear()
+    void Frame::forget()
     {
         memset(&_frame, 0, sizeof(_frame));
+    }
+    
+    
+    Frame& Frame::operator =(const Frame& aSrc)
+    {
+        if (empty())
+        {
+            throw VidStab::VD_EXCEPTION("Can not copy to empty frame!");
+        }
+        
+        if (_info != aSrc._info)
+        {
+            throw VidStab::VD_EXCEPTION("Copy of incompatible frames!");
+        }
+        
+        for (int i = 0, e = _info.planes(); i < e; ++i)
+        {
+            auto size = _info.calcSize(i);
+            memcpy(_frame.data[i], aSrc._frame.data[i], size);
+        }
+        
+        return *this;
     }
     
     

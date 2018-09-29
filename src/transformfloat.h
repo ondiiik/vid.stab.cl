@@ -27,17 +27,12 @@
 #include <stdint.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 struct VSTransformData;
 
 /// does the actual transformation in Packed space
-int transformPacked(struct VSTransformData* td, struct VSTransform t);
+int transformPacked(VSTransformData* td, VSTransform t);
 /// does the actual transformation in Planar space
-int transformPlanar(struct VSTransformData* td, struct VSTransform t);
+int transformPlanar(VSTransformData* td, VSTransform t);
 
 /* forward deklarations, please look in the .c file for documentation*/
 void interpolateBiLinBorder(uint8_t* rv, float x, float y,
@@ -59,19 +54,3 @@ void interpolateN(uint8_t* rv, float x, float y,
                   const uint8_t* img, int img_linesize,
                   int width, int height,
                   uint8_t N, uint8_t channel, uint8_t def);
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- * End:
- *
- * vim: expandtab shiftwidth=4:
- */

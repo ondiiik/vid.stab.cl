@@ -25,6 +25,7 @@
 #include "libvidstab.h"
 #include "common_vect.h"
 #include  <cstddef>
+#include  <cstring>
 
 
 // use it to calculate the CHROMA sizes (rounding is correct)
@@ -42,8 +43,34 @@ namespace Frame
         {
         
         }
-
-
+        
+        
+        /**
+         * @brief   Compare two info structures
+         * @param   aSrc    Another info structure
+         * @return  Result
+         * @retval  true    Frames are the same
+         * @retval  false   Frames are different
+         */
+        inline bool operator==(const Info& aSrc) const
+        {
+            return (0 == memcmp(&_info, &aSrc._info, sizeof(_info)));
+        }
+        
+        
+        /**
+         * @brief   Compare two info structures
+         * @param   aSrc    Another info structure
+         * @return  Result
+         * @retval  true    Frames are different
+         * @retval  false   Frames are the same
+         */
+        inline bool operator!=(const Info& aSrc) const
+        {
+            return !(*this == aSrc);
+        }
+        
+        
         inline int planes() const
         {
             return _info.planes;
@@ -174,6 +201,46 @@ namespace Frame
     };
     
     
+    struct Plane
+    {
+        Plane(uint8_t* aBuff,
+              int      aLineSize)
+            :
+            buff     { aBuff     },
+            lineSize { aLineSize }
+        {
+        
+        }
+        
+        uint8_t* buff;
+        int      lineSize;
+    };
+    
+    
+    struct ConstPlane
+    {
+        ConstPlane(const uint8_t* aBuff,
+                   int            aLineSize)
+            :
+            buff     { aBuff     },
+            lineSize { aLineSize }
+        {
+        
+        }
+        
+        ConstPlane(const Plane& aSrc)
+            :
+            buff     { aSrc.buff     },
+            lineSize { aSrc.lineSize }
+        {
+
+        }
+
+        const uint8_t* buff;
+        int            lineSize;
+    };
+    
+    
     class Frame
     {
     public:
@@ -185,8 +252,48 @@ namespace Frame
         {
         
         }
-
-
+        
+        
+        Frame(const VSFrame& aFrame,
+              const Info&    aInfo)
+            :
+            _frame { const_cast<VSFrame&>(aFrame) },
+            _info  { aInfo                        }
+        {
+        
+        }
+        
+        
+        /**
+         * @brief   Copy frame
+         * @param   aSrc    Source frame
+         * @return  This frame
+         */
+        Frame& operator=(const Frame& aSrc);
+        
+        
+        /**
+         * @brief   Get requested plane buffer
+         * @param   aPlane  Plane IDX
+         * @return  Plane buffer
+         */
+        inline Plane operator[](std::size_t aPlane)
+        {
+            return Plane(_frame.data[aPlane], _frame.linesize[aPlane]);
+        }
+        
+        
+        /**
+         * @brief   Get requested plane buffer
+         * @param   aPlane  Plane IDX
+         * @return  Plane buffer
+         */
+        inline ConstPlane operator[](std::size_t aPlane) const
+        {
+            return ConstPlane(_frame.data[aPlane], _frame.linesize[aPlane]);
+        }
+        
+        
         /**
          * @brief   Allocates memory for a frame
          */
@@ -194,9 +301,21 @@ namespace Frame
         
         
         /**
-         * @brief   Zero initialization
+         * @brief   Forget all layers but don't unallocate then
          */
-        void clear();
+        void forget();
+        
+        
+        /**
+         * @brief   Tell us if frame is empty (forgotten)
+         * @return  Result
+         * @retval  true    Frame is empty (forgotten)
+         * @retval  false   There are data in frame
+         */
+        inline bool empty() const
+        {
+            return (nullptr == _frame.data[0]);
+        }
         
         
         /**
@@ -216,10 +335,6 @@ namespace Frame
 }
 
 
-/// returns true if frame is null (data[0]==0)
-int vsFrameIsNull(const VSFrame* frame);
-
-
 /// compares two frames for identity (based in data[0])
 int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
 
@@ -227,10 +342,6 @@ int vsFramesEqual(const VSFrame* frame1, const VSFrame* frame2);
 /// copies the given plane number from src to dest
 void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
                       const VSFrameInfo* fi, int plane);
-
-
-/// copies src to dest
-void vsFrameCopy(VSFrame* dest, const VSFrame* src, const VSFrameInfo* fi);
 
 
 /** fills the data pointer so that it corresponds to the img saved in the linear buffer.
