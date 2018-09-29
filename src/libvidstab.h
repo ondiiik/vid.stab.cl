@@ -113,17 +113,17 @@ VSMotionDetectConfig;
 /**
    A vector for arbitrary elements that resizes
 */
-typedef struct VSVector
+typedef struct _VSVector
 {
-    void** data;
-    int    buffersize;
-    int    nelems;
+    void** _data;
+    int    _buffersize;
+    int    _nelems;
 }
-VSVector;
+_VSVector;
 
 
-typedef VSVector LocalMotions;
-typedef VSVector VSManyLocalMotions;
+typedef _VSVector LocalMotions;
+typedef _VSVector VSManyLocalMotions;
 
 
 /** frame data according to frameinfo
@@ -471,7 +471,7 @@ extern int vsTransformFinish(struct VSTransformData* td);
  *     VS_OK on success,
  *     VS_ERROR on error.
  */
-extern int vs_vector_del(VSVector* V);
+extern int vs_vector_del(_VSVector* V);
 
 
 /**

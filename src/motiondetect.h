@@ -287,42 +287,30 @@ namespace VidStab
                                      _BoxBlurColorMode   aColormode);
                                      
                                      
-        void _blurBoxHV(unsigned char*       dst,
-                        unsigned char*       tmp,
-                        const unsigned char* src,
-                        int                  width,
-                        int                  height,
-                        int                  dst_strive,
-                        int                  src_strive,
+        void _blurBoxHV(Frame::Plane&        dst,
+                        Frame::Plane&        tmp,
+                        const Frame::Plane&  src,
                         int                  size);
                         
                         
-        static void _blurBoxH(unsigned char*       dst,
-                              const unsigned char* src,
-                              int                  width,
-                              int                  height,
-                              int                  dst_strive,
-                              int                  src_strive,
-                              int                  size);
-                              
-                              
-        static void _blurBoxV(unsigned char*       dst,
-                              const unsigned char* src,
-                              int                  width,
-                              int                  height,
-                              int                  dst_strive,
-                              int                  src_strive,
-                              int                  size);
-                              
-                              
+        void _blurBoxH(Frame::Plane&        dst,
+                       const Frame::Plane&  src,
+                       int                  size);
+                       
+                       
+        void _blurBoxV(Frame::Plane&        dst,
+                       const Frame::Plane&  src,
+                       int                  size);
+                       
+                       
         /**
          * @brief       Detect motion
          *
          * @param[out]  aMotions    Motions vector
          * @param[in]   aFrame      Current frame
          */
-        void _detect(LocalMotions* aMotions,
-                     VSFrame&      aFrame);
+        void _detect(LocalMotions*       aMotions,
+                     const Frame::Frame& aFrame);
                      
                      
         /**
@@ -366,7 +354,7 @@ namespace VidStab
            frame some fields
            We may simplify here by using random. People want high quality, so typically we use all.
         */
-        VSVector _selectfields(VSMotionDetectFields* fs,
+        _VSVector _selectfields(VSMotionDetectFields* fs,
                                contrastSubImgFunc    contrastfunc);
                                
                                

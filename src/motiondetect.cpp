@@ -439,8 +439,8 @@ namespace VidStab
 #endif
     {
         _initMsg();
-        _initOpenCl();
         _initVsDetect(aConf, aFi);
+        _initOpenCl();
     }
     
     
@@ -570,18 +570,18 @@ namespace VidStab
             throw VD_EXCEPTION("Frame info is NULL!");
         }
         
-        conf = *aConf;
-        fiInfoC   = *aFi;
+        conf    = *aConf;
+        fiInfoC = *aFi;
         
         
         /*
          * Is requested pixel format supported by us?
          */
-        if ((fiInfoC.pFormat <= PF_NONE)   ||
-            (fiInfoC.pFormat == PF_PACKED) ||
-            (fiInfoC.pFormat >= PF_NUMBER))
+        if ((fi.pixFormat() <= PF_NONE)   ||
+            (fi.pixFormat() == PF_PACKED) ||
+            (fi.pixFormat() >= PF_NUMBER))
         {
-            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fiInfoC.pFormat);
+            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
         }
         
         
@@ -594,10 +594,6 @@ namespace VidStab
 #endif
         
         
-        Frame::Info  finf   { fiInfoC             };
-        Frame::Frame fcurrT { _currTmpFrameC,  finf };
-        Frame::Frame fcurrP { _currPrepFrameC, finf };
-        
         prev.alloc();
         currTmp.alloc();
         currPrep.alloc();
@@ -607,19 +603,23 @@ namespace VidStab
         conf.shakiness  = VS_MIN(10, VS_MAX(1, conf.shakiness));
         conf.accuracy   = VS_MIN(15, VS_MAX(1, conf.accuracy));
         
-        if (conf.accuracy < conf.shakiness / 2)
+        if ((conf.accuracy) < (conf.shakiness / 2))
         {
-            vs_log_info(conf.modName, "[filter] Accuracy should not be lower than shakiness/2 -- fixed");
             conf.accuracy = conf.shakiness / 2;
+            vs_log_info(conf.modName,
+                        "[filter] Accuracy should not be lower than shakiness / 2 -- fixed to %i\n",
+                        conf.accuracy);
         }
         
-        if (conf.accuracy > 9 && conf.stepSize > 6)
+        if ((conf.accuracy > 9) && (conf.stepSize > 6))
         {
-            vs_log_info(conf.modName, "[filter] For high accuracy use lower stepsize  -- set to 6 now");
-            conf.stepSize = 6; // maybe 4
+            conf.stepSize = 6;
+            vs_log_info(conf.modName,
+                        "[filter] For high accuracy use lower stepsize  -- fixed to %i now\n",
+                        conf.stepSize);
         }
         
-        int minDimension  = VS_MIN(fiInfoC.width, fiInfoC.height);
+        int minDimension  = VS_MIN(fi.width(), fi.height());
         //  shift: shakiness 1: height/40; 10: height/4
         //  maxShift = VS_MAX(4,(minDimension*conf.shakiness)/40);
         //  size: shakiness 1: height/40; 10: height/6 (clipped)
@@ -713,7 +713,7 @@ namespace VidStab
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-        VSVector goodflds = _selectfields(fields, contrastfunc);
+        _VSVector goodflds = _selectfields(fields, contrastfunc);
         
         
         OMP_SET_THREADS(conf.numThreads)
@@ -747,7 +747,7 @@ namespace VidStab
         
         if (!firstFrame)
         {
-            _detect(aMotions, aFrame);
+            _detect(aMotions, frm);
         }
         else
         {
@@ -824,16 +824,9 @@ namespace VidStab
         Frame::Plane planeSrc { aSrc[     0 ] };
         Frame::Plane planeBuf { currTmp[  0 ] };
         
-        _blurBoxHV(planeDst.buff(),
-                   planeBuf.buff(),
-                   planeSrc.buff(),
-                   fi.width(),
-                   fi.height(),
-                   planeBuf.lineSize(),
-                   planeSrc.lineSize(),
-                   aStepSize);
-                   
-                   
+        _blurBoxHV(planeDst, planeBuf, planeSrc, aStepSize);
+        
+        
         int size2 = aStepSize / 2 + 1; // odd and larger than 0
         
         switch (aColormode)
@@ -848,14 +841,7 @@ namespace VidStab
                         planeSrc = aSrc[    plane ];
                         planeBuf = currTmp[ plane ];
                         
-                        _blurBoxHV(planeDst.buff(),
-                                   planeBuf.buff(),
-                                   planeSrc.buff(),
-                                   fi.width(),
-                                   fi.height(),
-                                   planeBuf.lineSize(),
-                                   planeSrc.lineSize(),
-                                   size2);
+                        _blurBoxHV(planeDst, planeBuf, planeSrc, size2);
                     }
                 }
                 break;
@@ -880,27 +866,23 @@ namespace VidStab
     }
     
     
-    void VSMD::_blurBoxHV(unsigned char*       aDst,
-                          unsigned char*       aTmp,
-                          const unsigned char* aSrc,
-                          int                  aWidth,
-                          int                  aHeight,
-                          int                  aDstStrive,
-                          int                  aSrcStrive,
+    void VSMD::_blurBoxHV(Frame::Plane&        aDst,
+                          Frame::Plane&        aTmp,
+                          const Frame::Plane&  aSrc,
                           int                  aSize)
     {
 #if defined(USE_OPENCL)
         /*
          * Prepare CL buffers
          */
-        const std::size_t size = std::size_t(aWidth * aHeight * sizeof(aDst[0]));
+        const std::size_t size = std::size_t(fi.width() * fi.height());
         
         int args[]
         {
-            aWidth,
-            aHeight,
-            aDstStrive,
-            aSrcStrive,
+            fi.width(),
+            fi.height(),
+            aDst.lineSize(),
+            aSrc.lineSize(),
             aSize
         };
         
@@ -920,14 +902,14 @@ namespace VidStab
         OpenCl::CommandQueue clQ(*_clContext, _clDevice);
         
         clQ.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
-        clQ.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc);
+        clQ.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc.buff());
         
         OpenCl::Kernel blurH(*_clProgram, "blurH");
         blurH.setArg(0, buffer_tmp);
         blurH.setArg(1, buffer_src);
         blurH.setArg(2, buffer_args);
         
-        clQ.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(aHeight));
+        clQ.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(fi.height()));
         
         
         /*
@@ -938,32 +920,28 @@ namespace VidStab
         blurV.setArg(1, buffer_tmp);
         blurV.setArg(2, buffer_args);
         
-        clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(aWidth));
+        clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(fi.width()));
         
-        clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst);
+        clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst.buff());
         
 #else  /* defined(USE_OPENCL) */
-        
-        _blurBoxH(aTmp, aSrc, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
-        _blurBoxV(aDst, aTmp, aWidth, aHeight, aDstStrive, aSrcStrive, aSize);
+
+        _blurBoxH(aTmp, aSrc, aSize);
+        _blurBoxV(aDst, aTmp, aSize);
         
 #endif /* defined(USE_OPENCL) */
     }
     
     
-    void VSMD::_blurBoxH(unsigned char*       dst,
-                         const unsigned char* src,
-                         int                  width,
-                         int                  height,
-                         int                  dst_strive,
-                         int                  src_strive,
+    void VSMD::_blurBoxH(Frame::Plane&        dst,
+                         const Frame::Plane&  src,
                          int                  size)
     {
         const int size2 = size / 2; /* Size of one side of the kernel without center */
         
-        for (int y = 0; y < height; ++y)
+        for (int y = 0; y < fi.height(); ++y)
         {
-            const unsigned char* inBegin = src + (y * src_strive);
+            const unsigned char* inBegin = src.buff() + (y * src.lineSize());
             const unsigned char* inEnd   = inBegin + size2;
             unsigned int         acc     = (*inBegin) * (size2 + 1);
             
@@ -974,9 +952,9 @@ namespace VidStab
             }
             
             /* Go through the image */
-            unsigned char* out = dst + (y * dst_strive);
+            unsigned char* out = dst.buff() + (y * dst.lineSize());
             
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < fi.width(); ++x)
             {
                 acc = acc + inEnd[0] - inBegin[0];
                 
@@ -985,7 +963,7 @@ namespace VidStab
                     ++inBegin;
                 }
                 
-                if (x < (width - size2 - 1))
+                if (x < (fi.width() - size2 - 1))
                 {
                     ++inEnd;
                 }
@@ -997,54 +975,50 @@ namespace VidStab
     }
     
     
-    void VSMD::_blurBoxV(unsigned char*       dst,
-                         const unsigned char* src,
-                         int                  width,
-                         int                  height,
-                         int                  dst_strive,
-                         int                  src_strive,
+    void VSMD::_blurBoxV(Frame::Plane&        dst,
+                         const Frame::Plane&  src,
                          int                  size)
     {
         const int size2 = size / 2; // size of one side of the kernel without center
         
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < fi.width(); x++)
         {
-            const unsigned char* start   = src + x;                // start and end of kernel
+            const unsigned char* start   = src.buff() + x;         // start and end of kernel
             const unsigned char* end     = start;
-            unsigned char*       current = dst + x;               // current destination pixel
+            unsigned char*       current = dst.buff() + x;         // current destination pixel
             int                  acc     = (*start) * (size2 + 1); // left half of kernel with first pixel
             
             // right half of kernel
             for (int k = 0; k < size2; k++)
             {
                 acc += (*end);
-                end += src_strive;
+                end += src.lineSize();
             }
             
             // go through the image
-            for (int y = 0; y < height; y++)
+            for (int y = 0; y < fi.height(); y++)
             {
                 acc = acc - (*start) + (*end);
                 
                 if (y > size2)
                 {
-                    start += src_strive;
+                    start += src.lineSize();
                 }
                 
-                if (y < height - size2 - 1)
+                if (y < fi.height() - size2 - 1)
                 {
-                    end += src_strive;
+                    end += src.lineSize();
                 }
                 
                 *current = acc / size;
-                current += dst_strive;
+                current += dst.lineSize();
             }
         }
     }
     
     
-    void VSMD::_detect(LocalMotions* aMotions,
-                       VSFrame&      aFrame)
+    void VSMD::_detect(LocalMotions*        aMotions,
+                       const Frame::Frame&  aFrame)
     {
         LocalMotions motionsfine;
         LocalMotions motionscoarse;
@@ -1094,11 +1068,16 @@ namespace VidStab
         
         if (conf.show)
         {
+            Frame::Plane plane
+            {
+                aFrame[0]
+            };
+            
             Frame::Canvas canvas
             {
-                aFrame.data[0],
-                aFrame.linesize[0],
-                fiInfoC.height,
+                plane.buff(),
+                plane.lineSize(),
+                fi.height(),
                 1
             };
             
@@ -1232,10 +1211,10 @@ namespace VidStab
      * some fields. We may simplify here by using random. People want high
      * quality, so typically we use all.
      */
-    VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
+    _VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
                                  contrastSubImgFunc    contrastfunc)
     {
-        VSVector        goodflds;
+        _VSVector        goodflds;
         vs_vector_init(&goodflds, fs->fieldNum);
         
         

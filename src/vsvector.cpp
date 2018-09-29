@@ -27,101 +27,101 @@
 
 
 /*************************************************************************/
-int vs_vector_resize(VSVector* V, int newsize);
+int vs_vector_resize(_VSVector* V, int newsize);
 
 /*************************************************************************/
 
-int vs_vector_init(VSVector* V, int buffersize)
+int vs_vector_init(_VSVector* V, int buffersize)
 {
     assert(V);
 
     if (buffersize > 0)
     {
-        V->data = (void**)vs_zalloc(sizeof(void*)*buffersize);
-        if (!V->data)
+        V->_data = (void**)vs_zalloc(sizeof(void*)*buffersize);
+        if (!V->_data)
         {
             return VS_ERROR;
         }
     }
     else
     {
-        V->data = 0;
+        V->_data = 0;
         buffersize = 0;
     }
 
-    V->buffersize = buffersize;
-    V->nelems = 0;
+    V->_buffersize = buffersize;
+    V->_nelems = 0;
     return VS_OK;
 }
 
-int vs_vector_fini(VSVector* V)
+int vs_vector_fini(_VSVector* V)
 {
     assert(V);
-    if (V->data)
+    if (V->_data)
     {
-        vs_free(V->data);
+        vs_free(V->_data);
     }
-    V->data = 0;
-    V->buffersize = 0;
-    V->nelems = 0;
+    V->_data = 0;
+    V->_buffersize = 0;
+    V->_nelems = 0;
     return VS_OK;
 }
 
-int vs_vector_del(VSVector* V)
+int vs_vector_del(_VSVector* V)
 {
     vs_vector_zero(V);
     return vs_vector_fini(V);
 }
 
-int vs_vector_zero(VSVector* V)
+int vs_vector_zero(_VSVector* V)
 {
     assert(V);
-    assert(V->nelems < 1 || V->data);
+    assert(V->_nelems < 1 || V->_data);
     int i;
-    for (i = 0; i < V->nelems; i++)
+    for (i = 0; i < V->_nelems; i++)
     {
-        if (V->data[i])
+        if (V->_data[i])
         {
-            vs_free(V->data[i]);
+            vs_free(V->_data[i]);
         }
     }
-    V->nelems = 0;
+    V->_nelems = 0;
     return VS_OK;
     
 }
 
-int vs_vector_size(const VSVector* V)
+int vs_vector_size(const _VSVector* V)
 {
     assert(V);
-    return V->nelems;
+    return V->_nelems;
 }
 
 
-int vs_vector_append(VSVector* V, void* data)
+int vs_vector_append(_VSVector* V, void* data)
 {
     assert(V && data);
-    if (!V->data || V->buffersize < 1)
+    if (!V->_data || V->_buffersize < 1)
     {
         vs_vector_init(V, 4);
     }
-    if (V->nelems >= V->buffersize)
+    if (V->_nelems >= V->_buffersize)
     {
-        if (vs_vector_resize(V, V->buffersize * 2) != VS_OK)
+        if (vs_vector_resize(V, V->_buffersize * 2) != VS_OK)
         {
             return VS_ERROR;
         }
     }
-    V->data[V->nelems] = data;
-    V->nelems++;
+    V->_data[V->_nelems] = data;
+    V->_nelems++;
     return VS_OK;
 }
 
 
-int vs_vector_append_dup(VSVector* V, void* data, int data_size)
+int vs_vector_append_dup(_VSVector* V, void* data, int data_size)
 {
     assert(V && data);
 
-    if ((nullptr == V->data) || (V->buffersize < 1))
+    if ((nullptr == V->_data) || (V->_buffersize < 1))
     {
         vs_vector_init(V, 4);
     }
@@ -138,29 +138,29 @@ int vs_vector_append_dup(VSVector* V, void* data, int data_size)
 }
 
 
-void* vs_vector_get(const VSVector* V, int pos)
+void* vs_vector_get(const _VSVector* V, int pos)
 {
-    assert(V && V->data);
-    if (pos < 0 || pos >= V->nelems)
+    assert(V && V->_data);
+    if (pos < 0 || pos >= V->_nelems)
     {
         return 0;
     }
     else
     {
-        return V->data[pos];
+        return V->_data[pos];
     }
 }
 
-void* vs_vector_set(VSVector* V, int pos, void* data)
+void* vs_vector_set(_VSVector* V, int pos, void* data)
 {
     assert(V && data && pos >= 0);
-    if (!V->data || V->buffersize < 1)
+    if (!V->_data || V->_buffersize < 1)
     {
         vs_vector_init(V, 4);
     }
-    if (V->buffersize <= pos)
+    if (V->_buffersize <= pos)
     {
-        int nsize = V->buffersize;
+        int nsize = V->_buffersize;
         while (nsize <= pos)
         {
             nsize *= 2;
@@ -170,21 +170,21 @@ void* vs_vector_set(VSVector* V, int pos, void* data)
             return 0;    // insuficient error handling here! VS_ERROR
         }
     }
-    if (pos >= V->nelems) // insert after end of vector
+    if (pos >= V->_nelems) // insert after end of vector
     {
         int i;
-        for (i = V->nelems; i < pos + 1; i++)
+        for (i = V->_nelems; i < pos + 1; i++)
         {
-            V->data[i] = 0;
+            V->_data[i] = 0;
         }
-        V->nelems = pos + 1;
+        V->_nelems = pos + 1;
     }
-    void* old = V->data[pos];
-    V->data[pos] = data;
+    void* old = V->_data[pos];
+    V->_data[pos] = data;
     return old;
 }
 
-void* vs_vector_set_dup(VSVector* V, int pos, void* data, int data_size)
+void* vs_vector_set_dup(_VSVector* V, int pos, void* data, int data_size)
 {
     void* d = vs_malloc(data_size);
     if (!d)
@@ -196,20 +196,20 @@ void* vs_vector_set_dup(VSVector* V, int pos, void* data, int data_size)
 }
 
 
-int vs_vector_resize(VSVector* V, int newsize)
+int vs_vector_resize(_VSVector* V, int newsize)
 {
-    assert(V && V->data);
+    assert(V && V->_data);
     if (newsize < 1)
     {
         newsize = 1;
     }
-    V->data = (void**)vs_realloc(V->data, newsize * sizeof(void*));
-    V->buffersize = newsize;
-    if (V->nelems > V->buffersize)
+    V->_data = (void**)vs_realloc(V->_data, newsize * sizeof(void*));
+    V->_buffersize = newsize;
+    if (V->_nelems > V->_buffersize)
     {
-        V->nelems = V->buffersize;
+        V->_nelems = V->_buffersize;
     }
-    if (!V->data)
+    if (!V->_data)
     {
         vs_log_error("VS_Vector", "out of memory!");
         return VS_ERROR;
@@ -220,29 +220,29 @@ int vs_vector_resize(VSVector* V, int newsize)
     }
 }
 
-VSVector vs_vector_filter(const VSVector* V, short (*pred)(void*, void*), void* param)
+_VSVector vs_vector_filter(const _VSVector* V, short (*pred)(void*, void*), void* param)
 {
-    VSVector result;
+    _VSVector result;
     assert(V);
-    vs_vector_init(&result, V->nelems);
-    for (int i = 0; i < V->nelems; i++)
+    vs_vector_init(&result, V->_nelems);
+    for (int i = 0; i < V->_nelems; i++)
     {
-        if (pred(param, V->data[i]))
+        if (pred(param, V->_data[i]))
         {
-            vs_vector_append(&result, V->data[i]);
+            vs_vector_append(&result, V->_data[i]);
         }
     }
     return result;
 }
 
-VSVector vs_vector_concat(const VSVector* V1, const VSVector* V2)
+_VSVector vs_vector_concat(const _VSVector* V1, const _VSVector* V2)
 {
-    VSVector result;
+    _VSVector result;
     assert(V1 && V2);
-    vs_vector_init(&result, V1->nelems + V2->nelems);
-    memcpy(result.data, V1->data, sizeof(void*)* V1->nelems);
-    memcpy(result.data + V1->nelems, V2->data, sizeof(void*)* V2->nelems);
-    result.nelems = V1->nelems + V2->nelems;
+    vs_vector_init(&result, V1->_nelems + V2->_nelems);
+    memcpy(result._data, V1->_data, sizeof(void*)* V1->_nelems);
+    memcpy(result._data + V1->_nelems, V2->_data, sizeof(void*)* V2->_nelems);
+    result._nelems = V1->_nelems + V2->_nelems;
     return result;
 }
 

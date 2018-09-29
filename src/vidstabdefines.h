@@ -23,13 +23,8 @@
  *
  *
 */
-#include <stddef.h>
-#include <stdlib.h>
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstddef>
+#include <cstdlib>
 
 
 #ifdef __GNUC__
@@ -69,8 +64,3 @@ extern "C" {
     vs_log(VS_INFO_TYPE, tag, format , ## args)
 #define vs_log_msg(tag, format, args...) \
     vs_log(VS_MSG_TYPE, tag, format , ## args)
-
-
-#ifdef __cplusplus
-}
-#endif

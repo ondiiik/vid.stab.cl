@@ -62,16 +62,6 @@ public:
     int size;
 };
 
-extern "C" {
-#endif
-
-
-typedef VSVector LocalMotions;
-
-
-#ifdef __cplusplus
-}
-
 
 /* structure to hold information about local motion.
  */

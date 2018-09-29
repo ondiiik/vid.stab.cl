@@ -21,7 +21,6 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
 #include "frameinfo.h"
 #include "vidstabdefines.h"
 #include "common_cutils.h"
@@ -34,65 +33,6 @@
 namespace
 {
     const char moduleName[] { "frame" };
-}
-
-
-int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pFormat)
-{
-    fi->pFormat = pFormat;
-    fi->width = width;
-    fi->height = height;
-    fi->planes = 3;
-    fi->log2ChromaW = 0;
-    fi->log2ChromaH = 0;
-    fi->bytesPerPixel = 1;
-    assert(width % 2 == 0 && height % 2 == 0);
-    switch (pFormat)
-    {
-        case PF_GRAY8:
-            fi->planes = 1;
-            break;
-        case PF_YUV420P:
-            fi->log2ChromaW = 1;
-            fi->log2ChromaH = 1;
-            break;
-        case PF_YUV422P:
-            fi->log2ChromaW = 1;
-            fi->log2ChromaH = 0;
-            break;
-        case PF_YUV444P:
-            break;
-        case PF_YUV410P:
-            fi->log2ChromaW = 2;
-            fi->log2ChromaH = 2;
-            break;
-        case PF_YUV411P:
-            fi->log2ChromaW = 2;
-            fi->log2ChromaH = 0;
-            break;
-        case PF_YUV440P:
-            fi->log2ChromaW = 0;
-            fi->log2ChromaH = 1;
-            break;
-        case PF_YUVA420P:
-            fi->log2ChromaW = 1;
-            fi->log2ChromaH = 1;
-            fi->planes = 4;
-            break;
-        case PF_RGB24:
-        case PF_BGR24:
-            fi->bytesPerPixel = 3;
-            fi->planes = 0;
-            break;
-        case PF_RGBA:
-            fi->bytesPerPixel = 4;
-            fi->planes = 0;
-            break;
-        default:
-            fi->pFormat = PF_GRAY8;
-            return 0;
-    }
-    return 1;
 }
 
 
@@ -251,3 +191,75 @@ namespace Frame
     }
 }
 
+
+int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pFormat)
+{
+    fi->pFormat       = pFormat;
+    fi->width         = width;
+    fi->height        = height;
+    fi->planes        = 3;
+    fi->log2ChromaW   = 0;
+    fi->log2ChromaH   = 0;
+    fi->bytesPerPixel = 1;
+    
+    assert(((width % 2) == 0) && ((height % 2) == 0));
+    
+    
+    switch (pFormat)
+    {
+        case PF_GRAY8:
+            fi->planes = 1;
+            break;
+            
+        case PF_YUV420P:
+            fi->log2ChromaW = 1;
+            fi->log2ChromaH = 1;
+            break;
+            
+        case PF_YUV422P:
+            fi->log2ChromaW = 1;
+            fi->log2ChromaH = 0;
+            break;
+            
+        case PF_YUV444P:
+            break;
+            
+        case PF_YUV410P:
+            fi->log2ChromaW = 2;
+            fi->log2ChromaH = 2;
+            break;
+            
+        case PF_YUV411P:
+            fi->log2ChromaW = 2;
+            fi->log2ChromaH = 0;
+            break;
+            
+        case PF_YUV440P:
+            fi->log2ChromaW = 0;
+            fi->log2ChromaH = 1;
+            break;
+            
+        case PF_YUVA420P:
+            fi->log2ChromaW = 1;
+            fi->log2ChromaH = 1;
+            fi->planes      = 4;
+            break;
+            
+        case PF_RGB24:
+        case PF_BGR24:
+            fi->bytesPerPixel = 3;
+            fi->planes        = 0;
+            break;
+            
+        case PF_RGBA:
+            fi->bytesPerPixel = 4;
+            fi->planes        = 0;
+            break;
+            
+        default:
+            fi->pFormat = PF_GRAY8;
+            return 0;
+    }
+    
+    return 1;
+}
