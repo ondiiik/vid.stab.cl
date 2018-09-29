@@ -595,13 +595,12 @@ namespace VidStab
         
         
         Frame::Info  finf   { fiInfoC             };
-        Frame::Frame fprev  { _prevFrameC,     finf };
         Frame::Frame fcurrT { _currTmpFrameC,  finf };
         Frame::Frame fcurrP { _currPrepFrameC, finf };
         
-        fprev.alloc();
-        fcurrT.forget();
-        fcurrP.forget();
+        prev.alloc();
+        currTmp.alloc();
+        currPrep.alloc();
         
         frameNum        = 0;
         
@@ -638,9 +637,6 @@ namespace VidStab
         
         _initFields(&fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
         _initFields(&fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
-        
-        fcurrP.alloc();
-        fcurrT.alloc();
     }
     
     
@@ -745,7 +741,9 @@ namespace VidStab
     void VSMD::operator ()(LocalMotions* aMotions,
                            VSFrame&      aFrame)
     {
-        _blur(aFrame);
+        Frame::Frame frm { aFrame, fi };
+        
+        _blur(frm);
         
         if (!firstFrame)
         {
@@ -769,7 +767,7 @@ namespace VidStab
     }
     
     
-    void VSMD::_blur(const VSFrame& aFrame)
+    void VSMD::_blur(const Frame::Frame& aFrame)
     {
         int stepSize;
         
@@ -792,20 +790,11 @@ namespace VidStab
         }
         
         
-        Frame::Frame f
-        {
-            *(_blurBox
-            (
-                _currPrepFrameC,
-                aFrame,
-                _currTmpFrameC,
-                fiInfoC,
-                stepSize,
-                _BoxBlurNoColor
-            )),
-            fi
-        };
-        
+        const Frame::Frame& f = _blurBox(aFrame,
+                                         stepSize,
+                                         _BoxBlurNoColor);
+                                         
+                                         
         /*
          * Physical copy of instance is required instead of copy operator
          */
@@ -813,47 +802,35 @@ namespace VidStab
     }
     
     
-    const VSFrame* VSMD::_blurBox(VSFrame&           aDst,
-                                  const VSFrame&     aSrc,
-                                  VSFrame&           aBuffer,
-                                  const VSFrameInfo& aFi,
-                                  unsigned int       aStepSize,
-                                  _BoxBlurColorMode  aColormode)
+    const Frame::Frame& VSMD::_blurBox(const Frame::Frame& aSrc,
+                                       unsigned int        aStepSize,
+                                       _BoxBlurColorMode   aColormode)
     {
         if (aStepSize < 2)
         {
-            return &aSrc;
+            return aSrc;
         }
         
         
-        VSFrame     buf;
-        int         localbuffer { 0   };
-        Frame::Info fi          { aFi };
-        
-        if (&aBuffer == nullptr)
-        {
-            Frame::Frame f { buf, fi };
-            f.alloc();
-            localbuffer = 1;
-        }
-        else
-        {
-            buf = aBuffer;
-        }
+        const Frame::Info& fi = aSrc.info();
         
         
         // odd and larger than 2 and maximally half of smaller image dimension
         aStepSize  = VS_CLAMP(aStepSize | 1U,
                               3,
-                              unsigned(VS_MIN(aFi.height / 2, aFi.width / 2)));
+                              unsigned(VS_MIN(fi.height() / 2, fi.width() / 2)));
                               
-        _blurBoxHV(aDst.data[0],
-                   buf.data[0],
-                   aSrc.data[0],
-                   aFi.width,
-                   aFi.height,
-                   buf.linesize[0],
-                   aSrc.linesize[0],
+        Frame::Plane planeDst { currPrep[ 0 ] };
+        Frame::Plane planeSrc { aSrc[     0 ] };
+        Frame::Plane planeBuf { currTmp[  0 ] };
+        
+        _blurBoxHV(planeDst.buff(),
+                   planeBuf.buff(),
+                   planeSrc.buff(),
+                   fi.width(),
+                   fi.height(),
+                   planeBuf.lineSize(),
+                   planeSrc.lineSize(),
                    aStepSize);
                    
                    
@@ -865,15 +842,19 @@ namespace VidStab
                 // color
                 if (size2 > 1)
                 {
-                    for (int plane = 1; plane < aFi.planes; ++plane)
+                    for (int plane = 1; plane < fi.planes(); ++plane)
                     {
-                        _blurBoxHV(aDst.data[plane],
-                                   buf.data[plane],
-                                   aSrc.data[plane],
-                                   fi.sublineHeight(plane),
-                                   fi.sublineWidth(plane),
-                                   buf.linesize[plane],
-                                   aSrc.linesize[plane],
+                        planeDst = currPrep[    plane ];
+                        planeSrc = aSrc[    plane ];
+                        planeBuf = currTmp[ plane ];
+                        
+                        _blurBoxHV(planeDst.buff(),
+                                   planeBuf.buff(),
+                                   planeSrc.buff(),
+                                   fi.width(),
+                                   fi.height(),
+                                   planeBuf.lineSize(),
+                                   planeSrc.lineSize(),
                                    size2);
                     }
                 }
@@ -882,9 +863,11 @@ namespace VidStab
                 
             case _BoxBlurKeepColor:
                 // copy both color channels
-                for (int plane = 1; plane < aFi.planes; plane++)
+                for (int plane = 1; plane < fi.planes(); plane++)
                 {
-                    vsFrameCopyPlane(&aDst, &aSrc, &aFi, plane);
+                    planeDst = currPrep[plane];
+                    planeSrc = aSrc[plane];
+                    planeDst = planeSrc;
                 }
                 break;
                 
@@ -893,13 +876,7 @@ namespace VidStab
                 break;
         }
         
-        if (localbuffer)
-        {
-            Frame::Frame f { buf, fi };
-            f.free();
-        }
-        
-        return &aDst;
+        return currPrep;
     }
     
     
@@ -1368,15 +1345,15 @@ namespace VidStab
                                              const Field*                field,
                                              int                         fieldnum)
     {
-        int               tx       = 0;
-        int               ty       = 0;
+        int                tx       = 0;
+        int                ty       = 0;
         
-        Frame::ConstPlane curr     = md->curr[0];
-        Frame::ConstPlane prev     = md->prev[0];
-        int               width1   = curr.lineSize / 3;
-        int               width2   = prev.lineSize / 3;
-        int               stepSize = fs->stepSize;
-        int               maxShift = fs->maxShift;
+        const Frame::Plane curr     = md->curr[0];
+        const Frame::Plane prev     = md->prev[0];
+        int                width1   = curr.lineSize() / 3;
+        int                width2   = prev.lineSize() / 3;
+        int                stepSize = fs->stepSize;
+        int                maxShift = fs->maxShift;
         
         Vec offset              = { 0, 0};
         LocalMotion lm          = null_localmotion();
@@ -1402,8 +1379,8 @@ namespace VidStab
          */
         Correlate correlate
         {
-            curr.buff,
-            prev.buff,
+            curr.buff(),
+            prev.buff(),
             *field,
             width1,
             width2,
@@ -1503,9 +1480,9 @@ namespace VidStab
                                              const Field*                field,
                                              int                         fieldnum)
     {
-        Vec               t      {             };
-        Frame::ConstPlane curr = { md->curr[0] };
-        Frame::ConstPlane prev = { md->prev[0] };
+        Vec                t      {             };
+        const Frame::Plane curr = { md->curr[0] };
+        const Frame::Plane prev = { md->prev[0] };
         
         /*
          * We only use the luminance part of the image
@@ -1540,11 +1517,11 @@ namespace VidStab
         
         Correlate correlate
         {
-            curr.buff,
-            prev.buff,
+            curr.buff(),
+            prev.buff(),
             *field,
-            curr.lineSize,
-            prev.lineSize,
+            curr.lineSize(),
+            prev.lineSize(),
             md->fiInfoC.height,
             1
         };
@@ -1671,11 +1648,11 @@ namespace VidStab
                                         const Field* field)
     {
         Frame::Plane pl { md->curr[0] };
-        int linesize2 = pl.lineSize / 3; // linesize in pixels
+        int linesize2 = pl.lineSize() / 3; // linesize in pixels
         
-        return (contrastSubImg(pl.buff + 0, field, linesize2, md->fiInfoC.height, 3) +
-                contrastSubImg(pl.buff + 1, field, linesize2, md->fiInfoC.height, 3) +
-                contrastSubImg(pl.buff + 2, field, linesize2, md->fiInfoC.height, 3)) / 3;
+        return (contrastSubImg(pl.buff() + 0, field, linesize2, md->fiInfoC.height, 3) +
+                contrastSubImg(pl.buff() + 1, field, linesize2, md->fiInfoC.height, 3) +
+                contrastSubImg(pl.buff() + 2, field, linesize2, md->fiInfoC.height, 3)) / 3;
     }
     
     
@@ -1685,14 +1662,14 @@ namespace VidStab
         Frame::Plane pl { md->curr[0] };
         
 #ifdef USE_SSE2
-        return contrastSubImg1_SSE(pl.buff,
+        return contrastSubImg1_SSE(pl.buff(),
                                    field,
-                                   pl.lineSize,
+                                   pl.lineSize(),
                                    md->fiInfoC.height);
 #else
-        return contrastSubImg(pl.buff,
+        return contrastSubImg(pl.buff(),
                               field,
-                              pl.lineSize,
+                              pl.lineSize(),
                               md->fiInfoC.height,
                               1);
 #endif

@@ -266,7 +266,7 @@ namespace VidStab
          *
          * @param   aFrame  Current frame
          */
-        void _blur(const VSFrame& aFrame);
+        void _blur(const Frame::Frame& aFrame);
         
         
         /**
@@ -274,7 +274,6 @@ namespace VidStab
          *
          * It uses an accumulator method and separate horizontal and vertical runs
          *
-         * @param   aDst        Destination buffer
          * @param   aSrc        Source buffer
          * @param   aBuffer     Frame buffer
          * @param   aFi         Frame information
@@ -283,14 +282,11 @@ namespace VidStab
          *
          * @return  Blured frame
          */
-        const VSFrame* _blurBox(VSFrame&           aDst,
-                                const VSFrame&     aSrc,
-                                VSFrame&           aBuffer,
-                                const VSFrameInfo& aFi,
-                                unsigned int       aStepSize,
-                                _BoxBlurColorMode  aColormode);
-                                
-                                
+        const Frame::Frame& _blurBox(const Frame::Frame& aSrc,
+                                     unsigned int        aStepSize,
+                                     _BoxBlurColorMode   aColormode);
+                                     
+                                     
         void _blurBoxHV(unsigned char*       dst,
                         unsigned char*       tmp,
                         const unsigned char* src,

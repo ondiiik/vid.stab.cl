@@ -24,8 +24,8 @@
  */
 #include "libvidstab.h"
 #include "common_vect.h"
-#include  <cstddef>
-#include  <cstring>
+#include <cstddef>
+#include <cstring>
 
 
 // use it to calculate the CHROMA sizes (rounding is correct)
@@ -34,6 +34,9 @@
 
 namespace Frame
 {
+    /**
+     * @brief   Represents information about frame
+     */
     class Info
     {
     public:
@@ -201,46 +204,83 @@ namespace Frame
     };
     
     
-    struct Plane
+    /*
+     * Forward declaration
+     */
+    class Frame;
+    
+    
+    /**
+     * @brief   Represents one frame plane
+     */
+    class Plane
     {
+    public:
         Plane(uint8_t* aBuff,
-              int      aLineSize)
+              int      aLineSize,
+              Frame&   aFrame,
+              int      aIdx)
             :
-            buff     { aBuff     },
-            lineSize { aLineSize }
+            _buff     { aBuff     },
+            _lineSize { aLineSize },
+            _frame    { aFrame    },
+            _idx      { aIdx      }
         {
         
         }
         
-        uint8_t* buff;
-        int      lineSize;
+        
+        Plane(uint8_t*     aBuff,
+              int          aLineSize,
+              const Frame& aFrame,
+              int          aIdx)
+            :
+            _buff     { aBuff                          },
+            _lineSize { aLineSize                      },
+            _frame    { *(const_cast<Frame*>(&aFrame)) },
+            _idx      { aIdx                           }
+        {
+        
+        }
+        
+        
+        /**
+         * @brief   Process copy of plane
+         * @param   aSrc    Source plane
+         * @return  This
+         */
+        Plane& operator=(const Plane& aSrc);
+
+
+        inline uint8_t* buff()
+        {
+            return _buff;
+        }
+        
+        
+        inline const uint8_t* buff() const
+        {
+            return _buff;
+        }
+        
+        
+        inline int lineSize() const
+        {
+            return _lineSize;
+        }
+        
+        
+    private:
+        uint8_t* _buff;
+        int      _lineSize;
+        Frame&   _frame;
+        int      _idx;
     };
     
     
-    struct ConstPlane
-    {
-        ConstPlane(const uint8_t* aBuff,
-                   int            aLineSize)
-            :
-            buff     { aBuff     },
-            lineSize { aLineSize }
-        {
-        
-        }
-        
-        ConstPlane(const Plane& aSrc)
-            :
-            buff     { aSrc.buff     },
-            lineSize { aSrc.lineSize }
-        {
-        
-        }
-        
-        const uint8_t* buff;
-        int            lineSize;
-    };
-    
-    
+    /**
+     * @brief   Represents frame
+     */
     class Frame
     {
     public:
@@ -290,7 +330,10 @@ namespace Frame
          */
         inline Plane operator[](std::size_t aPlane)
         {
-            return Plane(_frame.data[aPlane], _frame.linesize[aPlane]);
+            return Plane(_frame.data[aPlane],
+                         _frame.linesize[aPlane],
+                         *this,
+                         int(aPlane));
         }
         
         
@@ -299,9 +342,12 @@ namespace Frame
          * @param   aPlane  Plane IDX
          * @return  Plane buffer
          */
-        inline ConstPlane operator[](std::size_t aPlane) const
+        inline const Plane operator[](std::size_t aPlane) const
         {
-            return ConstPlane(_frame.data[aPlane], _frame.linesize[aPlane]);
+            return Plane(_frame.data[aPlane],
+                         _frame.linesize[aPlane],
+                         *this,
+                         int(aPlane));
         }
         
         
@@ -318,7 +364,7 @@ namespace Frame
         
         
         /**
-         * @brief   Forget all layers but don't unallocate then
+         * @brief   Forget all layers but don't free then
          */
         void forget();
         
@@ -352,19 +398,14 @@ namespace Frame
         void _init();
         
         
-        VSFrame&    _frame;
+        /**
+         * @brief   C frame reference
+         */
+        VSFrame& _frame;
+        
+        /**
+         * @brief   C frame information
+         */
         const Info& _info;
     };
 }
-
-
-/// copies the given plane number from src to dest
-void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
-                      const VSFrameInfo* fi, int plane);
-
-
-/** fills the data pointer so that it corresponds to the img saved in the linear buffer.
-    No copying is performed.
-    Do not call vsFrameFree() on it.
- */
-void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi);

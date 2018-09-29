@@ -96,61 +96,6 @@ int vsFrameInfoInit(VSFrameInfo* fi, int width, int height, VSPixelFormat pForma
 }
 
 
-void vsFrameCopyPlane(VSFrame* dest, const VSFrame* src,
-                      const VSFrameInfo* fi, int plane)
-{
-    assert(src->data[plane]);
-    
-    const Frame::Info  finf { *fi };
-    
-    int h = finf.sublineHeight(plane);
-    
-    if (src->linesize[plane] == dest->linesize[plane])
-    {
-        memcpy(dest->data[plane], src->data[plane], src->linesize[plane] *  h * sizeof(uint8_t));
-    }
-    else
-    {
-        uint8_t* d = dest->data[plane];
-        const uint8_t* s = src->data[plane];
-        
-        int w = finf.sublineWidth(plane);
-        
-        for (; h > 0; h--)
-        {
-            memcpy(d, s, sizeof(uint8_t) * w);
-            d += dest->linesize[plane];
-            s += src ->linesize[plane];
-        }
-    }
-}
-
-
-void vsFrameFillFromBuffer(VSFrame* frame, uint8_t* img, const VSFrameInfo* fi)
-{
-    assert(fi->planes > 0 && fi->planes <= 4);
-    
-    Frame::Frame frm  { *frame, *fi };
-    
-    frm.forget();
-    
-    long int offset = 0;
-    
-    for (int i = 0; i < fi->planes; i++)
-    {
-        auto& info {frm.info()};
-        
-        int w = info.sublineWidth( i);
-        int h = info.sublineHeight(i);
-        
-        frame->data[i]     = img + offset;
-        frame->linesize[i] = w * info.bpp();
-        
-        offset            += h * w * info.bpp();
-    }
-}
-
-
 namespace Frame
 {
     Frame::Frame(VSFrame&    aFrame,
@@ -254,6 +199,31 @@ namespace Frame
     }
     
     
+    Plane& Plane::operator =(const Plane& aSrc)
+    {
+        if (nullptr == _buff)
+        {
+            throw VidStab::VD_EXCEPTION("Can not copy to null plane!");
+        }
+        
+        if (nullptr == aSrc._buff)
+        {
+            throw VidStab::VD_EXCEPTION("Can not copy from null plane!");
+        }
+        
+        if (_frame.info() == aSrc._frame.info())
+        {
+            memcpy(_buff, aSrc._buff, _lineSize * _frame.info().height());
+        }
+        else
+        {
+            throw VidStab::VD_EXCEPTION("Incompatible planes to copy!");
+        }
+        
+        return *this;
+    }
+    
+    
     std::size_t Info::calcSize(unsigned aPlane) const
     {
         if (pixFormat() < PF_PACKED)
@@ -280,3 +250,4 @@ namespace Frame
         }
     }
 }
+
