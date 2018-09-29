@@ -61,7 +61,7 @@
  * C++ includes
  */
 #include "motiondetect.h"
-#include "md_exception.h"
+#include "vs_exception.h"
 #include "frame_canvas.h"
 
 #include "dbg_profiler.h"
@@ -92,6 +92,9 @@ contrast_idx;
 
 namespace
 {
+    const char moduleName[] = "Detect";
+
+
     class _Spiral
     {
     public:
@@ -305,9 +308,10 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
         VSMD* md   = new VSMD(modName, aMd, aConf, aFi);
         aMd->_inst = md;
     }
-    catch (exception& exc)
+    catch (std::exception& exc)
     {
-        vs_log_error(modName, "[filter] FAILURE: %s\n", exc.what());
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
         return VS_ERROR;
     }
     
@@ -354,9 +358,10 @@ int vsMotionDetection(VSMotionDetect* aMd,
     {
         md(aMotions, *aFrame);
     }
-    catch (exception& exc)
+    catch (std::exception& exc)
     {
-        vs_log_error(md.conf.modName, "\tFAILURE: %s\n", exc.what());
+        vs_log_error(md.conf.modName, "[filter] Failed!\n");
+        vs_log_error(md.conf.modName, "%s\n", exc.what());
         return VS_ERROR;
     }
     
@@ -494,7 +499,7 @@ namespace VidStab
         
         if (first)
         {
-            throw mdException("[OpenCL] There is no device available!");
+            throw VD_EXCEPTION("There is no device available!");
         }
         
         _clContext = new cl::Context({_clDevice});
@@ -511,7 +516,7 @@ namespace VidStab
         
         if (_clProgram->build({_clDevice}) != CL_SUCCESS)
         {
-            throw mdException("[OpenCL] OpenCL build error:\n%s\n", _clProgram->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+            throw VD_EXCEPTION("OpenCL build error:\n%s\n", _clProgram->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
         }
         
         vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
@@ -546,12 +551,12 @@ namespace VidStab
          */
         if (nullptr == aConf)
         {
-            throw mdException("Configuration structure is NULL!");
+            throw VD_EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw mdException("Frame info is NULL!");
+            throw VD_EXCEPTION("Frame info is NULL!");
         }
         
         conf = *aConf;
@@ -565,7 +570,7 @@ namespace VidStab
             (fi.pFormat == PF_PACKED) ||
             (fi.pFormat >= PF_NUMBER))
         {
-            throw mdException("Unsupported Pixel Format (%i)", fi.pFormat);
+            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fi.pFormat);
         }
         
         
@@ -581,7 +586,7 @@ namespace VidStab
         vsFrameAllocate(&prev, &fi);
         if (vsFrameIsNull(&prev))
         {
-            throw mdException("Allocation failed!");
+            throw VD_EXCEPTION("Allocation failed!");
         }
         
         vsFrameNull(&currPrep);
@@ -651,7 +656,7 @@ namespace VidStab
         
         if (!(fs->fields = (Field*)vs_malloc(sizeof(Field) * fs->fieldNum)))
         {
-            throw mdException("Allocation failed!");
+            throw VD_EXCEPTION("Allocation failed!");
         }
         else
         {

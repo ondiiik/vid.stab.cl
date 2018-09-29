@@ -28,10 +28,10 @@
 #ifdef __cplusplus
 
 
-#include "common_vect.h"
+#include "vs_vect.h"
 
 
-typedef Common::Vect<int> Vec;
+typedef VidStab::Vect<int> Vec;
 
 
 /**

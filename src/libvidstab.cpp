@@ -21,8 +21,8 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-
 #include "libvidstab.h"
+#include "vs_exception.h"
 #include "vidstabdefines.h"
 
 
@@ -30,6 +30,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
+
+
+namespace
+{
+    const char moduleName[] = "VidStab";
+}
 
 
 
@@ -65,6 +71,29 @@ static void* _zalloc(size_t size)
     return memset(malloc(size), 0, size);
 }
 
+
+void* operator new (size_t size)
+{
+    void* p = vs_malloc(size);
+    
+    if (nullptr == p)
+    {
+        throw VidStab::VD_EXCEPTION("Memory allocation failed!");
+    }
+    
+    return vs_malloc(size);
+}
+
+
+void operator delete (void* ptr) noexcept
+{
+    if (nullptr != ptr)
+    {
+        vs_free(ptr);
+    }
+}
+
+
 vs_malloc_t  vs_malloc  { malloc  };
 vs_realloc_t vs_realloc { realloc };
 vs_free_t    vs_free    { free    };
@@ -80,14 +109,3 @@ int       VS_MSG_TYPE   { 3       };
 
 int       VS_ERROR      { -1      };
 int       VS_OK         {  0      };
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- * End:
- *
- * vim: expandtab shiftwidth=4:
- */

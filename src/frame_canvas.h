@@ -7,9 +7,9 @@
 #pragma once
 
 
-#include "common_vect.h"
 #include <cstdint>
 #include <cmath>
+#include "vs_vect.h"
 
 
 namespace Frame
@@ -207,8 +207,8 @@ namespace Frame
         
         
         
-        const Common::Vect<int> dim;    /**< @brief Canvas dimensions */
-        uint8_t* const          buf;    /**< @brief Canvas buffer */
-        int      const          bpp;    /**< @brief Bytes per pixel */
+        const VidStab::Vect<int> dim;    /**< @brief Canvas dimensions */
+        uint8_t* const           buf;    /**< @brief Canvas buffer */
+        int      const           bpp;    /**< @brief Bytes per pixel */
     };
 }

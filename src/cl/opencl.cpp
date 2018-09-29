@@ -10,6 +10,12 @@
 #include "opencl.h"
 
 
+namespace
+{
+    const char moduleName[] = "OpenCL";
+}
+
+
 namespace OpenCl
 {
     Platform::Platform(const cl::Platform& aPlatform)
@@ -20,7 +26,7 @@ namespace OpenCl
         
         if ((CL_SUCCESS != result) && (CL_DEVICE_NOT_FOUND != result))
         {
-            throw exception("OpenCL get devices reported %i!", result);
+            throw exception("[OpenCL] Get devices reported %i!", result);
         }
     }
     
@@ -29,7 +35,7 @@ namespace OpenCl
     {
         if (aIdx >= _devices.size())
         {
-            throw exception("Device index %d out of range <%d - %d>!",
+            throw exception("[OpenCL] Device index %d out of range <%d - %d>!",
                             aIdx, 0, _devices.size());
         }
         
@@ -46,12 +52,12 @@ namespace OpenCl
         
         if (CL_SUCCESS != result)
         {
-            throw exception("OpenCL get platforms reported %i!", result);
+            throw exception("[OpenCL] Get platforms reported %i!", result);
         }
         
         if (0 == platforms.size())
         {
-            throw exception("No platforms found!");
+            throw exception("[OpenCL] No platforms found!");
         }
         
         for (auto& i : platforms)
@@ -66,7 +72,7 @@ namespace OpenCl
     {
         if (aIdx >= _platforms.size())
         {
-            throw exception("Platform index %d out of range <%d - %d>!",
+            throw exception("[OpenCL] Platform index %d out of range <%d - %d>!",
                             aIdx, 0, _platforms.size());
         }
         

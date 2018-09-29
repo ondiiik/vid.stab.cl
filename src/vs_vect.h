@@ -7,7 +7,7 @@
 #pragma once
 
 
-namespace Common
+namespace VidStab
 {
     /**
      * @brief   Represents x y coordinates vector
