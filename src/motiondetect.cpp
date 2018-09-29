@@ -41,14 +41,6 @@
 
 #ifdef USE_OMP
 #   include <omp.h>
-#   define  OMP_CRITICAL _Pragma("omp critical(localmotions_append)")
-#   define  OMP_SET_THREADS(_nt_) \
-    omp_set_num_threads(    _nt_); \
-    VSMD* md __attribute__((unused)) = this; \
-    _Pragma("omp parallel for shared(goodflds, md, localmotions)")
-#else
-#   define  OMP_CRITICAL
-#   define  OMP_SET_THREADS(_nt_)
 #endif
 
 #include "vidstabdefines.h"
@@ -79,15 +71,6 @@
 
 
 using namespace VidStab;
-using namespace std;
-
-
-typedef struct contrast_idx
-{
-    double contrast;
-    int    index;
-}
-contrast_idx;
 
 
 namespace
@@ -247,8 +230,8 @@ namespace
      * Compares contrast_idx structures respect to the contrast
      * (for sort function)
      */
-    bool _cmp_Contrast(const contrast_idx& ci1,
-                       const contrast_idx& ci2)
+    bool _cmp_Contrast(const VidStab::ContrastIdx& ci1,
+                       const VidStab::ContrastIdx& ci2)
     {
         return ci1.contrast < ci2.contrast;
     }
@@ -713,27 +696,34 @@ namespace VidStab
         LocalMotions    localmotions;
         vs_vector_init(&localmotions, fields->maxFields);
         
-        _VSVector goodflds = _selectfields(fields, contrastfunc);
+
+        std::vector<ContrastIdx> goodflds {};
+        _selectfields(goodflds, fields, contrastfunc);
         
         
-        OMP_SET_THREADS(conf.numThreads)
-        
-        for (int index = 0; index < vs_vector_size(&goodflds); index++)
+#if defined(USE_OMP)
+        omp_set_num_threads(conf.numThreads);
+        VSMD* md __attribute__((unused)) = this;
+        #pragma omp parallel for shared(goodflds, md, localmotions)
+#endif
+        for (int index = 0; index < int(goodflds.size()); index++)
         {
-            int         i = ((contrast_idx*)vs_vector_get(&goodflds, index))->index;
+            int i = goodflds[index].index;
             
             LocalMotion m = fieldfunc(this, fields, &fields->fields[i], i); // e.g. calcFieldTransPlanar
             
             if (m.match >= 0)
             {
-                m.contrast = ((contrast_idx*)vs_vector_get(&goodflds, index))->contrast;
-                OMP_CRITICAL
+                m.contrast = goodflds[index].contrast;
+
+#if defined(USE_OMP)
+                #pragma omp critical(localmotions_append)
+#endif
                 vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
             }
         }
         
-        vs_vector_del(&goodflds);
-        
+
         return localmotions;
     }
     
@@ -925,7 +915,7 @@ namespace VidStab
         clQ.enqueueReadBuffer(buffer_dst, CL_TRUE, 0, size, aDst.buff());
         
 #else  /* defined(USE_OPENCL) */
-
+        
         _blurBoxH(aTmp, aSrc, aSize);
         _blurBoxV(aDst, aTmp, aSize);
         
@@ -1211,17 +1201,14 @@ namespace VidStab
      * some fields. We may simplify here by using random. People want high
      * quality, so typically we use all.
      */
-    _VSVector VSMD::_selectfields(VSMotionDetectFields* fs,
-                                 contrastSubImgFunc    contrastfunc)
+    void VSMD::_selectfields(std::vector<ContrastIdx>& goodflds,
+                             VSMotionDetectFields*     fs,
+                             contrastSubImgFunc        contrastfunc)
     {
-        _VSVector        goodflds;
-        vs_vector_init(&goodflds, fs->fieldNum);
-        
-        
         /*
          * Calculate contrast for each field
          */
-        vector<contrast_idx> ci { size_t(fs->fieldNum) };
+        std::vector<ContrastIdx> ci { size_t(fs->fieldNum) };
         
         
         Field* f   = fs->fields;
@@ -1248,9 +1235,9 @@ namespace VidStab
          * We split all fields into row + 1 segments and take
          * from each segment the best fields.
          */
-        vector<contrast_idx> ci_segms { ci.begin(), ci.end()         };
-        int                  numsegms { fs->fieldRows + 1            };
-        int                  segmlen  { fs->fieldNum  / numsegms + 1 };
+        std::vector<ContrastIdx> ci_segms { ci.begin(), ci.end()         };
+        int                             numsegms { fs->fieldRows + 1            };
+        int                             segmlen  { fs->fieldNum  / numsegms + 1 };
         
         for (int i = 0; i < numsegms; i++)
         {
@@ -1263,7 +1250,7 @@ namespace VidStab
              */
             auto b = ci_segms.begin() + startindex;
             auto e = b +    (endindex - startindex);
-            sort(b,  e, _cmp_Contrast);
+            std::sort(b,  e, _cmp_Contrast);
             
             /*
              * Take maxfields / numsegms
@@ -1277,12 +1264,10 @@ namespace VidStab
                 
                 if (ci_segms[startindex + j].contrast > 0)
                 {
-                    vs_vector_append_dup(&goodflds,
-                                         &ci[ci_segms[startindex + j].index],
-                                         sizeof(contrast_idx));
                     /*
                      * Don't consider them in the later selection process
                      */
+                    goodflds.push_back(ci[ci_segms[startindex + j].index]);
                     ci_segms[startindex + j].contrast = 0;
                 }
             }
@@ -1293,7 +1278,7 @@ namespace VidStab
          * Split the frame list into rows+1 segments.
          * Check whether enough fields are selected.
          */
-        int remaining = fs->maxFields - vs_vector_size(&goodflds);
+        int remaining = fs->maxFields - goodflds.size();
         
         if (remaining > 0)
         {
@@ -1301,18 +1286,16 @@ namespace VidStab
              * Take the remaining from the leftovers
              */
             auto b = ci_segms.begin();
-            sort(b, b + fs->fieldNum, _cmp_Contrast);
+            std::sort(b, b + fs->fieldNum, _cmp_Contrast);
             
             for (int j = 0; j < remaining; j++)
             {
                 if (ci_segms[j].contrast > 0)
                 {
-                    vs_vector_append_dup(&goodflds, &ci_segms[j], sizeof(contrast_idx));
+                    goodflds.push_back(ci_segms[j]);
                 }
             }
         }
-        
-        return goodflds;
     }
     
     

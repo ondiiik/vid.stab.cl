@@ -25,11 +25,6 @@
 #include <stdio.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 /**
  * vs_vector_init:
  *     intializes a vector data structure.
@@ -178,19 +173,3 @@ void vs_array_free(VSArray a);
 
 /** print array to file */
 void vs_array_print(VSArray a, FILE* f);
-
-
-#ifdef __cplusplus
-}
-#endif
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- * End:
- *
- * vim: expandtab shiftwidth=4:
- */

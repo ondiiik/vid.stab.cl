@@ -35,6 +35,7 @@
 #include "cl/opencl.h"
 #include <string>
 #include <cassert>
+#include <vector>
 
 
 /** returns the default config
@@ -65,6 +66,16 @@ struct VSMotionDetectFields
 
 namespace VidStab
 {
+    /**
+     * @brief   Contrast index item
+     */
+    struct ContrastIdx
+    {
+        double contrast;    /**< @brief Contrast */
+        int    index;       /**< @brief Index */
+    };
+    
+    
     /**
      * @brief   Data structure for motion detection part of deshaking
      */
@@ -354,10 +365,11 @@ namespace VidStab
            frame some fields
            We may simplify here by using random. People want high quality, so typically we use all.
         */
-        _VSVector _selectfields(VSMotionDetectFields* fs,
-                               contrastSubImgFunc    contrastfunc);
-                               
-                               
+        void _selectfields(std::vector<ContrastIdx>& goodflds,
+                                                VSMotionDetectFields*     fs,
+                                                contrastSubImgFunc        contrastfunc);
+                                                
+                                                
         /**
          * @brief   Module name
          */
