@@ -12,7 +12,7 @@
 #include <cstring>
 
 
-#define VD_EXCEPTION(...) exception(moduleName, __LINE__, __VA_ARGS__)
+#define VD_EXCEPTION(...) exception(moduleName, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 namespace VidStab
@@ -24,6 +24,7 @@ namespace VidStab
     {
     public:
         exception(const char* aModule,
+                  const char* aFunc,
                   const int   aLine,
                   const char* aFmt, ...)
         {
@@ -31,7 +32,7 @@ namespace VidStab
             va_start(args, aFmt);
             
             
-            snprintf(_errTxt, _bufSize, "[%s]:%i\t", aModule, aLine);
+            snprintf(_errTxt, _bufSize, "[%s]\t%s:%i\n", aModule, aFunc, aLine);
             
             std::size_t idx = strnlen(_errTxt, _bufSize);
             

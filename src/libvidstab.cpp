@@ -72,7 +72,7 @@ static void* _zalloc(size_t size)
 }
 
 
-void* operator new (size_t size)
+void* operator new (std::size_t size)
 {
     void* p = vs_malloc(size);
     
@@ -81,11 +81,33 @@ void* operator new (size_t size)
         throw VidStab::VD_EXCEPTION("Memory allocation failed!");
     }
     
-    return vs_malloc(size);
+    return p;
+}
+
+
+void* operator new[](std::size_t size)
+{
+    void* p = vs_malloc(size);
+
+    if (nullptr == p)
+    {
+        throw VidStab::VD_EXCEPTION("Memory allocation failed!");
+    }
+
+    return p;
 }
 
 
 void operator delete (void* ptr) noexcept
+{
+    if (nullptr != ptr)
+    {
+        vs_free(ptr);
+    }
+}
+
+
+void operator delete[](void* ptr) noexcept
 {
     if (nullptr != ptr)
     {
