@@ -4,17 +4,10 @@ import re
 
 
 
-
 kernels  = [
                [
                    "blur_h.c",
                    [
-                       [ "BLUR_H___DST_STRIVE"  ],
-                       [ "BLUR_H___SRC_STRIVE"  ],
-                       [ "__BLUR_H___ARGS_CNT"  ],
-                       [ "BLUR_H___WIDTH"       ],
-                       [ "BLUR_H___HEIGHT"      ],
-                       [ "BLUR_H___SIZE"        ],
                        [ "dst_strive"           ],
                        [ "src_strive"           ],
                        [ "current"              ],
@@ -23,6 +16,7 @@ kernels  = [
                        [ "width"                ],
                        [ "size2"                ],
                        [ "size"                 ],
+                       [ "Args"                 ],
                        [ "args"                 ],
                        [ "dst"                  ],
                        [ "end"                  ],
@@ -34,12 +28,6 @@ kernels  = [
                [
                    "blur_v.c",
                    [
-                       [ "BLUR_V___DST_STRIVE"  ],
-                       [ "BLUR_V___SRC_STRIVE"  ],
-                       [ "__BLUR_V___ARGS_CNT"  ],
-                       [ "BLUR_V___HEIGHT"      ],
-                       [ "BLUR_V___SIZE"        ],
-                       [ "BLUR_V___WIDTH"       ],
                        [ "dst_strive"           ],
                        [ "src_strive"           ],
                        [ "current"              ],
@@ -48,6 +36,7 @@ kernels  = [
                        [ "width"                ],
                        [ "size2"                ],
                        [ "size"                 ],
+                       [ "Args"                 ],
                        [ "args"                 ],
                        [ "dst"                  ],
                        [ "end"                  ],

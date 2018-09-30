@@ -27,7 +27,8 @@
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
-									<listOptionValue builtIn="false" value="USE_OPENCL=1"/>
+									<listOptionValue builtIn="false" value="USE_OPENCL_DETECT=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.504280935" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -38,7 +39,8 @@
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
-									<listOptionValue builtIn="false" value="USE_OPENCL=1"/>
+									<listOptionValue builtIn="false" value="USE_OPENCL_DETECT=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1111155735" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -84,7 +86,8 @@
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
-									<listOptionValue builtIn="false" value="USE_OPENCL=1"/>
+									<listOptionValue builtIn="false" value="USE_OPENCL_DETECT=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1348046268" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -95,7 +98,8 @@
 									<listOptionValue builtIn="false" value="__OPENCL_EDIT__=1"/>
 									<listOptionValue builtIn="false" value="USE_OMP=1"/>
 									<listOptionValue builtIn="false" value="USE_SSE2=1"/>
-									<listOptionValue builtIn="false" value="USE_OPENCL=1"/>
+									<listOptionValue builtIn="false" value="USE_OPENCL_DETECT=1"/>
+									<listOptionValue builtIn="false" value="OPENCL_DBG_MODE=1"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1912253035" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>

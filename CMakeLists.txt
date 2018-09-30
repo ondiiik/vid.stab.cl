@@ -19,9 +19,11 @@ endif()
 option(BUILD_SHARED_LIBS "build shared libraries instead of static libraries"
        ON)
 
-option(USE_OMP    "use parallelization over OMP"    ON)
-option(USE_SSE2   "use SSE2 optimization"           ON)
-option(USE_OPENCL "use parallelization over OpenCL" ON)
+option(USE_OMP              "use parallelization over OMP"                         ON)
+option(USE_SSE2             "use SSE2 optimization"                                ON)
+option(USE_OPENCL_DETECT    "use parallelization over OpenCL for detect plugin"    ON)
+option(USE_OPENCL_TRANSFORM "use parallelization over OpenCL for transform plugin" ON)
+option(USE_OPENCL_DEBUG     "use non-obfuscated OpenCL code"                       OFF)
 
 add_definitions(-fPIC
                 -DCL_HPP_TARGET_OPENCL_VERSION=110
@@ -54,9 +56,13 @@ add_definitions(-fopenmp
                 -DUSE_OMP)
 endif()
 
-if(USE_OPENCL)
-add_definitions(-fopenmp
-                -DUSE_OPENCL)
+if(USE_OPENCL_DETECT)
+add_definitions(-DUSE_OPENCL
+                -DUSE_OPENCL_DETECT)
+endif()
+
+if(USE_OPENCL_DEBUG)
+add_definitions(-DOPENCL_DBG_MODE)
 endif()
 
 set(SOURCES
@@ -73,8 +79,7 @@ set(SOURCES
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
-    src/cl/opencl___blur_v.c
-    src/cl/opencl___correl8.c)
+    src/cl/opencl___blur_v.c)
 
 set(HEADERS
     src/frame_canvas.h
@@ -90,8 +95,7 @@ set(HEADERS
     src/md_exception.hpp
     src/cl/opencl.hpp
     src/cl/opencl___blur_h.h
-    src/cl/opencl___blur_v.h
-    src/cl/opencl___correl8.h)
+    src/cl/opencl___blur_v.h)
 
 
 # Create the vidstab library

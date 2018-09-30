@@ -7,6 +7,9 @@
 #pragma once
 
 
+#include <cmath>
+
+
 namespace Common
 {
     /**
@@ -50,6 +53,22 @@ namespace Common
         }
         
         
+        inline Vect& operator-=(_Tp aVal)
+        {
+            this->x -= aVal;
+            this->y -= aVal;
+            return *this;
+        }
+        
+        
+        inline Vect operator-(_Tp aVal) const
+        {
+            Vect r { *this };
+            r -= aVal;
+            return r;
+        }
+        
+        
         inline Vect& operator+=(const Vect& aSrc)
         {
             this->x += aSrc.x;
@@ -62,6 +81,22 @@ namespace Common
         {
             Vect r { *this };
             r += aSrc;
+            return r;
+        }
+        
+        
+        inline Vect& operator+=(_Tp aVal)
+        {
+            this->x += aVal;
+            this->y += aVal;
+            return *this;
+        }
+        
+        
+        inline Vect operator+(_Tp aVal) const
+        {
+            Vect r { *this };
+            r += aVal;
             return r;
         }
         
@@ -82,6 +117,28 @@ namespace Common
         }
         
         
+        inline Vect& operator*=(_Tp aVal)
+        {
+            this->x *= aVal;
+            this->y *= aVal;
+            return *this;
+        }
+        
+        
+        inline Vect operator*(_Tp aVal) const
+        {
+            Vect r { *this };
+            r *= aVal;
+            return r;
+        }
+        
+        
+        inline double atan() const
+        {
+            return atan2(double(y), double(x));
+        }
+
+
         _Tp x;
         _Tp y;
     };
