@@ -921,11 +921,14 @@ namespace VidStab
     
     void VSMD::_blurBoxH(Frame::Plane&        dst,
                          const Frame::Plane&  src,
-                         int                  size)
+                         const int            size)
     {
         const int size2 = size / 2; /* Size of one side of the kernel without center */
         
-        for (int y = 0; y < fi.height(); ++y)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(md, dst, src),
+                         (int y = 0; y < fi.height(); ++y))
         {
             const unsigned char* inBegin = src.buff() + (y * src.lineSize());
             const unsigned char* inEnd   = inBegin + size2;
@@ -963,11 +966,14 @@ namespace VidStab
     
     void VSMD::_blurBoxV(Frame::Plane&        dst,
                          const Frame::Plane&  src,
-                         int                  size)
+                         const int            size)
     {
         const int size2 = size / 2; // size of one side of the kernel without center
         
-        for (int x = 0; x < fi.width(); x++)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(md, dst, src),
+                         (int x = 0; x < fi.width(); x++))
         {
             const unsigned char* start   = src.buff() + x;         // start and end of kernel
             const unsigned char* end     = start;

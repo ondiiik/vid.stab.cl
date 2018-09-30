@@ -7,7 +7,7 @@ cd "$DIRECTORY" || exit 1
 cmake \
     -DUSE_OMP=ON \
     -DUSE_SSE2=ON \
-    -DUSE_OPENCL=ON \
+    -DUSE_OPENCL=OFF \
     -DCMAKE_VERBOSE_MAKEFILE=FALSE \
     -DCMAKE_INSTALL_PREFIX:PATH=/usr/local \
     . || exit 1

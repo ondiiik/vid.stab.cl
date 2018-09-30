@@ -306,12 +306,12 @@ namespace VidStab
                         
         void _blurBoxH(Frame::Plane&        dst,
                        const Frame::Plane&  src,
-                       int                  size);
+                       const int            size);
                        
                        
         void _blurBoxV(Frame::Plane&        dst,
                        const Frame::Plane&  src,
-                       int                  size);
+                       const int            size);
                        
                        
         /**
