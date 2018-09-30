@@ -321,8 +321,8 @@ namespace OpenCl
         }
         
         
-        template <typename _Tp> inline cl_uint setArg(cl_uint aIdx,
-                                                      _Tp&    aArg)
+        inline cl_uint setArg(cl_uint     aIdx,
+                              cl::Buffer& aArg)
         {
             cl_int ret = cl::Kernel::setArg(aIdx, aArg);
             
@@ -334,7 +334,7 @@ namespace OpenCl
                                 int(ret),
                                 OpenCl::err2string(ret));
             }
-
+            
             return aIdx + 1;
         }
         
