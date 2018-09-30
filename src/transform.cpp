@@ -28,9 +28,102 @@
 
 #include "transformfixedpoint.h"
 
+#include "vs_exception.h"
 #include <math.h>
 #include <libgen.h>
 #include <string.h>
+
+
+using namespace VidStab;
+
+
+namespace
+{
+    const char moduleName[] { "Transform" };
+}
+
+
+namespace VidStab
+{
+    VSTR::VSTR(const char*              aModName,
+               VSTransformData&         aTd,
+               const VSTransformConfig& aConf,
+               const VSFrameInfo&       aFiSrc,
+               const VSFrameInfo&       aFiDst)
+        :
+        fiSrc  { aFiSrc            },
+        fiDest { aFiDst            },
+        conf   { aConf             },
+        isrc   { fiSrc             },
+        idst   { fiDest            },
+        fsrc   { aTd.src,     isrc },
+        fdst   { aTd.dest,    idst },
+        fdstB  { aTd.destbuf, idst }
+    {
+        _initVsTransform(aConf, aFiSrc, aFiDst);
+    }
+    
+    
+    VSTR::~VSTR()
+    {
+    }
+    
+    
+    void VSTR::_initVsTransform(const VSTransformConfig& aConf,
+                                const VSFrameInfo&       aFiSrc,
+                                const VSFrameInfo&       aFiDst)
+    {
+        fsrc.forget();
+        fdst.forget();
+        fdstB.forget();
+        
+        if (conf.maxShift > fiDest.width / 2)
+        {
+            conf.maxShift = fiDest.width / 2;
+        }
+        if (conf.maxShift > fiDest.height / 2)
+        {
+            conf.maxShift = fiDest.height / 2;
+        }
+        
+        conf.interpolType = VS_MAX(VS_MIN(conf.interpolType, VS_BiCubic), VS_Zero);
+        
+        /*
+         * Not yet implemented
+         */
+        if (conf.camPathAlgo == VSOptimalL1)
+        {
+            conf.camPathAlgo = VSGaussian;
+        }
+        
+        switch (conf.interpolType)
+        {
+            case VS_Zero:
+                interpolate = interpolateZero;
+                break;
+                
+            case VS_Linear:
+                interpolate = &interpolateLin;
+                break;
+                
+            case VS_BiLinear:
+                interpolate = &interpolateBiLin;
+                break;
+                
+            case VS_BiCubic:
+                interpolate = &interpolateBiCub;
+                break;
+                
+            default:
+                interpolate = &interpolateBiLin;
+        }
+    }
+}
+
+
+
+
+
 
 const char* interpol_type_names[5] = {"No (0)", "Linear (1)", "Bi-Linear (2)",
                                       "Bi-Cubic (3)"
@@ -91,80 +184,130 @@ const VSFrameInfo* vsTransformGetDestFrameInfo(const struct VSTransformData* td)
 }
 
 
-int vsTransformDataInit(struct VSTransformData* td, const struct VSTransformConfig* conf,
-                        const VSFrameInfo* fi_src, const VSFrameInfo* fi_dest)
+int vsTransformDataInit(VSTransformData*         aTd,
+                        const VSTransformConfig* aConf,
+                        const VSFrameInfo*       aFiSrc,
+                        const VSFrameInfo*       aFiDst)
 {
-    td->conf   = *conf;
+    const char* modName = ((nullptr != aConf) ? aConf->modName : "vid.stab");
     
-    td->fiSrc  = *fi_src;
-    td->fiDest = *fi_dest;
+    if (nullptr == aTd)
+    {
+        vs_log_error(modName, "Transform data instance is NULL!\n");
+        return VS_ERROR;
+    }
     
-    Frame::Info  isrc  { *fi_src                 };
-    Frame::Info  idst  { *fi_dest                };
+    if (nullptr == aConf)
+    {
+        throw VS_EXCEPTION("Configuration structure is NULL!");
+    }
     
-    Frame::Frame fsrc  { td->src,     td->fiSrc  };
-    Frame::Frame fdst  { td->dest,    td->fiDest };
-    Frame::Frame fdstB { td->destbuf, td->fiDest };
+    if (nullptr == aFiSrc)
+    {
+        throw VS_EXCEPTION("Source frame info structure is NULL!");
+    }
+    
+    if (nullptr == aFiDst)
+    {
+        throw VS_EXCEPTION("Destination frame info structure is NULL!");
+    }
+    
+    
+    try
+    {
+        VSTR* td   = new VSTR(modName, *aTd, *aConf, *aFiSrc, *aFiDst);
+        aTd->_inst = td;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    
+    aTd->conf   = *aConf;
+    
+    aTd->fiSrc  = *aFiSrc;
+    aTd->fiDest = *aFiDst;
+    
+    Frame::Info  isrc  { *aFiSrc                   };
+    Frame::Info  idst  { *aFiDst                   };
+    
+    Frame::Frame fsrc  { aTd->src,     aTd->fiSrc  };
+    Frame::Frame fdst  { aTd->dest,    aTd->fiDest };
+    Frame::Frame fdstB { aTd->destbuf, aTd->fiDest };
     
     fsrc.forget();
     fdst.forget();
     fdstB.forget();
     
-    td->srcMalloced = 0;
+    aTd->srcMalloced = 0;
     
-    if (td->conf.maxShift > td->fiDest.width / 2)
+    if (aTd->conf.maxShift > aTd->fiDest.width / 2)
     {
-        td->conf.maxShift = td->fiDest.width / 2;
+        aTd->conf.maxShift = aTd->fiDest.width / 2;
     }
-    if (td->conf.maxShift > td->fiDest.height / 2)
+    if (aTd->conf.maxShift > aTd->fiDest.height / 2)
     {
-        td->conf.maxShift = td->fiDest.height / 2;
+        aTd->conf.maxShift = aTd->fiDest.height / 2;
     }
     
-    td->conf.interpolType = VS_MAX(VS_MIN(td->conf.interpolType, VS_BiCubic), VS_Zero);
+    aTd->conf.interpolType = VS_MAX(VS_MIN(aTd->conf.interpolType, VS_BiCubic), VS_Zero);
     
     // not yet implemented
-    if (td->conf.camPathAlgo == VSOptimalL1)
+    if (aTd->conf.camPathAlgo == VSOptimalL1)
     {
-        td->conf.camPathAlgo = VSGaussian;
+        aTd->conf.camPathAlgo = VSGaussian;
     }
     
-    switch (td->conf.interpolType)
+    switch (aTd->conf.interpolType)
     {
         case VS_Zero:
-            td->interpolate = interpolateZero;
+            aTd->interpolate = interpolateZero;
             break;
         case VS_Linear:
-            td->interpolate = &interpolateLin;
+            aTd->interpolate = &interpolateLin;
             break;
         case VS_BiLinear:
-            td->interpolate = &interpolateBiLin;
+            aTd->interpolate = &interpolateBiLin;
             break;
         case VS_BiCubic:
-            td->interpolate = &interpolateBiCub;
+            aTd->interpolate = &interpolateBiCub;
             break;
         default:
-            td->interpolate = &interpolateBiLin;
+            aTd->interpolate = &interpolateBiLin;
     }
     return VS_OK;
 }
 
 
-void vsTransformDataCleanup(struct VSTransformData* td)
+void vsTransformDataCleanup(struct VSTransformData* aTd)
 {
-    Frame::Frame fsrc { td->src, Frame::Info(td->fiSrc) };
+    Frame::Frame fsrc { aTd->src, Frame::Info(aTd->fiSrc) };
     
-    if (td->srcMalloced && !fsrc.empty())
+    if (aTd->srcMalloced && !fsrc.empty())
     {
         fsrc.free();
     }
     
-    Frame::Frame fdst { td->destbuf, Frame::Info(td->fiDest) };
+    Frame::Frame fdst { aTd->destbuf, Frame::Info(aTd->fiDest) };
     
-    if ((td->conf.crop == VSKeepBorder) && !fdst.empty())
+    if ((aTd->conf.crop == VSKeepBorder) && !fdst.empty())
     {
         fdst.free();
     }
+    
+    
+    VSTR*  ttd = &(VSTR2Inst(aTd));
+    delete ttd;
+    aTd->_inst = nullptr;
 }
 
 
@@ -243,7 +386,7 @@ int vsTransformFinish(struct VSTransformData* td)
         Frame::Frame fsrc { td->destbuf, td->fiDest };
         fdst = fsrc;
     }
-
+    
     return VS_OK;
 }
 
@@ -714,13 +857,3 @@ struct VSTransform vsLowPassTransforms(struct VSTransformData* td, struct VSSlid
     }
 }
 
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

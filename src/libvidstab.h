@@ -249,7 +249,12 @@ typedef struct VSTransformData
     /* Options */
     struct VSTransformConfig conf;
     
-    int initialized; // 1 if initialized and 2 if configured
+    int                      initialized; // 1 if initialized and 2 if configured
+
+    /**
+     * @brief   Internal transform plugin instance
+     */
+    void* _inst;
 }
 VSTransformData;
 

@@ -24,24 +24,20 @@
  */
 
 
-#include <math.h>
-#include <libgen.h>
 #include "transformtype.h"
 #include "frameinfo.h"
 #include "vidstabdefines.h"
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cmath>
+#include <libgen.h>
+#include <cassert>
 
 
 typedef struct VSSlidingAvgTrans
 {
     struct VSTransform avg;         // average transformation
     struct VSTransform accum;       // accumulator for relative to absolute conversion
-    double      zoomavg;     // average zoom value
-    short       initialized; // whether it was initialized or not
+    double             zoomavg;     // average zoom value
+    short              initialized; // whether it was initialized or not
 }
 VSSlidingAvgTrans;
 
@@ -55,26 +51,81 @@ extern struct VSTransformConfig vsTransformGetDefaultConfig(const char* modName)
  * @brief   Initializes transformations instance
  */
 extern void vsTransformationsInit(struct VSTransformations* trans);
-                                  
+
 /**
  * vsLowPassTransforms: single step smoothing of transforms, using only the past.
  *  see also vsPreprocessTransforms. */
 extern struct VSTransform vsLowPassTransforms(struct VSTransformData*   td,
                                               struct VSSlidingAvgTrans* mem,
-                                              const struct VSTransform*        trans);
+                                              const struct VSTransform* trans);
 
 
-#ifdef __cplusplus
+namespace VidStab
+{
+    class VSTR
+    {
+    public:
+        /**
+         * @brief   Construct data structure for motion detection part of transforming
+         *
+         * @param   aModName    Module name
+         * @param   aTd         Parrent C instance used by external tools such as ffmpeg
+         * @param   aConf       Initial configuration
+         * @param   aFiSrc      Source frame info
+         * @param   aFiDst      Destination frame info
+         */
+        VSTR(const char*              aModName,
+             VSTransformData&         aTd,
+             const VSTransformConfig& aConf,
+             const VSFrameInfo&       aFiSrc,
+             const VSFrameInfo&       aFiDst);
+             
+             
+             
+        ~VSTR();
+        
+        
+        void _initVsTransform(const VSTransformConfig& aConf,
+                              const VSFrameInfo&       aFiSrc,
+                              const VSFrameInfo&       aFiDst);
+                              
+                              
+        VSFrameInfo              fiSrc;
+        VSFrameInfo              fiDest;
+        
+        VSFrame                  src;           // copy of the current frame buffer
+        VSFrame                  destbuf;       // pointer to an additional buffer or
+        // to the destination buffer (depending on crop)
+        VSFrame                  dest;          // pointer to the destination buffer
+        
+        vsInterpolateFun         interpolate;   // pointer to interpolation function
+        
+        /* Options */
+        VSTransformConfig        conf;
+        
+        int                      initialized; // 1 if initialized and 2 if configured
+        
+        
+        
+        
+        Frame::Info              isrc;
+        Frame::Info              idst;
+        
+        Frame::Frame             fsrc;
+        Frame::Frame             fdst;
+        Frame::Frame             fdstB;
+    };
+    
+    
+    /**
+     * @brief   Convert motion detect instance to C++ representation
+     * @param   aMd     Motion detect instance
+     * @return  C++ representation of motion detect instance
+     */
+    inline VSTR& VSTR2Inst(VSTransformData* aTd)
+    {
+        assert(nullptr != aTd);
+        VSTR* const td = (VSTR*)aTd->_inst;
+        return *td;
+    }
 }
-#endif
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- * End:
- *
- * vim: expandtab shiftwidth=4:
- */

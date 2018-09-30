@@ -427,6 +427,16 @@ namespace VidStab
         _clProgramName {          }
 #endif
     {
+        if (nullptr == aConf)
+        {
+            throw VS_EXCEPTION("Configuration structure is NULL!");
+        }
+
+        if (nullptr == aFi)
+        {
+            throw VS_EXCEPTION("Frame info structure is NULL!");
+        }
+
         _initMsg();
         _initVsDetect(aConf, aFi);
         _initOpenCl();
@@ -503,7 +513,7 @@ namespace VidStab
         
         if (first)
         {
-            throw VD_EXCEPTION("There is no device available!");
+            throw VS_EXCEPTION("There is no device available!");
         }
         
         _clContext = new cl::Context({_clDevice});
@@ -529,7 +539,7 @@ namespace VidStab
             
             if (CL_SUCCESS != pgm->build({_clDevice}))
             {
-                throw VD_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+                throw VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
             }
             
             _clProgram.push_back(pgm);
@@ -567,12 +577,12 @@ namespace VidStab
          */
         if (nullptr == aConf)
         {
-            throw VD_EXCEPTION("Configuration structure is NULL!");
+            throw VS_EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw VD_EXCEPTION("Frame info is NULL!");
+            throw VS_EXCEPTION("Frame info is NULL!");
         }
         
         conf    = *aConf;
@@ -586,7 +596,7 @@ namespace VidStab
             (fi.pixFormat() == PF_PACKED) ||
             (fi.pixFormat() >= PF_NUMBER))
         {
-            throw VD_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
+            throw VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
         }
         
         
@@ -668,7 +678,7 @@ namespace VidStab
         
         if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
         {
-            throw VD_EXCEPTION("Allocation failed!");
+            throw VS_EXCEPTION("Allocation failed!");
         }
         else
         {
