@@ -14,14 +14,14 @@
 /**
  * @brief   Indexes of arguments
  */
-enum BlurV_ArgIdx
+enum ArgIdx
 {
-    BLUR_V___WIDTH,          /**< @brief Frame width */
-    BLUR_V___HEIGHT,         /**< @brief Frame height */
-    BLUR_V___DST_STRIVE,     /**< @brief ? */
-    BLUR_V___SRC_STRIVE,     /**< @brief ? */
-    BLUR_V___SIZE,           /**< @brief Count of items to be calculated */
-    __BLUR_V___ARGS_CNT      /**< @brief Count of arguments */
+    WIDTH,      /**< @brief Frame width */
+    HEIGHT,     /**< @brief Frame height */
+    DST_STRIVE, /**< @brief ? */
+    SRC_STRIVE, /**< @brief ? */
+    SIZE,       /**< @brief Count of items to be calculated */
+    ARGS_CNT    /**< @brief Count of arguments */
 };
 
 
@@ -36,11 +36,11 @@ void kernel blurV(global char*       dst,
                   global const char* src,
                   global const int*  args)
 {
-    const int                   width       = args[BLUR_V___WIDTH];
-    const int                   height      = args[BLUR_V___HEIGHT];
-    const int                   dst_strive  = args[BLUR_V___DST_STRIVE];
-    const int                   src_strive  = args[BLUR_V___SRC_STRIVE];
-    const int                   size        = args[BLUR_V___SIZE];
+    const int                   width       = args[WIDTH];
+    const int                   height      = args[HEIGHT];
+    const int                   dst_strive  = args[DST_STRIVE];
+    const int                   src_strive  = args[SRC_STRIVE];
+    const int                   size        = args[SIZE];
     
     const int                   size2       = size / 2;                /* Size of one side of the kernel without center */
     

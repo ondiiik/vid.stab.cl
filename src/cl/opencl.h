@@ -321,19 +321,21 @@ namespace OpenCl
         }
         
         
-        inline void setArg(cl_uint     index,
-                           cl::Buffer& argPtr)
+        template <typename _Tp> inline cl_uint setArg(cl_uint aIdx,
+                                                      _Tp&    aArg)
         {
-            cl_int ret = cl::Kernel::setArg(index, argPtr);
+            cl_int ret = cl::Kernel::setArg(aIdx, aArg);
             
             if (CL_SUCCESS != ret)
             {
                 throw exception("[OpenCL-%s] Set arg idx %i reported %i (%s)!",
                                 _name.c_str(),
-                                int(index),
+                                int(aIdx),
                                 int(ret),
                                 OpenCl::err2string(ret));
             }
+
+            return aIdx + 1;
         }
         
         

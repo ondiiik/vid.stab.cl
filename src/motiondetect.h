@@ -380,7 +380,7 @@ namespace VidStab
         /**
          * @brief   Sources of code we want to run over OpenCL
          */
-        cl::Program::Sources _clSources;
+        std::vector<cl::Program::Sources> _clSources;
         
         
     public:
@@ -399,7 +399,15 @@ namespace VidStab
         /**
          * @brief   Compiled binary of code we want to run over OpenCL
          */
-        cl::Program* _clProgram;
+        std::vector<cl::Program*> _clProgram;
+
+
+        /**
+         * @brief   Compiled binary of code we want to run over OpenCL
+         */
+        std::vector<const char*> _clProgramName;
+
+
 #endif /* defined(USE_OPENCL) */
     };
     

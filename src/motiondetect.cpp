@@ -77,6 +77,18 @@ namespace
     const char moduleName[] { "Detect" };
     
     
+#if defined(USE_SSE2)
+    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+#endif
+    
+    
+    enum _KernelId
+    {
+        KRN___BLUR_H,
+        KRN___BLUR_V
+    };
+    
+    
     class _Spiral
     {
     public:
@@ -234,11 +246,6 @@ namespace
     {
         return ci1.contrast < ci2.contrast;
     }
-    
-    
-#if defined(USE_SSE2)
-    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-#endif
 }
 
 
@@ -405,19 +412,20 @@ namespace VidStab
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fiInfoC     { aMd->fi            },
-        firstFrame  { true               },
-        fi          { fiInfoC            },
-        curr        { _currPrepFrameC, fi },
-        currPrep    { _currPrepFrameC, fi },
-        currTmp     { _currTmpFrameC,  fi },
-        prev        { _prevFrameC,     fi },
-        _mn         { aModName           }
+        fiInfoC        { aMd->fi            },
+        firstFrame     { true               },
+        fi             { fiInfoC            },
+        curr           { _currPrepFrameC, fi },
+        currPrep       { _currPrepFrameC, fi },
+        currTmp        { _currTmpFrameC,  fi },
+        prev           { _prevFrameC,     fi },
+        _mn            { aModName           }
 #if defined(USE_OPENCL)
         ,
-        _clDevice   {          },
-        _clContext  { nullptr  },
-        _clProgram  { nullptr  }
+        _clDevice      {          },
+        _clContext     { nullptr  },
+        _clProgram     {          },
+        _clProgramName {          }
 #endif
     {
         _initMsg();
@@ -446,7 +454,11 @@ namespace VidStab
         
         
 #if defined(USE_OPENCL)
-        delete _clProgram;
+        for (auto& pgm : _clProgram)
+        {
+            delete pgm;
+        }
+        
         delete _clContext;
 #endif
     }
@@ -501,15 +513,27 @@ namespace VidStab
     
     void VSMD::_initOpenCl_prepareKernels()
     {
-        _clSources.push_back({opencl___blur_h,  opencl___blur_h_len});
-        _clSources.push_back({opencl___blur_v,  opencl___blur_v_len});
+        cl::Program::Sources           opencl___blur_h_src;
+        opencl___blur_h_src.push_back({opencl___blur_h,  opencl___blur_h_len});
+        _clSources.push_back(          opencl___blur_h_src);
+        _clProgramName.push_back(      "blurH");
         
-        _clProgram = new cl::Program(*_clContext, _clSources);
+        cl::Program::Sources           opencl___blur_v_src;
+        opencl___blur_v_src.push_back({opencl___blur_v,  opencl___blur_v_len});
+        _clSources.push_back(          opencl___blur_v_src);
+        _clProgramName.push_back(      "blurV");
         
         
-        if (_clProgram->build({_clDevice}) != CL_SUCCESS)
+        for (auto& src : _clSources)
         {
-            throw VD_EXCEPTION("OpenCL build error:\n%s\n", _clProgram->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+            cl::Program* pgm = new cl::Program(*_clContext, src);
+            
+            if (CL_SUCCESS != pgm->build({_clDevice}))
+            {
+                throw VD_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+            }
+            
+            _clProgram.push_back(pgm);
         }
         
         vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
@@ -823,9 +847,9 @@ namespace VidStab
                 {
                     for (int plane = 1; plane < fi.planes(); ++plane)
                     {
-                        planeDst = currPrep[    plane ];
-                        planeSrc = aSrc[    plane ];
-                        planeBuf = currTmp[ plane ];
+                        planeDst = currPrep[ plane ];
+                        planeSrc = aSrc[     plane ];
+                        planeBuf = currTmp[  plane ];
                         
                         _blurBoxHV(planeDst, planeBuf, planeSrc, size2);
                     }
@@ -837,8 +861,8 @@ namespace VidStab
                 // copy both color channels
                 for (int plane = 1; plane < fi.planes(); plane++)
                 {
-                    planeDst = currPrep[plane];
-                    planeSrc = aSrc[plane];
+                    planeDst = currPrep[ plane ];
+                    planeSrc = aSrc[     plane ];
                     planeDst = planeSrc;
                 }
                 break;
@@ -890,10 +914,10 @@ namespace VidStab
         clQ.enqueueWriteBuffer(buffer_args, CL_TRUE, 0, sizeof(args), args);
         clQ.enqueueWriteBuffer(buffer_src,  CL_TRUE, 0, size,         aSrc.buff());
         
-        OpenCl::Kernel blurH(*_clProgram, "blurH");
-        blurH.setArg(0, buffer_tmp);
-        blurH.setArg(1, buffer_src);
-        blurH.setArg(2, buffer_args);
+        OpenCl::Kernel blurH(*(_clProgram[KRN___BLUR_H]), _clProgramName[KRN___BLUR_H]);
+        auto arg = blurH.setArg(0,   buffer_tmp);
+        arg      = blurH.setArg(arg, buffer_src);
+        arg      = blurH.setArg(arg, buffer_args);
         
         clQ.enqueueNDRangeKernel(blurH, cl::NullRange, cl::NDRange(fi.height()));
         
@@ -901,10 +925,10 @@ namespace VidStab
         /*
          * Process vertical blur: tmp -> dst
          */
-        OpenCl::Kernel blurV(*_clProgram, "blurV");
-        blurV.setArg(0, buffer_dst);
-        blurV.setArg(1, buffer_tmp);
-        blurV.setArg(2, buffer_args);
+        OpenCl::Kernel blurV(*(_clProgram[KRN___BLUR_V]), _clProgramName[KRN___BLUR_V]);
+        arg = blurV.setArg(0,   buffer_dst);
+        arg = blurV.setArg(arg, buffer_tmp);
+        arg = blurV.setArg(arg, buffer_args);
         
         clQ.enqueueNDRangeKernel(blurV, cl::NullRange, cl::NDRange(fi.width()));
         
