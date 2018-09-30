@@ -39,10 +39,6 @@
 #define SSE2_CMP_SUM_ROWS 8
 #endif
 
-#ifdef USE_OMP
-#   include <omp.h>
-#endif
-
 #include "vidstabdefines.h"
 #include "localmotion2transform.h"
 #include "transformtype_operations.h"
@@ -62,6 +58,9 @@
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
 #include "cl/opencl___correl8.h"
+
+
+#include "sys_omp.h"
 
 #include <vector>
 #include <algorithm>
@@ -701,12 +700,10 @@ namespace VidStab
         _selectfields(goodflds, fields, contrastfunc);
         
         
-#if defined(USE_OMP)
-        omp_set_num_threads(conf.numThreads);
-        VSMD* md __attribute__((unused)) = this;
-        #pragma omp parallel for shared(goodflds, md, localmotions)
-#endif
-        for (int index = 0; index < int(goodflds.size()); index++)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(goodflds, md, localmotions),
+                         (int index = 0; index < int(goodflds.size()); ++index))
         {
             int i = goodflds[index].index;
             
@@ -716,10 +713,10 @@ namespace VidStab
             {
                 m.contrast = goodflds[index].contrast;
                 
-#if defined(USE_OMP)
-                #pragma omp critical(localmotions_append)
-#endif
-                vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
+                OMP_CRITICAL(localmotions_append)
+                {
+                    vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
+                }
             }
         }
         
