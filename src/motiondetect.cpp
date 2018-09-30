@@ -57,7 +57,6 @@
 #include "cl/opencl.h"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
-#include "cl/opencl___correl8.h"
 
 
 #include "sys_omp.h"
