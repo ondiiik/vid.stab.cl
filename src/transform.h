@@ -70,50 +70,84 @@ namespace VidStab
          *
          * @param   aModName    Module name
          * @param   aTd         Parrent C instance used by external tools such as ffmpeg
-         * @param   aConf       Initial configuration
-         * @param   aFiSrc      Source frame info
-         * @param   aFiDst      Destination frame info
          */
         VSTR(const char*              aModName,
-             VSTransformData&         aTd,
-             const VSTransformConfig& aConf,
-             const VSFrameInfo&       aFiSrc,
-             const VSFrameInfo&       aFiDst);
+             VSTransformData&         aTd);
              
              
              
         ~VSTR();
         
         
-        void _initVsTransform(const VSTransformConfig& aConf,
-                              const VSFrameInfo&       aFiSrc,
-                              const VSFrameInfo&       aFiDst);
-                              
-                              
-        VSFrameInfo              fiSrc;
-        VSFrameInfo              fiDest;
+        /**
+         * @brief   Prepare transformation frame
+         * @param   src     Source frame
+         * @param   dest    Destination frame
+         */
+        void prepare(const VSFrame* src,
+                     VSFrame*       dest);
+                     
+                     
+        /**
+         * @brief   Process frame transform
+         * @param   aT  REquested transformation
+         */
+        void process(VSTransform& aT);
         
-        VSFrame                  src;           // copy of the current frame buffer
-        VSFrame                  destbuf;       // pointer to an additional buffer or
+        
+        /**
+         * @brief   Finish transformation step
+         */
+        void finish();
+        
+        
+        const VSFrameInfo&       fiSrc;
+        const VSFrameInfo&       fiDest;
+        
+        VSFrame&                 src;           // copy of the current frame buffer
+        VSFrame&                 destbuf;       // pointer to an additional buffer or
         // to the destination buffer (depending on crop)
-        VSFrame                  dest;          // pointer to the destination buffer
+        VSFrame&                 dest;          // pointer to the destination buffer
+        bool                     srcMalloced;   // 1 if the source buffer was internally malloced
         
         vsInterpolateFun         interpolate;   // pointer to interpolation function
         
         /* Options */
-        VSTransformConfig        conf;
+        VSTransformConfig&       conf;
         
         int                      initialized; // 1 if initialized and 2 if configured
         
         
         
         
-        Frame::Info              isrc;
-        Frame::Info              idst;
+        const Frame::Info        isrc;
+        const Frame::Info        idst;
         
         Frame::Frame             fsrc;
         Frame::Frame             fdst;
         Frame::Frame             fdstB;
+        
+        
+    private:
+        void _initVsTransform();
+
+
+        /**
+         * @brief Does the actual transformation in Packed space
+         *
+         * @param   aT  Private data structure of this filter
+         */
+        void _transformPacked(VSTransform& aT);
+
+
+        /**
+         * @brief Does the actual transformation in Planar space
+         *
+         * applies current transformation to frame
+         *
+         * @param   aT  Private data structure of this filter
+         */
+        void _transformPlanar(VSTransform& aT);
     };
     
     

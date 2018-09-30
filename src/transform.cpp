@@ -21,6 +21,25 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#define iToFp8(v)  ((v)<<8)
+#define fToFp8(v)  ((int32_t)((v)*((float)0xFF)))
+#define iToFp16(v) ((v)<<16)
+#define fToFp16(v) ((int32_t)((v)*((double)0xFFFF)))
+#define fp16To8(v) ((v)>>8)
+#define fp24To8(v) ((v)>>16)
+
+#define fp8ToI(v)  ((v)>>8)
+#define fp16ToI(v) ((v)>>16)
+#define fp8ToF(v)  ((v)/((double)(1<<8)))
+#define fp16ToF(v) ((v)/((double)(1<<16)))
+
+#define fp8_0_5 (1<<7)
+#define fp8ToIRound(v) (((v) + fp8_0_5) >> 7)
+#define fp16_0_5 (1<<15)
+#define fp16ToIRound(v) (((v) + fp16_0_5) >> 16)
+
+
+
 
 #include "transform.h"
 #include "transform_internal.h"
@@ -46,21 +65,23 @@ namespace
 namespace VidStab
 {
     VSTR::VSTR(const char*              aModName,
-               VSTransformData&         aTd,
-               const VSTransformConfig& aConf,
-               const VSFrameInfo&       aFiSrc,
-               const VSFrameInfo&       aFiDst)
+               VSTransformData&         aTd)
         :
-        fiSrc  { aFiSrc            },
-        fiDest { aFiDst            },
-        conf   { aConf             },
-        isrc   { fiSrc             },
-        idst   { fiDest            },
-        fsrc   { aTd.src,     isrc },
-        fdst   { aTd.dest,    idst },
-        fdstB  { aTd.destbuf, idst }
+        fiSrc       { aTd.fiSrc         },
+        fiDest      { aTd.fiDest        },
+        src         { aTd.src           },
+        destbuf     { aTd.destbuf       },
+        dest        { aTd.dest          },
+        srcMalloced { false             },
+        conf        { aTd.conf          },
+        initialized { 0                 },
+        isrc        { fiSrc             },
+        idst        { fiDest            },
+        fsrc        { aTd.src,     isrc },
+        fdst        { aTd.dest,    idst },
+        fdstB       { aTd.destbuf, idst }
     {
-        _initVsTransform(aConf, aFiSrc, aFiDst);
+        _initVsTransform();
     }
     
     
@@ -69,9 +90,80 @@ namespace VidStab
     }
     
     
-    void VSTR::_initVsTransform(const VSTransformConfig& aConf,
-                                const VSFrameInfo&       aFiSrc,
-                                const VSFrameInfo&       aFiDst)
+    void VSTR::prepare(const VSFrame* aSrc,
+                       VSFrame*       aDest)
+    {
+        // we first copy the frame to td->src and then overwrite the destination
+        // with the transformed version
+        dest = *aDest;
+        
+        Frame::Info        isrc { fiSrc       };
+        const Frame::Frame fsrc { *aSrc, isrc };
+        
+        if ((aSrc == aDest) || srcMalloced) // in place operation: we have to copy the src first
+        {
+            Frame::Frame ftd  { src, isrc };
+            
+            if (ftd.empty())
+            {
+                ftd.alloc();
+                srcMalloced = true;
+            }
+            
+            ftd = fsrc;
+        }
+        else // otherwise no copy needed
+        {
+            src = *aSrc;
+        }
+        
+        
+        if (conf.crop == VSKeepBorder)
+        {
+            Frame::Frame ftd { destbuf, isrc };
+            
+            if (ftd.empty())
+            {
+                // if we keep the borders, we need a second buffer to store
+                //  the previous stabilized frame, so we use destbuf
+                ftd.alloc();
+                
+                // if we keep borders, save first frame into the background buffer (destbuf)
+                ftd = fsrc;
+            }
+        }
+        else   // otherwise we directly operate on the destination
+        {
+            destbuf = *aDest;
+        }
+    }
+    
+    
+    void VSTR::process(VSTransform& aT)
+    {
+        if (fiSrc.pFormat < PF_PACKED)
+        {
+            _transformPlanar(aT);
+        }
+        else
+        {
+            _transformPacked(aT);
+        }
+    }
+    
+    
+    void VSTR::finish()
+    {
+        if (conf.crop == VSKeepBorder)
+        {
+            // we have to store our result to video buffer
+            // note: destbuf stores stabilized frame to be the default for next frame
+            fdst = fsrc;
+        }
+    }
+    
+    
+    void VSTR::_initVsTransform()
     {
         fsrc.forget();
         fdst.forget();
@@ -116,6 +208,141 @@ namespace VidStab
                 
             default:
                 interpolate = &interpolateBiLin;
+        }
+    }
+
+
+    void VSTR::_transformPacked(VSTransform& aT)
+    {
+        uint8_t* D_1   { src.data[0]               };
+        uint8_t* D_2   { destbuf.data[0]           };
+        fp16     c_s_x { iToFp16(fiSrc.width  / 2) };
+        fp16     c_s_y { iToFp16(fiSrc.height / 2) };
+        int32_t  c_d_x { fiDest.width  / 2         };
+        int32_t  c_d_y { fiDest.height / 2         };
+
+
+        /* for each pixel in the destination image we calculate the source
+         * coordinate and make an interpolation:
+         *      p_d = c_d + M(p_s - c_s) + t
+         * where p are the points, c the center coordinate,
+         *  _s source and _d destination,
+         *  t the translation, and M the rotation matrix
+         *      p_s = M^{-1}(p_d - c_d - t) + c_s
+         */
+        float z      { float(1.0 - aT.zoom / 100.0) };
+        fp16  zcos_a { fToFp16(z * cos(-aT.alpha))  }; // scaled cos
+        fp16  zsin_a { fToFp16(z * sin(-aT.alpha))  }; // scaled sin
+        fp16  c_tx   { c_s_x - fToFp16(aT.x)        };
+        fp16  c_ty   { c_s_y - fToFp16(aT.y)        };
+        int channels { fiSrc.bytesPerPixel          };
+
+        /* All channels */
+        for (int32_t y = 0; y < fiDest.height; ++y)
+        {
+            int32_t y_d1 { y - c_d_y };
+
+            for (int32_t x = 0; x < fiDest.width; ++x)
+            {
+                int32_t x_d1 { x - c_d_x                                 };
+                fp16    x_s  { ( zcos_a * x_d1) + (zsin_a * y_d1) + c_tx };
+                fp16    y_s  { (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty };
+
+                for (int32_t k = 0; k < channels; ++k)   // iterate over colors
+                {
+                    uint8_t* dest { &D_2[x + y * destbuf.linesize[0] + k] };
+                    interpolateN(dest,
+                                 x_s,
+                                 y_s,
+                                 D_1,
+                                 src.linesize[0],
+                                 fiSrc.width,
+                                 fiSrc.height,
+                                 channels,
+                                 k,
+                                 conf.crop ? 16 : *dest);
+                }
+            }
+        }
+    }
+
+
+    void VSTR::_transformPlanar(VSTransform& aT)
+    {
+        if ((aT.alpha == 0) && (aT.x == 0) && (aT.y == 0) && (aT.zoom == 0))
+        {
+            if (fsrc != fdst)
+            {
+                fdst = fsrc;
+            }
+
+            return;
+        }
+
+        for (int plane = 0; plane < fiSrc.planes; plane++)
+        {
+            uint8_t* dat_1   { src.data[             plane ]             };
+            uint8_t* dat_2   { destbuf.data[         plane ]             };
+
+            int      wsub    { isrc.subsampleWidth(  plane )             };
+            int      hsub    { isrc.subsampleHeight( plane )             };
+
+            int      dw      { CHROMA_SIZE(fiDest.width,  wsub)          };
+            int      dh      { CHROMA_SIZE(fiDest.height, hsub)          };
+            int      sw      { CHROMA_SIZE(fiSrc.width,   wsub)          };
+            int      sh      { CHROMA_SIZE(fiSrc.height,  hsub)          };
+
+            uint8_t  black   { (plane == 0) ? uint8_t(0) : uint8_t(0x80) };
+
+            fp16     c_s_x   { iToFp16(sw / 2)                           };
+            fp16     c_s_y   { iToFp16(sh / 2)                           };
+            int32_t  c_d_x   { dw / 2                                    };
+            int32_t  c_d_y   { dh / 2                                    };
+
+            float    z       { float(1.0 - (aT.zoom / 100.0))            };
+            fp16     zcos_a  { fToFp16(z * cos(-aT.alpha))               }; // scaled cos
+            fp16     zsin_a  { fToFp16(z * sin(-aT.alpha))               }; // scaled sin
+            fp16     c_tx    { c_s_x - (fToFp16(aT.x) >> wsub)           };
+            fp16     c_ty    { c_s_y - (fToFp16(aT.y) >> hsub)           };
+
+
+            /*
+             * for each pixel in the destination image we calc the source
+             * coordinate and make an interpolation:
+             *      p_d = c_d + M(p_s - c_s) + t
+             * where p are the points, c the center coordinate,
+             *  _s source and _d destination,
+             *  t the translation, and M the rotation and scaling matrix
+             *      p_s = M^{-1}(p_d - c_d - t) + c_s
+             */
+            for (int32_t y = 0; y < dh; ++y)
+            {
+                /*
+                 * swapping of the loops brought 15% performace gain
+                 */
+                int32_t y_d1 = (y - c_d_y);
+
+                for (int32_t x = 0; x < dw; ++x)
+                {
+                    int32_t  x_d1 { x - c_d_x                                 };
+                    fp16     x_s  { ( zcos_a * x_d1) + (zsin_a * y_d1) + c_tx };
+                    fp16     y_s  { (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty };
+                    uint8_t* dest { &dat_2[x + y * destbuf.linesize[plane]]   };
+
+                    /*
+                     * inlining the interpolation function would bring 10%
+                     * (but then we cannot use the function pointer anymore...)
+                     */
+                    interpolate(dest,
+                                x_s,
+                                y_s,
+                                dat_1,
+                                src.linesize[plane],
+                                sw,
+                                sh,
+                                conf.crop ? black : *dest);
+                }
+            }
         }
     }
 }
@@ -199,23 +426,31 @@ int vsTransformDataInit(VSTransformData*         aTd,
     
     if (nullptr == aConf)
     {
-        throw VS_EXCEPTION("Configuration structure is NULL!");
+        vs_log_error(modName, "Configuration structure is NULL!");
+        return VS_ERROR;
     }
     
     if (nullptr == aFiSrc)
     {
-        throw VS_EXCEPTION("Source frame info structure is NULL!");
+        vs_log_error(modName, "Source frame info structure is NULL!");
+        return VS_ERROR;
     }
     
     if (nullptr == aFiDst)
     {
-        throw VS_EXCEPTION("Destination frame info structure is NULL!");
+        vs_log_error(modName, "Destination frame info structure is NULL!");
+        return VS_ERROR;
     }
     
     
+    aTd->fiSrc  = *aFiSrc;
+    aTd->fiDest = *aFiDst;
+    aTd->conf   = *aConf;
+
+
     try
     {
-        VSTR* td   = new VSTR(modName, *aTd, *aConf, *aFiSrc, *aFiDst);
+        VSTR* td   = new VSTR(modName, *aTd);
         aTd->_inst = td;
     }
     catch (std::exception& exc)
@@ -231,25 +466,16 @@ int vsTransformDataInit(VSTransformData*         aTd,
         return VS_ERROR;
     }
     
-    
-    aTd->conf   = *aConf;
-    
-    aTd->fiSrc  = *aFiSrc;
-    aTd->fiDest = *aFiDst;
-    
-    Frame::Info  isrc  { *aFiSrc                   };
-    Frame::Info  idst  { *aFiDst                   };
-    
     Frame::Frame fsrc  { aTd->src,     aTd->fiSrc  };
     Frame::Frame fdst  { aTd->dest,    aTd->fiDest };
     Frame::Frame fdstB { aTd->destbuf, aTd->fiDest };
-    
+
     fsrc.forget();
     fdst.forget();
     fdstB.forget();
-    
+
     aTd->srcMalloced = 0;
-    
+
     if (aTd->conf.maxShift > aTd->fiDest.width / 2)
     {
         aTd->conf.maxShift = aTd->fiDest.width / 2;
@@ -258,15 +484,15 @@ int vsTransformDataInit(VSTransformData*         aTd,
     {
         aTd->conf.maxShift = aTd->fiDest.height / 2;
     }
-    
+
     aTd->conf.interpolType = VS_MAX(VS_MIN(aTd->conf.interpolType, VS_BiCubic), VS_Zero);
-    
+
     // not yet implemented
     if (aTd->conf.camPathAlgo == VSOptimalL1)
     {
         aTd->conf.camPathAlgo = VSGaussian;
     }
-    
+
     switch (aTd->conf.interpolType)
     {
         case VS_Zero:
