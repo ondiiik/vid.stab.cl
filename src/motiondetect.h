@@ -425,19 +425,6 @@ namespace VidStab
     }
     
     
-    /**
-     * @brief   Convert motion detect instance to C++ representation
-     * @param   aMd     Motion detect instance
-     * @return  C++ representation of motion detect instance
-     */
-    inline const VSMD& VSMD2Inst(const VSMotionDetect* aMd)
-    {
-        assert(nullptr != aMd);
-        const VSMD* const md = (VSMD*)aMd->_inst;
-        return *md;
-    }
-    
-    
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */

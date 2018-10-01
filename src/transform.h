@@ -27,6 +27,7 @@
 #include "transformtype.h"
 #include "frameinfo.h"
 #include "vidstabdefines.h"
+#include "vs_exception.h"
 #include <cmath>
 #include <libgen.h>
 #include <cassert>
@@ -149,17 +150,4 @@ namespace VidStab
          */
         void _transformPlanar(VSTransform& aT);
     };
-    
-    
-    /**
-     * @brief   Convert motion detect instance to C++ representation
-     * @param   aMd     Motion detect instance
-     * @return  C++ representation of motion detect instance
-     */
-    inline VSTR& VSTR2Inst(VSTransformData* aTd)
-    {
-        assert(nullptr != aTd);
-        VSTR* const td = (VSTR*)aTd->_inst;
-        return *td;
-    }
 }

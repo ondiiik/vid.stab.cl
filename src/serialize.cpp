@@ -124,56 +124,6 @@ LocalMotions vsRestoreLocalmotions(FILE* f)
     return lms;
 }
 
-int vsPrepareFile(const VSMotionDetect* aMd,
-                  FILE*                 f)
-{
-    const VSMD& md = VSMD2Inst(aMd);
-    
-    if (!f)
-    {
-        return VS_ERROR;
-    }
-    
-    fprintf(f, "VID.STAB 1\n");
-    fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
-    fprintf(f, "#      accuracy = %d\n", md.conf.accuracy);
-    fprintf(f, "#     shakiness = %d\n", md.conf.shakiness);
-    fprintf(f, "#      stepsize = %d\n", md.conf.stepSize);
-    fprintf(f, "#   mincontrast = %f\n", md.conf.contrastThreshold);
-    
-    return VS_OK;
-}
-
-
-int vsWriteToFile(const VSMotionDetect* aMd,
-                  FILE*                 f,
-                  const LocalMotions*   lms)
-{
-    const VSMD& md = VSMD2Inst(aMd);
-    
-    if ((nullptr == f) || (nullptr == lms))
-    {
-        return VS_ERROR;
-    }
-    
-    if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
-    {
-        return VS_ERROR;
-    }
-    
-    if (vsStoreLocalmotions(f, lms) <= 0)
-    {
-        return VS_ERROR;
-    }
-    
-    if (fprintf(f, ")\n") <= 0)
-    {
-        return VS_ERROR;
-    }
-    
-    return VS_OK;
-}
-
 
 /// reads the header of the file and return the version number
 int vsReadFileVersion(FILE* f)

@@ -59,6 +59,25 @@ using namespace VidStab;
 namespace
 {
     const char moduleName[] { "Transform" };
+    
+    
+    /**
+     * @brief   Convert motion transform instance to C++ representation
+     * @param   aMd     Motion transform instance
+     * @return  C++ representation of motion transform instance
+     */
+    inline VSTR& VSTR2Inst(VSTransformData* aTd)
+    {
+        if (nullptr != aTd)
+        {
+            VSTR* const td = (VSTR*)aTd->_inst;
+            return *td;
+        }
+        else
+        {
+            throw VS_EXCEPTION("Transform data C structure is NULL!");
+        }
+    }
 }
 
 
@@ -98,7 +117,7 @@ namespace VidStab
         // with the transformed version
         dest = *aDest;
         
-        Frame::Info        isrc { fiSrc       };
+        Frame::Info        isrc { fiSrc  };
         const Frame::Frame fsrc { *aSrc, isrc };
         
         if ((aSrc == aDest) || srcMalloced) // in place operation: we have to copy the src first
@@ -108,7 +127,7 @@ namespace VidStab
             if (ftd.empty())
             {
                 ftd.alloc();
-                srcMalloced = true;
+                srcMalloced = 1;
             }
             
             ftd = fsrc;
@@ -484,58 +503,51 @@ void vsTransformDataCleanup(struct VSTransformData* aTd)
     }
     
     
-    VSTR*  ttd = &(VSTR2Inst(aTd));
-    delete ttd;
-    aTd->_inst = nullptr;
+    try
+    {
+        VSTR*  td = &(VSTR2Inst(aTd));
+        delete td;
+        aTd->_inst = nullptr;
+    }
+    catch (std::exception& exc)
+    {
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        assert(false);
+    }
+    catch (...)
+    {
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        assert(false);
+    }
 }
 
 
-int vsTransformPrepare(struct VSTransformData* td,
-                       const VSFrame*          src,
-                       VSFrame*                dest)
+int vsTransformPrepare(struct VSTransformData* aTd,
+                       const VSFrame*          aSrc,
+                       VSFrame*                aDest)
 {
-    // we first copy the frame to td->src and then overwrite the destination
-    // with the transformed version
-    td->dest = *dest;
-    
-    Frame::Info        isrc { td->fiSrc  };
-    const Frame::Frame fsrc { *src, isrc };
-    
-    if ((src == dest) || td->srcMalloced) // in place operation: we have to copy the src first
+    try
     {
-        Frame::Frame ftd  { td->src, isrc };
-        
-        if (ftd.empty())
-        {
-            ftd.alloc();
-            td->srcMalloced = 1;
-        }
-        
-        ftd = fsrc;
+        VSTR td = VSTR2Inst(aTd);
+        td.prepare(aSrc, aDest);
     }
-    else // otherwise no copy needed
+    catch (std::exception& exc)
     {
-        td->src = *src;
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        return VS_ERROR;
     }
-    
-    
-    if (td->conf.crop == VSKeepBorder)
+    catch (...)
     {
-        Frame::Frame ftd { td->destbuf, isrc };
-        
-        if (ftd.empty())
-        {
-            // if we keep the borders, we need a second buffer to store
-            //  the previous stabilized frame, so we use destbuf
-            ftd.alloc();
-            
-            // if we keep borders, save first frame into the background buffer (destbuf)
-            ftd = fsrc;
-        }
-    }
-    else   // otherwise we directly operate on the destination
-    {
-        td->destbuf = *dest;
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
     }
     
     return VS_OK;

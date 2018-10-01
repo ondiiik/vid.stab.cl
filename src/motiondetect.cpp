@@ -76,6 +76,25 @@ namespace
     const char moduleName[] { "Detect" };
     
     
+    /**
+     * @brief   Convert motion detect instance to C++ representation
+     * @param   aMd     Motion detect instance
+     * @return  C++ representation of motion detect instance
+     */
+    inline const VSMD& VSMD2Inst(const VSMotionDetect* aMd)
+    {
+        if (nullptr != aMd)
+        {
+            const VSMD* const md = (VSMD*)aMd->_inst;
+            return *md;
+        }
+        else
+        {
+            throw VS_EXCEPTION("Detect data C structure is NULL!");
+        }
+    }
+    
+    
 #if defined(USE_SSE2)
     unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
 #endif
@@ -266,16 +285,47 @@ VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName)
 void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
                              const VSMotionDetect* aMd)
 {
-    const VSMD& md = VSMD2Inst(aMd);
-    assert(nullptr != aConf);
-    *aConf = md.conf;
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        *aConf    = md.conf;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "%s\n", exc.what());
+        assert(false);
+    }
+    catch (...)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "Unknown failure type!\n");
+        assert(false);
+    }
 }
 
 
 const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
 {
-    const VSMD& md = VSMD2Inst(aMd);
-    return     &md.fiInfoC;
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        return     &md.fiInfoC;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "%s\n", exc.what());
+        assert(false);
+    }
+    catch (...)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "Unknown failure type!\n");
+        assert(false);
+    }
+    
+    return nullptr;
 }
 
 
@@ -363,6 +413,87 @@ int vsMotionDetection(VSMotionDetect* aMd,
 }
 
 
+int vsPrepareFile(const VSMotionDetect* aMd,
+                  FILE*                 f)
+{
+    if (nullptr == f)
+    {
+        return VS_ERROR;
+    }
+    
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        
+        fprintf(f, "VID.STAB 1\n");
+        fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
+        fprintf(f, "#      accuracy = %d\n", md.conf.accuracy);
+        fprintf(f, "#     shakiness = %d\n", md.conf.shakiness);
+        fprintf(f, "#      stepsize = %d\n", md.conf.stepSize);
+        fprintf(f, "#   mincontrast = %f\n", md.conf.contrastThreshold);
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    return VS_OK;
+}
+
+
+int vsWriteToFile(const VSMotionDetect* aMd,
+                  FILE*                 f,
+                  const LocalMotions*   lms)
+{
+    if ((nullptr == f) || (nullptr == lms))
+    {
+        return VS_ERROR;
+    }
+    
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        
+        if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
+        {
+            return VS_ERROR;
+        }
+        
+        if (vsStoreLocalmotions(f, lms) <= 0)
+        {
+            return VS_ERROR;
+        }
+        
+        if (fprintf(f, ")\n") <= 0)
+        {
+            return VS_ERROR;
+        }
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    return VS_OK;
+}
+
+
 /**
    calculates Michelson-contrast in the given small part of the given image
    to be more compatible with the absolute difference formula this is scaled by 0.1
@@ -431,12 +562,12 @@ namespace VidStab
         {
             throw VS_EXCEPTION("Configuration structure is NULL!");
         }
-
+        
         if (nullptr == aFi)
         {
             throw VS_EXCEPTION("Frame info structure is NULL!");
         }
-
+        
         _initMsg();
         _initVsDetect(aConf, aFi);
         _initOpenCl();
