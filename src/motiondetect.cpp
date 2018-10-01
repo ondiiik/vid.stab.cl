@@ -292,14 +292,14 @@ void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "%s\n", exc.what());
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
         assert(false);
     }
     catch (...)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "Unknown failure type!\n");
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
         assert(false);
     }
 }
@@ -314,14 +314,14 @@ const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "%s\n", exc.what());
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
         assert(false);
     }
     catch (...)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "Unknown failure type!\n");
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
         assert(false);
     }
     
@@ -479,14 +479,14 @@ int vsWriteToFile(const VSMotionDetect* aMd,
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "%s\n", exc.what());
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
         return VS_ERROR;
     }
     catch (...)
     {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "Unknown failure type!\n");
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
         return VS_ERROR;
     }
     

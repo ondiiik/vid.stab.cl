@@ -553,17 +553,31 @@ int vsTransformPrepare(struct VSTransformData* aTd,
     return VS_OK;
 }
 
-int vsDoTransform(struct VSTransformData* td,
-                  struct VSTransform      t)
+
+int vsDoTransform(struct VSTransformData* aTd,
+                  struct VSTransform      aT)
 {
-    if (td->fiSrc.pFormat < PF_PACKED)
+    try
     {
-        return transformPlanar(td, t);
+        VSTR td = VSTR2Inst(aTd);
+        td.process(aT);
     }
-    else
+    catch (std::exception& exc)
     {
-        return transformPacked(td, t);
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        return VS_ERROR;
     }
+    catch (...)
+    {
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+
+    return VS_OK;
 }
 
 
