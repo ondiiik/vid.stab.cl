@@ -48,6 +48,7 @@
 #include "transformfixedpoint.h"
 
 #include "vs_exception.h"
+#include "sys_omp.h"
 #include <math.h>
 #include <libgen.h>
 #include <string.h>
@@ -95,6 +96,9 @@ namespace VidStab
         interpolate { aTd.interpolate   },
         conf        { aTd.conf          },
         initialized { aTd.initialized   },
+#ifdef USE_OMP
+        numThreads  { 1                 },
+#endif
         isrc        { fiSrc             },
         idst        { fiDest            },
         fsrc        { aTd.src,     isrc },
@@ -185,6 +189,11 @@ namespace VidStab
     
     void VSTR::_initVsTransform()
     {
+#ifdef USE_OMP
+        numThreads = VS_MAX(omp_get_max_threads(), 1);
+        vs_log_info(conf.modName, "[filter] Multithreading: use %i threads\n", numThreads);
+#endif
+        
         fsrc.forget();
         fdst.forget();
         fdstB.forget();
@@ -254,7 +263,12 @@ namespace VidStab
         int channels { fiSrc.bytesPerPixel          };
         
         /* All channels */
-        for (int32_t y = 0; y < fiDest.height; ++y)
+        OMP_ALIAS(td, this)
+        OMP_ALIAS(db, &destbuf)
+        OMP_ALIAS(sc, &src)
+        OMP_PARALLEL_FOR(numThreads,
+                         omp parallel for shared(td, db, sc),
+                         (int32_t y = 0; y < fiDest.height; ++y))
         {
             int32_t y_d1 { y - c_d_y };
             
@@ -331,7 +345,12 @@ namespace VidStab
              *  t the translation, and M the rotation and scaling matrix
              *      p_s = M^{-1}(p_d - c_d - t) + c_s
              */
-            for (int32_t y = 0; y < dh; ++y)
+            OMP_ALIAS(td, this)
+            OMP_ALIAS(db, &destbuf)
+            OMP_ALIAS(sc, &src)
+            OMP_PARALLEL_FOR(numThreads,
+                             omp parallel for shared(td, db, sc),
+                             (int32_t y = 0; y < dh; ++y))
             {
                 /*
                  * swapping of the loops brought 15% performace gain
@@ -576,7 +595,7 @@ int vsDoTransform(struct VSTransformData* aTd,
         vs_log_error(modName, "Unknown failure type!\n");
         return VS_ERROR;
     }
-
+    
     return VS_OK;
 }
 

@@ -121,6 +121,10 @@ namespace VidStab
         
         
         
+#ifdef USE_OMP
+        int                      numThreads;
+#endif
+
         const Frame::Info        isrc;
         const Frame::Info        idst;
         
