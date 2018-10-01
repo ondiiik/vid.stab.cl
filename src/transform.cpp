@@ -581,15 +581,26 @@ int vsDoTransform(struct VSTransformData* aTd,
 }
 
 
-int vsTransformFinish(struct VSTransformData* td)
+int vsTransformFinish(struct VSTransformData* aTd)
 {
-    if (td->conf.crop == VSKeepBorder)
+    try
     {
-        // we have to store our result to video buffer
-        // note: destbuf stores stabilized frame to be the default for next frame
-        Frame::Frame fdst { td->dest,    td->fiDest };
-        Frame::Frame fsrc { td->destbuf, td->fiDest };
-        fdst = fsrc;
+        VSTR td = VSTR2Inst(aTd);
+        td.finish();
+    }
+    catch (std::exception& exc)
+    {
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        const char*  modName = ((nullptr != aTd) ? aTd->conf.modName : "vid.stab");
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
     }
     
     return VS_OK;
