@@ -108,14 +108,14 @@ namespace VidStab
         VSFrame&                 destbuf;       // pointer to an additional buffer or
         // to the destination buffer (depending on crop)
         VSFrame&                 dest;          // pointer to the destination buffer
-        bool                     srcMalloced;   // 1 if the source buffer was internally malloced
+        short&                   srcMalloced;   // 1 if the source buffer was internally malloced
         
-        vsInterpolateFun         interpolate;   // pointer to interpolation function
+        vsInterpolateFun&        interpolate;   // pointer to interpolation function
         
         /* Options */
         VSTransformConfig&       conf;
         
-        int                      initialized; // 1 if initialized and 2 if configured
+        int&                     initialized; // 1 if initialized and 2 if configured
         
         
         

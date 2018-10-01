@@ -72,9 +72,10 @@ namespace VidStab
         src         { aTd.src           },
         destbuf     { aTd.destbuf       },
         dest        { aTd.dest          },
-        srcMalloced { false             },
+        srcMalloced { aTd.srcMalloced   },
+        interpolate { aTd.interpolate   },
         conf        { aTd.conf          },
-        initialized { 0                 },
+        initialized { aTd.initialized   },
         isrc        { fiSrc             },
         idst        { fiDest            },
         fsrc        { aTd.src,     isrc },
@@ -169,6 +170,8 @@ namespace VidStab
         fdst.forget();
         fdstB.forget();
         
+        srcMalloced = 0;
+        
         if (conf.maxShift > fiDest.width / 2)
         {
             conf.maxShift = fiDest.width / 2;
@@ -180,9 +183,7 @@ namespace VidStab
         
         conf.interpolType = VS_MAX(VS_MIN(conf.interpolType, VS_BiCubic), VS_Zero);
         
-        /*
-         * Not yet implemented
-         */
+        // not yet implemented
         if (conf.camPathAlgo == VSOptimalL1)
         {
             conf.camPathAlgo = VSGaussian;
@@ -193,25 +194,21 @@ namespace VidStab
             case VS_Zero:
                 interpolate = interpolateZero;
                 break;
-                
             case VS_Linear:
-                interpolate = &interpolateLin;
+                interpolate = interpolateLin;
                 break;
-                
             case VS_BiLinear:
-                interpolate = &interpolateBiLin;
+                interpolate = interpolateBiLin;
                 break;
-                
             case VS_BiCubic:
-                interpolate = &interpolateBiCub;
+                interpolate = interpolateBiCub;
                 break;
-                
             default:
-                interpolate = &interpolateBiLin;
+                interpolate = interpolateBiLin;
         }
     }
-
-
+    
+    
     void VSTR::_transformPacked(VSTransform& aT)
     {
         uint8_t* D_1   { src.data[0]               };
@@ -220,8 +217,8 @@ namespace VidStab
         fp16     c_s_y { iToFp16(fiSrc.height / 2) };
         int32_t  c_d_x { fiDest.width  / 2         };
         int32_t  c_d_y { fiDest.height / 2         };
-
-
+        
+        
         /* for each pixel in the destination image we calculate the source
          * coordinate and make an interpolation:
          *      p_d = c_d + M(p_s - c_s) + t
@@ -236,18 +233,18 @@ namespace VidStab
         fp16  c_tx   { c_s_x - fToFp16(aT.x)        };
         fp16  c_ty   { c_s_y - fToFp16(aT.y)        };
         int channels { fiSrc.bytesPerPixel          };
-
+        
         /* All channels */
         for (int32_t y = 0; y < fiDest.height; ++y)
         {
             int32_t y_d1 { y - c_d_y };
-
+            
             for (int32_t x = 0; x < fiDest.width; ++x)
             {
                 int32_t x_d1 { x - c_d_x                                 };
                 fp16    x_s  { ( zcos_a * x_d1) + (zsin_a * y_d1) + c_tx };
                 fp16    y_s  { (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty };
-
+                
                 for (int32_t k = 0; k < channels; ++k)   // iterate over colors
                 {
                     uint8_t* dest { &D_2[x + y * destbuf.linesize[0] + k] };
@@ -265,8 +262,8 @@ namespace VidStab
             }
         }
     }
-
-
+    
+    
     void VSTR::_transformPlanar(VSTransform& aT)
     {
         if ((aT.alpha == 0) && (aT.x == 0) && (aT.y == 0) && (aT.zoom == 0))
@@ -275,37 +272,37 @@ namespace VidStab
             {
                 fdst = fsrc;
             }
-
+            
             return;
         }
-
+        
         for (int plane = 0; plane < fiSrc.planes; plane++)
         {
             uint8_t* dat_1   { src.data[             plane ]             };
             uint8_t* dat_2   { destbuf.data[         plane ]             };
-
+            
             int      wsub    { isrc.subsampleWidth(  plane )             };
             int      hsub    { isrc.subsampleHeight( plane )             };
-
+            
             int      dw      { CHROMA_SIZE(fiDest.width,  wsub)          };
             int      dh      { CHROMA_SIZE(fiDest.height, hsub)          };
             int      sw      { CHROMA_SIZE(fiSrc.width,   wsub)          };
             int      sh      { CHROMA_SIZE(fiSrc.height,  hsub)          };
-
+            
             uint8_t  black   { (plane == 0) ? uint8_t(0) : uint8_t(0x80) };
-
+            
             fp16     c_s_x   { iToFp16(sw / 2)                           };
             fp16     c_s_y   { iToFp16(sh / 2)                           };
             int32_t  c_d_x   { dw / 2                                    };
             int32_t  c_d_y   { dh / 2                                    };
-
+            
             float    z       { float(1.0 - (aT.zoom / 100.0))            };
             fp16     zcos_a  { fToFp16(z * cos(-aT.alpha))               }; // scaled cos
             fp16     zsin_a  { fToFp16(z * sin(-aT.alpha))               }; // scaled sin
             fp16     c_tx    { c_s_x - (fToFp16(aT.x) >> wsub)           };
             fp16     c_ty    { c_s_y - (fToFp16(aT.y) >> hsub)           };
-
-
+            
+            
             /*
              * for each pixel in the destination image we calc the source
              * coordinate and make an interpolation:
@@ -321,14 +318,14 @@ namespace VidStab
                  * swapping of the loops brought 15% performace gain
                  */
                 int32_t y_d1 = (y - c_d_y);
-
+                
                 for (int32_t x = 0; x < dw; ++x)
                 {
                     int32_t  x_d1 { x - c_d_x                                 };
                     fp16     x_s  { ( zcos_a * x_d1) + (zsin_a * y_d1) + c_tx };
                     fp16     y_s  { (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty };
                     uint8_t* dest { &dat_2[x + y * destbuf.linesize[plane]]   };
-
+                    
                     /*
                      * inlining the interpolation function would bring 10%
                      * (but then we cannot use the function pointer anymore...)
@@ -446,8 +443,8 @@ int vsTransformDataInit(VSTransformData*         aTd,
     aTd->fiSrc  = *aFiSrc;
     aTd->fiDest = *aFiDst;
     aTd->conf   = *aConf;
-
-
+    
+    
     try
     {
         VSTR* td   = new VSTR(modName, *aTd);
@@ -466,50 +463,6 @@ int vsTransformDataInit(VSTransformData*         aTd,
         return VS_ERROR;
     }
     
-    Frame::Frame fsrc  { aTd->src,     aTd->fiSrc  };
-    Frame::Frame fdst  { aTd->dest,    aTd->fiDest };
-    Frame::Frame fdstB { aTd->destbuf, aTd->fiDest };
-
-    fsrc.forget();
-    fdst.forget();
-    fdstB.forget();
-
-    aTd->srcMalloced = 0;
-
-    if (aTd->conf.maxShift > aTd->fiDest.width / 2)
-    {
-        aTd->conf.maxShift = aTd->fiDest.width / 2;
-    }
-    if (aTd->conf.maxShift > aTd->fiDest.height / 2)
-    {
-        aTd->conf.maxShift = aTd->fiDest.height / 2;
-    }
-
-    aTd->conf.interpolType = VS_MAX(VS_MIN(aTd->conf.interpolType, VS_BiCubic), VS_Zero);
-
-    // not yet implemented
-    if (aTd->conf.camPathAlgo == VSOptimalL1)
-    {
-        aTd->conf.camPathAlgo = VSGaussian;
-    }
-
-    switch (aTd->conf.interpolType)
-    {
-        case VS_Zero:
-            aTd->interpolate = interpolateZero;
-            break;
-        case VS_Linear:
-            aTd->interpolate = &interpolateLin;
-            break;
-        case VS_BiLinear:
-            aTd->interpolate = &interpolateBiLin;
-            break;
-        case VS_BiCubic:
-            aTd->interpolate = &interpolateBiCub;
-            break;
-        default:
-            aTd->interpolate = &interpolateBiLin;
-    }
     return VS_OK;
 }
 
