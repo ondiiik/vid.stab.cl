@@ -49,7 +49,7 @@ namespace VidStab
          * @param   aDst    Destination transformation
          * @param   aSrc    Source transformation
          */
-        virtual void to(Vect& aDst, const Vect& aSrc) const noexcept = 0;
+        virtual void to(Vect& aDst, const Vect& aSrc) noexcept = 0;
         
         
         /**
@@ -61,6 +61,6 @@ namespace VidStab
          * @param   aDst    Source transformation
          * @param   aSrc    Destination transformation
          */
-        virtual void from(Vect& aDst, const Vect& aSrc) const noexcept = 0;
+        virtual void from(Vect& aDst, const Vect& aSrc) noexcept = 0;
     };
 }

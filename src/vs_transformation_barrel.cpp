@@ -37,7 +37,7 @@ namespace VidStab
     }
     
     
-    void TransformationBarrel::to(Vect& aDst, const Vect& aSrc) const noexcept
+    void TransformationBarrel::to(Vect& aDst, const Vect& aSrc) noexcept
     {
         /*
          * Conversion from linear space is simple by filling in
@@ -50,17 +50,25 @@ namespace VidStab
     }
     
     
-    void TransformationBarrel::from(Vect& aDst, const Vect& aSrc) const noexcept
+    void TransformationBarrel::from(Vect& aDst, const Vect& aSrc) noexcept
     {
         /*
          * To get back transformation, we have to run equation resolver.
          * First resolver step is to guess some point close to expected
-         * result.
+         * result. The best estimation is to use last result, if calculated
+         * vector was somewhere close. Otherwise we have to take a guess.
          */
-        Vect   src   = aSrc - _center;
-        double rq    = src.qsize();
-        double acc   = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
-        Vect   guess = src * acc;
+        Vect src = aSrc - _center;
+
+        if (!_lastSrc.isCloseSq(src, 4))
+        {
+            double rq  = src.qsize();
+            double acc = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
+            _lastDst   = src * acc;
+        }
+        
+        _lastSrc = src;
+        
         
         /*
          * Resolver is iterative, where with each iteration we should
@@ -74,8 +82,8 @@ namespace VidStab
              * process estimation correction to get closer to solution.
              */
             Vect reality;
-            to(  reality, guess);
-            guess += (src - reality);
+            to(  reality, _lastDst);
+            _lastDst += (src - reality);
             
             /*
              * We consider equation resolved when our difference from
@@ -90,6 +98,6 @@ namespace VidStab
         /*
          * Calculation done. Write result of resolver.
          */
-        aDst = guess + _center;
+        aDst = _lastDst + _center;
     }
 }

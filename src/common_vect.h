@@ -20,7 +20,7 @@ namespace Common
         Vect() noexcept
             :
             x { _Tp(0) },
-            y { _Tp(0) }
+        y { _Tp(0) }
         {
         
         }
@@ -30,7 +30,7 @@ namespace Common
              _Tp aY) noexcept
             :
             x { aX },
-            y { aY }
+        y { aY }
         {
         
         }
@@ -133,6 +133,24 @@ namespace Common
         }
         
         
+        /**
+         * @brief   Say if another vector is close to this
+         *
+         * Square is used as range. Vector must be in square range
+         * limited by @c +- @c ARange in @c x and @c y direction.
+         *
+         * @param aVec      Another vector
+         * @param aRange    Range
+         *
+         * @return
+         */
+        inline bool isCloseSq(const Vect& aVec, _Tp aRange) const noexcept
+        {
+            return (_Tp(fabs(aVec.x - x)) < aRange) &&
+                   (_Tp(fabs(aVec.y - y)) < aRange);
+        }
+
+
         inline _Tp qsize() const noexcept
         {
             return x * x + y * y;
@@ -143,8 +161,8 @@ namespace Common
         {
             return _Tp(sqrt(qsize()));
         }
-
-
+        
+        
         inline double angle() const noexcept
         {
             return atan2(double(y), double(x));
