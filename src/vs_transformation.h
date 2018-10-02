@@ -19,7 +19,7 @@ namespace VidStab
         /**
          * @brief   Nothing is initialized - default constructor
          */
-        Transformation()
+        Transformation() noexcept
         {
         
         }
@@ -28,7 +28,7 @@ namespace VidStab
         /**
          * @brief   Virtual methods - virtual constructor
          */
-        virtual ~Transformation()
+        virtual ~Transformation() noexcept
         {
         
         }
