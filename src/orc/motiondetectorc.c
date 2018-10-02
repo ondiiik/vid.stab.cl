@@ -165,8 +165,7 @@ image_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RE
 }
 
 #else
-static void
-_backup_image_difference_optimized (OrcExecutor* ORC_RESTRICT ex)
+static void _backup_image_difference_optimized (OrcExecutor* ORC_RESTRICT ex)
 {
     int i;
     int j;
@@ -198,8 +197,13 @@ _backup_image_difference_optimized (OrcExecutor* ORC_RESTRICT ex)
     
 }
 
-void
-image_difference_optimized (orc_uint32* ORC_RESTRICT a1, const orc_uint8* ORC_RESTRICT s1, int s1_stride, const orc_uint8* ORC_RESTRICT s2, int s2_stride, int n, int m)
+void image_difference_optimized(orc_uint32*      ORC_RESTRICT a1,
+                                const orc_uint8* ORC_RESTRICT s1,
+                                int                           s1_stride,
+                                const orc_uint8* ORC_RESTRICT s2,
+                                int                           s2_stride,
+                                int                           n,
+                                int                           m)
 {
     OrcExecutor _ex, *ex = &_ex;
     static int p_inited = 0;

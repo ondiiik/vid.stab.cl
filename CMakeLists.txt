@@ -76,6 +76,7 @@ set(SOURCES
     src/serialize.cpp
     src/localmotion2transform.cpp
     src/vsvector.cpp
+    src/vs_transformation_barrel.cpp
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
@@ -93,6 +94,8 @@ set(HEADERS
     src/localmotion2transform.h
     src/vsvector.h
     src/md_exception.hpp
+    src/vs_transformation.h
+    src/vs_transformation_barrel.h
     src/cl/opencl.hpp
     src/cl/opencl___blur_h.h
     src/cl/opencl___blur_v.h)

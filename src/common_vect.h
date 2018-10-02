@@ -17,7 +17,7 @@ namespace Common
      */
     template <typename _Tp> struct Vect
     {
-        Vect()
+        Vect() noexcept
             :
             x { _Tp(0) },
             y { _Tp(0) }
@@ -27,7 +27,7 @@ namespace Common
         
         
         Vect(_Tp aX,
-             _Tp aY)
+             _Tp aY) noexcept
             :
             x { aX },
             y { aY }
@@ -36,7 +36,7 @@ namespace Common
         }
         
         
-        inline Vect& operator-=(const Vect& aSrc)
+        inline Vect& operator-=(const Vect& aSrc) noexcept
         {
             this->x -= aSrc.x;
             this->y -= aSrc.y;
@@ -44,7 +44,7 @@ namespace Common
         }
         
         
-        inline Vect operator-(const Vect& aSrc) const
+        inline Vect operator-(const Vect& aSrc) const noexcept
         {
             ;
             Vect r { *this };
@@ -53,7 +53,7 @@ namespace Common
         }
         
         
-        inline Vect& operator-=(_Tp aVal)
+        inline Vect& operator-=(_Tp aVal) noexcept
         {
             this->x -= aVal;
             this->y -= aVal;
@@ -61,7 +61,7 @@ namespace Common
         }
         
         
-        inline Vect operator-(_Tp aVal) const
+        inline Vect operator-(_Tp aVal) const noexcept
         {
             Vect r { *this };
             r -= aVal;
@@ -69,7 +69,7 @@ namespace Common
         }
         
         
-        inline Vect& operator+=(const Vect& aSrc)
+        inline Vect& operator+=(const Vect& aSrc) noexcept
         {
             this->x += aSrc.x;
             this->y += aSrc.y;
@@ -77,7 +77,7 @@ namespace Common
         }
         
         
-        inline Vect operator+(const Vect& aSrc) const
+        inline Vect operator+(const Vect& aSrc) const noexcept
         {
             Vect r { *this };
             r += aSrc;
@@ -85,7 +85,7 @@ namespace Common
         }
         
         
-        inline Vect& operator+=(_Tp aVal)
+        inline Vect& operator+=(_Tp aVal) noexcept
         {
             this->x += aVal;
             this->y += aVal;
@@ -93,7 +93,7 @@ namespace Common
         }
         
         
-        inline Vect operator+(_Tp aVal) const
+        inline Vect operator+(_Tp aVal) const noexcept
         {
             Vect r { *this };
             r += aVal;
@@ -101,7 +101,7 @@ namespace Common
         }
         
         
-        inline Vect& operator/=(_Tp aVal)
+        inline Vect& operator/=(_Tp aVal) noexcept
         {
             this->x /= aVal;
             this->y /= aVal;
@@ -109,7 +109,7 @@ namespace Common
         }
         
         
-        inline Vect operator/(_Tp aVal) const
+        inline Vect operator/(_Tp aVal) const noexcept
         {
             Vect r { *this };
             r /= aVal;
@@ -117,7 +117,7 @@ namespace Common
         }
         
         
-        inline Vect& operator*=(_Tp aVal)
+        inline Vect& operator*=(_Tp aVal) noexcept
         {
             this->x *= aVal;
             this->y *= aVal;
@@ -125,7 +125,7 @@ namespace Common
         }
         
         
-        inline Vect operator*(_Tp aVal) const
+        inline Vect operator*(_Tp aVal) const noexcept
         {
             Vect r { *this };
             r *= aVal;
@@ -133,12 +133,24 @@ namespace Common
         }
         
         
-        inline double atan() const
+        inline _Tp qsize() const noexcept
         {
-            return atan2(double(y), double(x));
+            return x * x + y * y;
+        }
+        
+        
+        inline _Tp size() const noexcept
+        {
+            return _Tp(sqrt(qsize()));
         }
 
 
+        inline double angle() const noexcept
+        {
+            return atan2(double(y), double(x));
+        }
+        
+        
         _Tp x;
         _Tp y;
     };
