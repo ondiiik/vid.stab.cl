@@ -79,6 +79,237 @@ namespace
             throw VS_EXCEPTION("Transform data C structure is NULL!");
         }
     }
+    
+    
+    inline int _pix(const uint8_t* aBuf,
+                    int            aLs,
+                    int            aX,
+                    int            aY)
+    {
+        return aBuf[aLs * aY + aX];
+    }
+    
+    
+    inline int _pixel(const uint8_t* aBuf,
+                      int            aLs,
+                      int            aX,
+                      int            aY,
+                      int            aWidth,
+                      int            aHeight,
+                      uint8_t        aDefault)
+    {
+        if ((aX >= 0) && (aY >= 0) && (aX < aWidth) && (aY  < aHeight))
+        {
+            return _pix(aBuf, aLs, aX, aY);
+        }
+        else
+        {
+            return aDefault;
+        }
+    }
+    
+    
+    inline int _pixClamp(int aVal)
+    {
+        if (0 > aVal)
+        {
+            return 0;
+        }
+        else if (255 < aVal)
+        {
+            return 255;
+        }
+        else
+        {
+            return aVal;
+        }
+    }
+    
+    
+    void _ipNone(uint8_t*       rv,
+                 float          x,
+                 float          y,
+                 const uint8_t* img,
+                 int            img_linesize,
+                 int            width,
+                 int            height,
+                 uint8_t        def)
+    {
+        int res = _pixel(img,
+                         img_linesize,
+                         x + 0.5,
+                         y + 0.5,
+                         width,
+                         height,
+                         def);
+                         
+        *rv = _pixClamp(res);
+    }
+    
+    
+    void _ipLinear(uint8_t*       rv,
+                   float          x,
+                   float          y,
+                   const uint8_t* img,
+                   int            img_linesize,
+                   int            width,
+                   int            height,
+                   uint8_t        def)
+    {
+        int   x_f = int(x + 0.5);
+        int   x_c = x_f + 1;
+        int   y_n = int(y + 0.5);
+        int   v1  = _pixel(img, img_linesize, x_c, y_n, width, height, def);
+        int   v2  = _pixel(img, img_linesize, x_f, y_n, width, height, def);
+        float s   = v1 * (x - x_f) + v2 * (x_c - x);
+        
+        *rv = _pixClamp(s + 0.5);
+    }
+    
+    
+    /** _ipBilinearBorder: bi-linear interpolation function that also works at the border.
+        This is used by many other interpolation methods at and outsize the border, see interpolate */
+    void _ipBilinearBorder(uint8_t*       rv,
+                           float          x,
+                           float          y,
+                           const uint8_t* img,
+                           int            img_linesize,
+                           int            width,
+                           int            height,
+                           uint8_t        def)
+    {
+        int   x_f = int(x + 0.5);
+        int   x_c = x_f + 1;
+        int   y_f = int(y + 0.5);
+        int   y_c = y_f + 1;
+        int   v1 = _pixel(img, img_linesize, x_c, y_c, width, height, def);
+        int   v2 = _pixel(img, img_linesize, x_c, y_f, width, height, def);
+        int   v3 = _pixel(img, img_linesize, x_f, y_c, width, height, def);
+        int   v4 = _pixel(img, img_linesize, x_f, y_f, width, height, def);
+        float s  = (v1 * (x - x_f) + v3 * (x_c - x)) * (y - y_f) +
+                   (v2 * (x - x_f) + v4 * (x_c - x)) * (y_c - y);
+                   
+        *rv = _pixClamp(int(s + 0.5));
+    }
+    
+    
+    /** _ipBilinear: bi-linear interpolation function, see interpolate */
+    void _ipBilinear(uint8_t*       rv,
+                     float          x,
+                     float          y,
+                     const uint8_t* img,
+                     int            img_linesize,
+                     int            width,
+                     int            height,
+                     uint8_t        def)
+    {
+        if ((x < 0            ) ||
+            (x > (width - 2)  ) ||
+            (y < 0            ) ||
+            (y > (height - 2)))
+        {
+            _ipBilinearBorder(rv,
+                              x,
+                              y,
+                              img,
+                              img_linesize,
+                              width,
+                              height,
+                              def);
+        }
+        else
+        {
+            int   x_f = myfloor(x);
+            int   x_c = x_f + 1;
+            int   y_f = myfloor(y);
+            int   y_c = y_f + 1;
+            int   v1 = _pix(img, img_linesize, x_c, y_c);
+            int   v2 = _pix(img, img_linesize, x_c, y_f);
+            int   v3 = _pix(img, img_linesize, x_f, y_c);
+            int   v4 = _pix(img, img_linesize, x_f, y_f);
+            float s  = (v1 * (x - x_f) + v3 * (x_c - x)) * (y - y_f) +
+                       (v2 * (x - x_f) + v4 * (x_c - x)) * (y_c - y);
+                       
+            *rv = _pixClamp(s + 0.5);
+        }
+    }
+    
+    
+    /** taken from http://en.wikipedia.org/wiki/Bicubic_interpolation for alpha=-0.5
+        in matrix notation:
+        a0-a3 are the neigthboring points where the target point is between a1 and a2
+        t is the point of interpolation (position between a1 and a2) value between 0 and 1
+        | 0, 2, 0, 0 |  |a0|
+        |-1, 0, 1, 0 |  |a1|
+        (1,t,t^2,t^3) | 2,-5, 4,-1 |  |a2|
+        |-1, 3,-3, 1 |  |a3|
+    */
+    inline int bicub_kernel(float t, short a0, short a1, short a2, short a3)
+    {
+        return (2 * a1 + t * ((-a0 + a2) + t * ((2 * a0 - 5 * a1 + 4 * a2 - a3) + t * (-a0 + 3 * a1 - 3 * a2 + a3) )) ) / 2;
+    }
+    
+    
+    /** interpolateBiCub: bi-cubic interpolation function using 4x4 pixel, see interpolate */
+    void _ipBicubic(uint8_t*       rv,
+                    float          x,
+                    float          y,
+                    const uint8_t* img,
+                    int            img_linesize,
+                    int            width,
+                    int            height,
+                    uint8_t        def)
+    {
+        if ((x < 0            ) ||
+            (x > (width - 2)  ) ||
+            (y < 0            ) ||
+            (y > (height - 2)))
+        {
+            _ipBilinearBorder(rv,
+                              x,
+                              y,
+                              img,
+                              img_linesize,
+                              width,
+                              height,
+                              def);
+        }
+        else
+        {
+            int x_f = int(x + 0.5);
+            int y_f = int(y + 0.5);
+            
+            float tx = x - x_f;
+            
+            int   v1 = bicub_kernel(tx,
+                                    _pix(img, img_linesize, x_f - 1, y_f - 1),
+                                    _pix(img, img_linesize, x_f,     y_f - 1),
+                                    _pix(img, img_linesize, x_f + 1, y_f - 1),
+                                    _pix(img, img_linesize, x_f + 2, y_f - 1));
+                                    
+            int   v2 = bicub_kernel(tx,
+                                    _pix(img, img_linesize, x_f - 1, y_f),
+                                    _pix(img, img_linesize, x_f,     y_f),
+                                    _pix(img, img_linesize, x_f + 1, y_f),
+                                    _pix(img, img_linesize, x_f + 2, y_f));
+                                    
+            int   v3 = bicub_kernel(tx,
+                                    _pix(img, img_linesize, x_f - 1, y_f + 1),
+                                    _pix(img, img_linesize, x_f,     y_f + 1),
+                                    _pix(img, img_linesize, x_f + 1, y_f + 1),
+                                    _pix(img, img_linesize, x_f + 2, y_f + 1));
+                                    
+            int   v4 = bicub_kernel(tx,
+                                    _pix(img, img_linesize, x_f - 1, y_f + 2),
+                                    _pix(img, img_linesize, x_f,     y_f + 2),
+                                    _pix(img, img_linesize, x_f + 1, y_f + 2),
+                                    _pix(img, img_linesize, x_f + 2, y_f + 2));
+                                    
+            int res = bicub_kernel(y - y_f, v1, v2, v3, v4);
+            
+            *rv = _pixClamp(res);
+        }
+    }
 }
 
 
@@ -220,19 +451,19 @@ namespace VidStab
         switch (conf.interpolType)
         {
             case VS_Zero:
-                interpolate = interpolateZero;
+                interpolate = _ipNone;
                 break;
             case VS_Linear:
-                interpolate = interpolateLin;
+                interpolate = _ipLinear;
                 break;
             case VS_BiLinear:
-                interpolate = interpolateBiLin;
+                interpolate = _ipBilinear;
                 break;
             case VS_BiCubic:
-                interpolate = interpolateBiCub;
+                interpolate = _ipBicubic;
                 break;
             default:
-                interpolate = interpolateBiLin;
+                interpolate = _ipBilinear;
         }
     }
     
@@ -318,30 +549,31 @@ namespace VidStab
          */
         for (int plane = 0; plane < fiSrc.planes; plane++)
         {
-            uint8_t*          dataSrc     { src.data[             plane ]     };
-            uint8_t*          dataDst     { destbuf.data[         plane ]     };
+            uint8_t*          dataSrc     { src.data[             plane ]    };
+            uint8_t*          dataDst     { destbuf.data[         plane ]    };
             
-            int               wsub        { isrc.subsampleWidth(  plane )     };
-            int               hsub        { isrc.subsampleHeight( plane )     };
+            int               wsub        { isrc.subsampleWidth(  plane )    };
+            int               hsub        { isrc.subsampleHeight( plane )    };
             
             Common::Vect<int> dimDst      { CHROMA_SIZE(fiDest.width,  wsub),
-                                            CHROMA_SIZE(fiDest.height, hsub)  };
+                                            CHROMA_SIZE(fiDest.height, hsub) };
             Common::Vect<int> dimSrc      { CHROMA_SIZE(fiSrc.width,   wsub),
-                                            CHROMA_SIZE(fiSrc.height,  hsub)  };
+                                            CHROMA_SIZE(fiSrc.height,  hsub) };
                                             
             uint8_t  black                { (plane == 0) ? uint8_t(0) : uint8_t(0x80) };
             
-            Common::Vect<float> centerSrc { float(dimSrc.x) / 2, float(dimSrc.y) / 2  };
-            Common::Vect<int>   centerDst { dimDst / 2                                };
+            Common::Vect<float> centerSrc { dimSrc / 2                       };
+            Common::Vect<int>   centerDst { dimDst / 2                       };
             Common::Vect<float> rotA      { float( cos(-aTransform.alpha)),
-                                            float(-sin(-aTransform.alpha))            };
+                                            float(-sin(-aTransform.alpha))   };
             rotA                         *= float(1.0 - (aTransform.zoom / 100.0));
-            Common::Vect<float> rotB      { -rotA.y, rotA.x                           };
+            Common::Vect<float> rotB      { -rotA.y, rotA.x                  };
+            Common::Vect<int>   sub       { (wsub + 1), (hsub + 1)           };
+            Common::Vect<float> tr        { aTransform.x, aTransform.y       };
             
-            Common::Vect<float> centerTransformed { centerSrc.x - float(aTransform.x / (wsub + 1)),
-                                                    centerSrc.y - float(aTransform.y / (hsub + 1)) };
-                                                    
-                                                    
+            Common::Vect<float> centerTr  { centerSrc - tr.div(sub)          };
+            
+            
             /*
              * for each pixel in the destination image we calc the source
              * coordinate and make an interpolation:
@@ -367,8 +599,8 @@ namespace VidStab
                 {
                     delta.x = x - centerDst.x;
                     
-                    Common::Vect<float> transformed { rotA* delta.x + rotB* delta.y + centerTransformed };
-                    uint8_t*            dest        { &dataDst[y * destbuf.linesize[plane] + x]           };
+                    Common::Vect<float> transformed { rotA* delta.x + rotB* delta.y + centerTr  };
+                    uint8_t*            dest        { &dataDst[y * destbuf.linesize[plane] + x] };
                     
                     interpolate(dest,
                                 transformed.x,
@@ -1093,4 +1325,5 @@ struct VSTransform vsLowPassTransforms(struct VSTransformData* td, struct VSSlid
         return newtrans;
     }
 }
+
 

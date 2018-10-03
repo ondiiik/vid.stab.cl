@@ -161,8 +161,8 @@ VSTransformations;
  * Return value:  None
  */
 typedef void (*vsInterpolateFun)(uint8_t*       rv,
-                                 int            x,
-                                 int            y,
+                                 float          x,
+                                 float          y,
                                  const uint8_t* img,
                                  int            img_linesize,
                                  int            width,

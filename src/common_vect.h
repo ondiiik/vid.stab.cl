@@ -160,6 +160,24 @@ namespace Common
         }
         
         
+        template <typename _SrcTp> inline Vect div(const Vect<_SrcTp>& aSrc) const noexcept
+        {
+            Vect r { *this };
+            r.x /= _Tp(aSrc.x);
+            r.y /= _Tp(aSrc.y);
+            return r;
+        }
+
+
+        template <typename _SrcTp> inline Vect mul(const Vect<_SrcTp>& aSrc) const noexcept
+        {
+            Vect r { *this };
+            r.x *= _Tp(aSrc.x);
+            r.y *= _Tp(aSrc.y);
+            return r;
+        }
+
+
         /**
          * @brief   Say if another vector is close to this
          *

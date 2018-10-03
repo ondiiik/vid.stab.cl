@@ -34,23 +34,65 @@ int transformPacked(VSTransformData* td, VSTransform t);
 /// does the actual transformation in Planar space
 int transformPlanar(VSTransformData* td, VSTransform t);
 
+
 /* forward deklarations, please look in the .c file for documentation*/
-void interpolateBiLinBorder(uint8_t* rv, float x, float y,
-                            const uint8_t* img, int img_linesize,
-                            int w, int h, uint8_t def);
-void interpolateBiCub(uint8_t* rv, float x, float y,
-                      const uint8_t* img, int img_linesize,
-                      int width, int height, uint8_t def);
-void interpolateBiLin(uint8_t* rv, float x, float y,
-                      const uint8_t* img, int img_linesize,
-                      int w, int h, uint8_t def);
-void interpolateLin(uint8_t* rv, float x, float y,
-                    const uint8_t* img, int img_linesize,
-                    int w, int h, uint8_t def);
-void interpolateZero(uint8_t* rv, float x, float y,
-                     const uint8_t* img, int img_linesize,
-                     int w, int h, uint8_t def);
-void interpolateN(uint8_t* rv, float x, float y,
-                  const uint8_t* img, int img_linesize,
-                  int width, int height,
-                  uint8_t N, uint8_t channel, uint8_t def);
+void interpolateBiLinBorder(uint8_t*       rv,
+                            float          x,
+                            float          y,
+                            const uint8_t* img,
+                            int            img_linesize,
+                            int            w,
+                            int            h,
+                            uint8_t        def);
+
+
+void interpolateBiCub(uint8_t*       rv,
+                      float          x,
+                      float          y,
+                      const uint8_t* img,
+                      int            img_linesize,
+                      int            w,
+                      int            h,
+                      uint8_t        def);
+
+
+void interpolateBiLin(uint8_t*       rv,
+                      float          x,
+                      float          y,
+                      const uint8_t* img,
+                      int            img_linesize,
+                      int            w,
+                      int            h,
+                      uint8_t        def);
+
+
+void interpolateLin(uint8_t*       rv,
+                    float          x,
+                    float          y,
+                    const uint8_t* img,
+                    int            img_linesize,
+                    int            w,
+                    int            h,
+                    uint8_t        def);
+
+
+void interpolateZero(uint8_t*       rv,
+                     float          x,
+                     float          y,
+                     const uint8_t* img,
+                     int            img_linesize,
+                     int            w,
+                     int            h,
+                     uint8_t        def);
+
+
+void interpolateN(uint8_t*       rv,
+                  float          x,
+                  float          y,
+                  const uint8_t* img,
+                  int            img_linesize,
+                  int            width,
+                  int            height,
+                  uint8_t        N,
+                  uint8_t        channel,
+                  uint8_t        def);

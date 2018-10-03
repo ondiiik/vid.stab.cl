@@ -54,46 +54,6 @@
 #define fp16_0_5 (1<<15)
 #define fp16ToIRound(v) (((v) + fp16_0_5) >> 16)
 
-/** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
-    This is used by many other interpolation methods at and outsize the border, see interpolate */
-void interpolateBiLinBorder(uint8_t* rv, fp16 x, fp16 y,
-                            const uint8_t* img, int img_linesize,
-                            int32_t width, int32_t height, uint8_t def)
-{
-    int32_t ix_f = fp16ToI(x);
-    int32_t iy_f = fp16ToI(y);
-    int32_t ix_c = ix_f + 1;
-    int32_t iy_c = iy_f + 1;
-    if (ix_f < 0 || ix_c >= width || iy_f < 0 || iy_c >= height)
-    {
-        int32_t w  = 10; // number of pixels to blur out the border pixel outwards
-        int32_t xl = - w - ix_f;
-        int32_t yl = - w - iy_f;
-        int32_t xh = ix_c - w - width;
-        int32_t yh = iy_c - w - height;
-        int32_t c = VS_MAX(VS_MIN(VS_MAX(xl, VS_MAX(yl, VS_MAX(xh, yh))), w), 0);
-        // pixel at border of source image
-        short val_border = PIX(img, img_linesize, VS_MAX(VS_MIN(ix_f, width - 1), 0),
-                               VS_MAX(VS_MIN(iy_f, height - 1), 0));
-        int32_t res = (def * c + val_border * (w - c)) / w;
-        *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
-    }
-    else
-    {
-        short v1 = PIXEL(img, img_linesize, ix_c, iy_c, width, height, def);
-        short v2 = PIXEL(img, img_linesize, ix_c, iy_f, width, height, def);
-        short v3 = PIXEL(img, img_linesize, ix_f, iy_c, width, height, def);
-        short v4 = PIXEL(img, img_linesize, ix_f, iy_f, width, height, def);
-        fp16 x_f = iToFp16(ix_f);
-        fp16 x_c = iToFp16(ix_c);
-        fp16 y_f = iToFp16(iy_f);
-        fp16 y_c = iToFp16(iy_c);
-        fp16 s   = fp16To8(v1 * (x - x_f) + v3 * (x_c - x)) * fp16To8(y - y_f) +
-                   fp16To8(v2 * (x - x_f) + v4 * (x_c - x)) * fp16To8(y_c - y) + 1;
-        int32_t res = fp16ToIRound(s);
-        *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
-    }
-}
 
 /** taken from http://en.wikipedia.org/wiki/Bicubic_interpolation for alpha=-0.5
     in matrix notation:
@@ -112,119 +72,138 @@ void interpolateBiLinBorder(uint8_t* rv, fp16 x, fp16 y,
 /*      ) ) >> 17; */
 /* } */
 
-inline static short bicub_kernel(fp16 t, short a0, short a1, short a2, short a3)
+inline static int bicub_kernel(float t,
+                               int   a0,
+                               int   a1,
+                               int   a2,
+                               int   a3)
 {
-    // (2*a1 + t*((-a0+a2) + t*((2*a0-5*a1+4*a2-a3) + t*(-a0+3*a1-3*a2+a3) )) ) / 2;
-    // we add 1/2 because of truncation errors
-    return fp16ToIRound((iToFp16(2 * a1) + t * (-a0 + a2
-                                                + fp16ToIRound(t * ((2 * a0 - 5 * a1 + 4 * a2 - a3)
-                                                                    + fp16ToIRound(t * (-a0 + 3 * a1 - 3 * a2 + a3)) )) )
-                        ) >> 1);
+    return int(((float(2 * a1) + t * (-a0 + a2 +
+                                      int((t * ((2 * a0 - 5 * a1 + 4 * a2 - a3) +
+                                                int((t * (-a0 + 3 * a1 - 3 * a2 + a3)) + 0.5) )) + 0.5) )) / 2) + 0.5);
 }
 
 /** interpolateBiCub: bi-cubic interpolation function using 4x4 pixel, see interpolate */
-void interpolateBiCub(uint8_t* rv, fp16 x, fp16 y,
-                      const uint8_t* img, int img_linesize,
-                      int width, int height, uint8_t def)
+void interpolateBiCub(uint8_t*       rv,
+                      float          x,
+                      float          y,
+                      const uint8_t* img,
+                      int            img_linesize,
+                      int            width,
+                      int            height,
+                      uint8_t        def)
 {
     // do a simple linear interpolation at the border
-    int32_t ix_f = fp16ToI(x);
-    int32_t iy_f = fp16ToI(y);
-    if (unlikely(ix_f < 1 || ix_f > width - 3 || iy_f < 1 || iy_f > height - 3))
+    int ix_f = x;
+    int iy_f = y;
+    
+    if (unlikely((ix_f < 1          ) ||
+                 (ix_f > (width - 3)) ||
+                 (iy_f < 1          ) ||
+                 (iy_f > (height - 3))))
     {
-        interpolateBiLinBorder(rv, x, y, img, img_linesize, width, height, def);
+        interpolateBiLinBorder(rv,
+                               x,
+                               y,
+                               img,
+                               img_linesize,
+                               width,
+                               height,
+                               def);
     }
     else
     {
-        fp16 x_f = iToFp16(ix_f);
-        fp16 y_f = iToFp16(iy_f);
-        fp16 tx  = x - x_f;
-        short v1 = bicub_kernel(tx,
-                                PIX(img, img_linesize, ix_f - 1, iy_f - 1),
-                                PIX(img, img_linesize, ix_f,   iy_f - 1),
-                                PIX(img, img_linesize, ix_f + 1, iy_f - 1),
-                                PIX(img, img_linesize, ix_f + 2, iy_f - 1));
-        short v2 = bicub_kernel(tx,
-                                PIX(img, img_linesize, ix_f - 1, iy_f),
-                                PIX(img, img_linesize, ix_f,   iy_f),
-                                PIX(img, img_linesize, ix_f + 1, iy_f),
-                                PIX(img, img_linesize, ix_f + 2, iy_f));
-        short v3 = bicub_kernel(tx,
-                                PIX(img, img_linesize, ix_f - 1, iy_f + 1),
-                                PIX(img, img_linesize, ix_f,   iy_f + 1),
-                                PIX(img, img_linesize, ix_f + 1, iy_f + 1),
-                                PIX(img, img_linesize, ix_f + 2, iy_f + 1));
-        short v4 = bicub_kernel(tx,
-                                PIX(img, img_linesize, ix_f - 1, iy_f + 2),
-                                PIX(img, img_linesize, ix_f,   iy_f + 2),
-                                PIX(img, img_linesize, ix_f + 1, iy_f + 2),
-                                PIX(img, img_linesize, ix_f + 2, iy_f + 2));
-        short res = bicub_kernel(y - y_f, v1, v2, v3, v4);
+        float x_f = float(ix_f);
+        float y_f = float(iy_f);
+        float tx  = x - x_f;
+        
+        int v1 = bicub_kernel(tx,
+                              PIX(img, img_linesize, ix_f - 1, iy_f - 1),
+                              PIX(img, img_linesize, ix_f,     iy_f - 1),
+                              PIX(img, img_linesize, ix_f + 1, iy_f - 1),
+                              PIX(img, img_linesize, ix_f + 2, iy_f - 1));
+                              
+        int v2 = bicub_kernel(tx,
+                              PIX(img, img_linesize, ix_f - 1, iy_f),
+                              PIX(img, img_linesize, ix_f,     iy_f),
+                              PIX(img, img_linesize, ix_f + 1, iy_f),
+                              PIX(img, img_linesize, ix_f + 2, iy_f));
+                              
+        int v3 = bicub_kernel(tx,
+                              PIX(img, img_linesize, ix_f - 1, iy_f + 1),
+                              PIX(img, img_linesize, ix_f,     iy_f + 1),
+                              PIX(img, img_linesize, ix_f + 1, iy_f + 1),
+                              PIX(img, img_linesize, ix_f + 2, iy_f + 1));
+                              
+        int v4 = bicub_kernel(tx,
+                              PIX(img, img_linesize, ix_f - 1, iy_f + 2),
+                              PIX(img, img_linesize, ix_f,     iy_f + 2),
+                              PIX(img, img_linesize, ix_f + 1, iy_f + 2),
+                              PIX(img, img_linesize, ix_f + 2, iy_f + 2));
+                              
+        int res = bicub_kernel(y - y_f, v1, v2, v3, v4);
+        
         *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
     }
 }
 
 
-/** interpolateBiLin: bi-linear interpolation function, see interpolate */
-void interpolateBiLin(uint8_t* rv, fp16 x, fp16 y,
-                      const uint8_t* img, int img_linesize,
-                      int32_t width, int32_t height, uint8_t def)
+/** interpolateLin: linear (only x) interpolation function, see interpolate */
+void interpolateLin(uint8_t*       rv,
+                    float          x,
+                    float          y,
+                    const uint8_t* img,
+                    int            img_linesize,
+                    int            width,
+                    int            height,
+                    uint8_t        def)
 {
-    int32_t ix_f = fp16ToI(x);
-    int32_t iy_f = fp16ToI(y);
-    if (unlikely(ix_f < 0 || ix_f > width - 2 || iy_f < 0 || iy_f > height - 2))
-    {
-        interpolateBiLinBorder(rv, x, y, img, img_linesize, width, height, def);
-    }
-    else
-    {
-        int32_t ix_c = ix_f + 1;
-        int32_t iy_c = iy_f + 1;
-        short v1 = PIX(img, img_linesize, ix_c, iy_c);
-        short v2 = PIX(img, img_linesize, ix_c, iy_f);
-        short v3 = PIX(img, img_linesize, ix_f, iy_c);
-        short v4 = PIX(img, img_linesize, ix_f, iy_f);
-        fp16 x_f = iToFp16(ix_f);
-        fp16 x_c = iToFp16(ix_c);
-        fp16 y_f = iToFp16(iy_f);
-        fp16 y_c = iToFp16(iy_c);
-        fp16 s  = fp16To8(v1 * (x - x_f) + v3 * (x_c - x)) * fp16To8(y - y_f) +
-                  fp16To8(v2 * (x - x_f) + v4 * (x_c - x)) * fp16To8(y_c - y);
-        // it is underestimated due to truncation, so we add one
-        short res = fp16ToI(s);
-        *rv = (res >= 0) ? ((res < 255) ? res + 1 : 255) : 0;
-    }
+    int   ix_f = int(x);
+    int   ix_c = ix_f + 1;
+    float x_c  = float(ix_c);
+    float x_f  = float(ix_f);
+    int   y_n  = int(y + 0.5);
+    
+    int v1 = PIXEL(img,
+                   img_linesize,
+                   ix_c,
+                   y_n,
+                   width,
+                   height,
+                   def);
+                   
+    int v2 = PIXEL(img,
+                   img_linesize,
+                   ix_f,
+                   y_n,
+                   width,
+                   height,
+                   def);
+                   
+    float s   = v1 * (x - x_f) + v2 * (x_c - x);
+    int   res = int(s);
+    *rv       = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
-/** interpolateLin: linear (only x) interpolation function, see interpolate */
-void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
-                    const uint8_t* img, int img_linesize,
-                    int width, int height, uint8_t def)
-{
-    int32_t ix_f = fp16ToI(x);
-    int32_t ix_c = ix_f + 1;
-    fp16    x_c  = iToFp16(ix_c);
-    fp16    x_f  = iToFp16(ix_f);
-    int     y_n  = fp16ToIRound(y);
-    
-    short v1 = PIXEL(img, img_linesize, ix_c, y_n, width, height, def);
-    short v2 = PIXEL(img, img_linesize, ix_f, y_n, width, height, def);
-    fp16 s   = v1 * (x - x_f) + v2 * (x_c - x);
-    short res = fp16ToI(s);
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
-}
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
 void interpolateZero(uint8_t*       rv,
-                     int            x,
-                     int            y,
+                     float          x,
+                     float          y,
                      const uint8_t* img,
                      int            img_linesize,
                      int            width,
                      int            height,
                      uint8_t        def)
 {
-    int res = PIXEL(img, img_linesize, x, y, width, height, def);
+    int res = PIXEL(img,
+                    img_linesize,
+                    x + 0.5,
+                    y + 0.5,
+                    width,
+                    height,
+                    def);
+                    
     *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
@@ -243,33 +222,42 @@ void interpolateZero(uint8_t*       rv,
  *            def: default value if coordinates are out of range
  * Return value:  None
  */
-void interpolateN(uint8_t* rv, fp16 x, fp16 y,
-                  const uint8_t* img, int img_linesize,
-                  int width, int height,
-                  uint8_t N, uint8_t channel,
-                  uint8_t def)
+void interpolateN(uint8_t*       rv,
+                  float          x,
+                  float          y,
+                  const uint8_t* img,
+                  int            img_linesize,
+                  int            width,
+                  int            height,
+                  uint8_t        N,
+                  uint8_t        channel,
+                  uint8_t        def)
 {
-    int32_t ix_f = fp16ToI(x);
-    int32_t iy_f = fp16ToI(y);
-    if (ix_f < 0 || ix_f > width - 1 || iy_f < 0 || iy_f > height - 1)
+    int ix_f = int(x);
+    int iy_f = int(y);
+    
+    if ((ix_f < 0          ) ||
+        (ix_f > (width - 1)) ||
+        (iy_f < 0          ) ||
+        (iy_f > (height - 1)))
     {
         *rv = def;
     }
     else
     {
-        int32_t ix_c = ix_f + 1;
-        int32_t iy_c = iy_f + 1;
-        short v1 = PIXN(img, img_linesize, ix_c, iy_c, N, channel);
-        short v2 = PIXN(img, img_linesize, ix_c, iy_f, N, channel);
-        short v3 = PIXN(img, img_linesize, ix_f, iy_c, N, channel);
-        short v4 = PIXN(img, img_linesize, ix_f, iy_f, N, channel);
-        fp16 x_f = iToFp16(ix_f);
-        fp16 x_c = iToFp16(ix_c);
-        fp16 y_f = iToFp16(iy_f);
-        fp16 y_c = iToFp16(iy_c);
-        fp16 s  = fp16To8(v1 * (x - x_f) + v3 * (x_c - x)) * fp16To8(y - y_f) +
-                  fp16To8(v2 * (x - x_f) + v4 * (x_c - x)) * fp16To8(y_c - y);
-        int32_t res = fp16ToIRound(s);
+        int   ix_c = ix_f + 1;
+        int   iy_c = iy_f + 1;
+        int   v1   = PIXN(img, img_linesize, ix_c, iy_c, N, channel);
+        int   v2   = PIXN(img, img_linesize, ix_c, iy_f, N, channel);
+        int   v3   = PIXN(img, img_linesize, ix_f, iy_c, N, channel);
+        int   v4   = PIXN(img, img_linesize, ix_f, iy_f, N, channel);
+        float x_f  = iToFp16(ix_f) / 256;
+        float x_c  = iToFp16(ix_c) / 256;
+        float y_f  = iToFp16(iy_f) / 256;
+        float y_c  = iToFp16(iy_c) / 256;
+        float s    = float(v1 * (x - x_f) + v3 * (x_c - x)) * float(y - y_f) +
+                     float(v2 * (x - x_f) + v4 * (x_c - x)) * float(y_c - y);
+        int res = int(s + 0.5);
         *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
     }
 }
@@ -357,7 +345,7 @@ int transformPlanar(VSTransformData* td,
     {
         Frame::Frame fsrc { td->src,     td->fiSrc  };
         Frame::Frame fdst { td->destbuf, td->fiDest };
-
+        
         if (fsrc == fdst)
         {
             return VS_OK;    // noop

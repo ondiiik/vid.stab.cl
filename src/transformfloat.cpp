@@ -27,27 +27,6 @@
 #include "transform.h"
 #include "transformtype_operations.h"
 
-
-/** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
-    This is used by many other interpolation methods at and outsize the border, see interpolate */
-void interpolateBiLinBorder(uint8_t* rv, float x, float y,
-                            const uint8_t* img, int img_linesize,
-                            int width, int height, uint8_t def)
-{
-    int x_f = myfloor(x);
-    int x_c = x_f + 1;
-    int y_f = myfloor(y);
-    int y_c = y_f + 1;
-    short v1 = PIXEL(img, img_linesize, x_c, y_c, width, height, def);
-    short v2 = PIXEL(img, img_linesize, x_c, y_f, width, height, def);
-    short v3 = PIXEL(img, img_linesize, x_f, y_c, width, height, def);
-    short v4 = PIXEL(img, img_linesize, x_f, y_f, width, height, def);
-    float s  = (v1 * (x - x_f) + v3 * (x_c - x)) * (y - y_f) +
-               (v2 * (x - x_f) + v4 * (x_c - x)) * (y_c - y);
-    int32_t res = (int32_t)s;
-    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
-}
-
 /** taken from http://en.wikipedia.org/wiki/Bicubic_interpolation for alpha=-0.5
     in matrix notation:
     a0-a3 are the neigthboring points where the target point is between a1 and a2
@@ -124,9 +103,30 @@ void interpolateBiLin(uint8_t* rv, float x, float y,
         short v4 = PIX(img, img_linesize, x_f, y_f);
         float s  = (v1 * (x - x_f) + v3 * (x_c - x)) * (y - y_f) +
                    (v2 * (x - x_f) + v4 * (x_c - x)) * (y_c - y);
-        int32_t res = (int32_t)s;
+        int    res = int(s);
         *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
     }
+}
+
+
+/** interpolateBiLinBorder: bi-linear interpolation function that also works at the border.
+    This is used by many other interpolation methods at and outsize the border, see interpolate */
+void interpolateBiLinBorder(uint8_t* rv, float x, float y,
+                            const uint8_t* img, int img_linesize,
+                            int width, int height, uint8_t def)
+{
+    int   x_f = int(x + 0.5);
+    int   x_c = x_f + 1;
+    int   y_f = int(y + 0.5);
+    int   y_c = y_f + 1;
+    int   v1 = PIXEL(img, img_linesize, x_c, y_c, width, height, def);
+    int   v2 = PIXEL(img, img_linesize, x_c, y_f, width, height, def);
+    int   v3 = PIXEL(img, img_linesize, x_f, y_c, width, height, def);
+    int   v4 = PIXEL(img, img_linesize, x_f, y_f, width, height, def);
+    float s  = (v1 * (x - x_f) + v3 * (x_c - x)) * (y - y_f) +
+               (v2 * (x - x_f) + v4 * (x_c - x)) * (y_c - y);
+    int32_t res = (int32_t)s;
+    *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 
 
