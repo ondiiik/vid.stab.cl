@@ -26,11 +26,6 @@
 #include <stdint.h>
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
 typedef int32_t fp8;
 typedef int32_t fp16; // also ncot definition of interpolFun in transform.h
 
@@ -46,81 +41,8 @@ int transformPlanar(struct VSTransformData* td, struct VSTransform t);
 /// does the actual transformation in Planar space
 int transformPlanar_orc(struct VSTransformData* td, struct VSTransform t);
 
-
-/* forward deklarations, please see .c file for documentation*/
-void interpolateBiLinBorder(uint8_t*       rv,
-                            float          x,
-                            float          y,
-                            const uint8_t* img,
-                            int            img_linesize,
-                            int            w,
-                            int            h,
-                            uint8_t        def);
-                            
-                            
-void interpolateBiCub(uint8_t*       rv,
-                      float          x,
-                      float          y,
-                      const uint8_t* img,
-                      int            img_linesize,
-                      int            w,
-                      int            h,
-                      uint8_t        def);
-                      
-                      
-void interpolateBiLin(uint8_t*       rv,
-                      float          x,
-                      float          y,
-                      const uint8_t* img,
-                      int            img_linesize,
-                      int            w,
-                      int            h,
-                      uint8_t        def);
-                      
-                      
-void interpolateLin(uint8_t*       rv,
-                    float          x,
-                    float          y,
-                    const uint8_t* img,
-                    int            img_linesize,
-                    int            w,
-                    int            h,
-                    uint8_t        def);
-                    
-                    
-void interpolateZero(uint8_t*       rv,
-                     float          x,
-                     float          y,
-                     const uint8_t* img,
-                     int            img_linesize,
-                     int            w,
-                     int            h,
-                     uint8_t        def);
-                     
-                     
-void interpolateN(uint8_t*       rv,
-                  float          x,
-                  float          y,
-                  const uint8_t* img,
-                  int            img_linesize,
-                  int            width,
-                  int            height,
-                  uint8_t        N,
-                  uint8_t        channel,
-                  uint8_t        def);
-                  
-                  
-#ifdef __cplusplus
-}
-#endif
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- * End:
- *
- * vim: expandtab shiftwidth=4:
- */
+void interpolateN(uint8_t* rv, float x, float y,
+                  const uint8_t* img, int img_linesize,
+                  int width, int height,
+                  uint8_t N, uint8_t channel,
+                  uint8_t def);
