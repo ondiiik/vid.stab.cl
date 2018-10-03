@@ -215,18 +215,16 @@ void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
 }
 
 /** interpolateZero: nearest neighbor interpolation function, see interpolate */
-void interpolateZero(uint8_t* rv,
-                     fp16 x,
-                     fp16 y,
+void interpolateZero(uint8_t*       rv,
+                     int            x,
+                     int            y,
                      const uint8_t* img,
-                     int img_linesize,
-                     int width,
-                     int height,
-                     uint8_t def)
+                     int            img_linesize,
+                     int            width,
+                     int            height,
+                     uint8_t        def)
 {
-    int32_t ix_n = fp16ToIRound(x);
-    int32_t iy_n = fp16ToIRound(y);
-    int32_t res = PIXEL(img, img_linesize, ix_n, iy_n, width, height, def);
+    int res = PIXEL(img, img_linesize, x, y, width, height, def);
     *rv = (res >= 0) ? ((res < 255) ? res : 255) : 0;
 }
 

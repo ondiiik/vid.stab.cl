@@ -19,32 +19,59 @@ namespace Common
     {
         Vect() noexcept
             :
-            x { _Tp(0) },
-        y { _Tp(0) }
+            x
+        {
+            _Tp(0)
+        },
+        y
+        {
+            _Tp(0)
+        }
         {
         
         }
         
         
-        Vect(_Tp aX,
-             _Tp aY) noexcept
+        template <typename _SrcTp> Vect(_SrcTp aX,
+                                        _SrcTp aY) noexcept
             :
-            x { aX },
-        y { aY }
+            x
+        {
+            _Tp(aX)
+        },
+        y
+        {
+            _Tp(aY)
+        }
         {
         
         }
         
         
-        inline Vect& operator-=(const Vect& aSrc) noexcept
+        template <typename _SrcTp> Vect(const Vect<_SrcTp>& aSrc) noexcept
+            :
+            x
         {
-            this->x -= aSrc.x;
-            this->y -= aSrc.y;
+            _Tp(aSrc.x)
+        },
+        y
+        {
+            _Tp(aSrc.y)
+        }
+        {
+        
+        }
+        
+        
+        template <typename _SrcTp> inline Vect& operator-=(const Vect<_SrcTp>& aSrc) noexcept
+        {
+            this->x -= _Tp(aSrc.x);
+            this->y -= _Tp(aSrc.y);
             return *this;
         }
         
         
-        inline Vect operator-(const Vect& aSrc) const noexcept
+        template <typename _SrcTp> inline Vect operator-(const Vect<_SrcTp>& aSrc) const noexcept
         {
             ;
             Vect r { *this };
@@ -53,31 +80,31 @@ namespace Common
         }
         
         
-        inline Vect& operator-=(_Tp aVal) noexcept
+        template <typename _SrcTp> inline Vect& operator-=(_SrcTp aVal) noexcept
         {
-            this->x -= aVal;
-            this->y -= aVal;
+            this->x -= _Tp(aVal);
+            this->y -= _Tp(aVal);
             return *this;
         }
         
         
-        inline Vect operator-(_Tp aVal) const noexcept
+        template <typename _SrcTp> inline Vect operator-(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r -= aVal;
+            r -= _Tp(aVal);
             return r;
         }
         
         
-        inline Vect& operator+=(const Vect& aSrc) noexcept
+        template <typename _SrcTp> inline Vect& operator+=(const Vect<_SrcTp>& aSrc) noexcept
         {
-            this->x += aSrc.x;
-            this->y += aSrc.y;
+            this->x += _Tp(aSrc.x);
+            this->y += _Tp(aSrc.y);
             return *this;
         }
         
         
-        inline Vect operator+(const Vect& aSrc) const noexcept
+        template <typename _SrcTp> inline Vect operator+(const Vect<_SrcTp>& aSrc) const noexcept
         {
             Vect r { *this };
             r += aSrc;
@@ -85,50 +112,50 @@ namespace Common
         }
         
         
-        inline Vect& operator+=(_Tp aVal) noexcept
+        template <typename _SrcTp> inline Vect& operator+=(_SrcTp aVal) noexcept
         {
-            this->x += aVal;
-            this->y += aVal;
+            this->x += _Tp(aVal);
+            this->y += _Tp(aVal);
             return *this;
         }
         
         
-        inline Vect operator+(_Tp aVal) const noexcept
+        template <typename _SrcTp> inline Vect operator+(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r += aVal;
+            r += _Tp(aVal);
             return r;
         }
         
         
-        inline Vect& operator/=(_Tp aVal) noexcept
+        template <typename _SrcTp> inline Vect& operator/=(_SrcTp aVal) noexcept
         {
-            this->x /= aVal;
-            this->y /= aVal;
+            this->x /= _Tp(aVal);
+            this->y /= _Tp(aVal);
             return *this;
         }
         
         
-        inline Vect operator/(_Tp aVal) const noexcept
+        template <typename _SrcTp> inline Vect operator/(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r /= aVal;
+            r /= _Tp(aVal);
             return r;
         }
         
         
-        inline Vect& operator*=(_Tp aVal) noexcept
+        template <typename _SrcTp> inline Vect& operator*=(_SrcTp aVal) noexcept
         {
-            this->x *= aVal;
-            this->y *= aVal;
+            this->x *= _Tp(aVal);
+            this->y *= _Tp(aVal);
             return *this;
         }
         
         
-        inline Vect operator*(_Tp aVal) const noexcept
+        template <typename _SrcTp> inline Vect operator*(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r *= aVal;
+            r *= _Tp(aVal);
             return r;
         }
         
@@ -149,8 +176,8 @@ namespace Common
             return (_Tp(fabs(aVec.x - x)) < aRange) &&
                    (_Tp(fabs(aVec.y - y)) < aRange);
         }
-
-
+        
+        
         inline _Tp qsize() const noexcept
         {
             return x * x + y * y;

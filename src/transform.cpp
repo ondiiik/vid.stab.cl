@@ -297,9 +297,12 @@ namespace VidStab
     }
     
     
-    void VSTR::_transformPlanar(VSTransform& aT)
+    void VSTR::_transformPlanar(VSTransform& aTransform)
     {
-        if ((aT.alpha == 0) && (aT.x == 0) && (aT.y == 0) && (aT.zoom == 0))
+        /*
+         * Don't change anything if did not detected shakes
+         */
+        if ((aTransform.alpha == 0) && (aTransform.x == 0) && (aTransform.y == 0) && (aTransform.zoom == 0))
         {
             if (fsrc != fdst)
             {
@@ -309,33 +312,36 @@ namespace VidStab
             return;
         }
         
+        
+        /*
+         * Deshake all planes
+         */
         for (int plane = 0; plane < fiSrc.planes; plane++)
         {
-            uint8_t* dat_1   { src.data[             plane ]             };
-            uint8_t* dat_2   { destbuf.data[         plane ]             };
+            uint8_t*          dataSrc     { src.data[             plane ]     };
+            uint8_t*          dataDst     { destbuf.data[         plane ]     };
             
-            int      wsub    { isrc.subsampleWidth(  plane )             };
-            int      hsub    { isrc.subsampleHeight( plane )             };
+            int               wsub        { isrc.subsampleWidth(  plane )     };
+            int               hsub        { isrc.subsampleHeight( plane )     };
             
-            int      dw      { CHROMA_SIZE(fiDest.width,  wsub)          };
-            int      dh      { CHROMA_SIZE(fiDest.height, hsub)          };
-            int      sw      { CHROMA_SIZE(fiSrc.width,   wsub)          };
-            int      sh      { CHROMA_SIZE(fiSrc.height,  hsub)          };
+            Common::Vect<int> dimDst      { CHROMA_SIZE(fiDest.width,  wsub),
+                                            CHROMA_SIZE(fiDest.height, hsub)  };
+            Common::Vect<int> dimSrc      { CHROMA_SIZE(fiSrc.width,   wsub),
+                                            CHROMA_SIZE(fiSrc.height,  hsub)  };
+                                            
+            uint8_t  black                { (plane == 0) ? uint8_t(0) : uint8_t(0x80) };
             
-            uint8_t  black   { (plane == 0) ? uint8_t(0) : uint8_t(0x80) };
+            Common::Vect<float> centerSrc { float(dimSrc.x) / 2, float(dimSrc.y) / 2  };
+            Common::Vect<int>   centerDst { dimDst / 2                                };
+            Common::Vect<float> rotA      { float( cos(-aTransform.alpha)),
+                                            float(-sin(-aTransform.alpha))            };
+            rotA                         *= float(1.0 - (aTransform.zoom / 100.0));
+            Common::Vect<float> rotB      { -rotA.y, rotA.x                           };
             
-            fp16     c_s_x   { iToFp16(sw / 2)                           };
-            fp16     c_s_y   { iToFp16(sh / 2)                           };
-            int32_t  c_d_x   { dw / 2                                    };
-            int32_t  c_d_y   { dh / 2                                    };
-            
-            float    z       { float(1.0 - (aT.zoom / 100.0))            };
-            fp16     zcos_a  { fToFp16(z * cos(-aT.alpha))               }; // scaled cos
-            fp16     zsin_a  { fToFp16(z * sin(-aT.alpha))               }; // scaled sin
-            fp16     c_tx    { c_s_x - (fToFp16(aT.x) >> wsub)           };
-            fp16     c_ty    { c_s_y - (fToFp16(aT.y) >> hsub)           };
-            
-            
+            Common::Vect<float> centerTransformed { centerSrc.x - float(aTransform.x / (wsub + 1)),
+                                                    centerSrc.y - float(aTransform.y / (hsub + 1)) };
+                                                    
+                                                    
             /*
              * for each pixel in the destination image we calc the source
              * coordinate and make an interpolation:
@@ -350,31 +356,27 @@ namespace VidStab
             OMP_ALIAS(sc, &src)
             OMP_PARALLEL_FOR(numThreads,
                              omp parallel for shared(td, db, sc),
-                             (int32_t y = 0; y < dh; ++y))
+                             (int y = 0; y < dimDst.y; ++y))
             {
                 /*
                  * swapping of the loops brought 15% performace gain
                  */
-                int32_t y_d1 = (y - c_d_y);
+                Common::Vect<int> delta { 0, y - centerDst.y };
                 
-                for (int32_t x = 0; x < dw; ++x)
+                for (int x = 0; x < dimDst.x; ++x)
                 {
-                    int32_t  x_d1 { x - c_d_x                                 };
-                    fp16     x_s  { ( zcos_a * x_d1) + (zsin_a * y_d1) + c_tx };
-                    fp16     y_s  { (-zsin_a * x_d1) + (zcos_a * y_d1) + c_ty };
-                    uint8_t* dest { &dat_2[x + y * destbuf.linesize[plane]]   };
+                    delta.x = x - centerDst.x;
                     
-                    /*
-                     * inlining the interpolation function would bring 10%
-                     * (but then we cannot use the function pointer anymore...)
-                     */
+                    Common::Vect<float> transformed { rotA* delta.x + rotB* delta.y + centerTransformed };
+                    uint8_t*            dest        { &dataDst[y * destbuf.linesize[plane] + x]           };
+                    
                     interpolate(dest,
-                                x_s,
-                                y_s,
-                                dat_1,
+                                transformed.x,
+                                transformed.y,
+                                dataSrc,
                                 src.linesize[plane],
-                                sw,
-                                sh,
+                                dimSrc.x,
+                                dimSrc.y,
                                 conf.crop ? black : *dest);
                 }
             }

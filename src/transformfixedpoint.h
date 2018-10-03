@@ -60,9 +60,18 @@ void interpolateBiLin(uint8_t* rv, fp16 x, fp16 y,
 void interpolateLin(uint8_t* rv, fp16 x, fp16 y,
                     const uint8_t* img, int img_linesize,
                     int w, int h, uint8_t def);
-void interpolateZero(uint8_t* rv, fp16 x, fp16 y,
-                     const uint8_t* img, int img_linesize,
-                     int w, int h, uint8_t def);
+
+
+void interpolateZero(uint8_t*       rv,
+                     int            x,
+                     int            y,
+                     const uint8_t* img,
+                     int            img_linesize,
+                     int            w,
+                     int            h,
+                     uint8_t        def);
+
+
 void interpolateN(uint8_t* rv, fp16 x, fp16 y,
                   const uint8_t* img, int img_linesize,
                   int width, int height,
