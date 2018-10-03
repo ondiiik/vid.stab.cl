@@ -13,9 +13,15 @@
 
 namespace VidStab
 {
-    class TransformationBarrel : public Transformation
+    class TransformationBarrel
     {
     public:
+        /**
+         * @brief   Transformation vector type
+         */
+        typedef Common::Vect<float> Vect;
+
+
         /**
          * @brief   Construct transformation to barrel distortion
          */
@@ -41,7 +47,9 @@ namespace VidStab
          * @param   aDst    Destination transformation
          * @param   aSrc    Source transformation
          */
-        virtual void to(Vect& aDst, const Vect& aSrc) noexcept final;
+        void to(Vect&       aDst,
+                const Vect& aSrc,
+                float       aRatio) noexcept;
         
         
         /**
@@ -53,7 +61,9 @@ namespace VidStab
          * @param   aDst    Source transformation
          * @param   aSrc    Destination transformation
          */
-        virtual void from(Vect& aDst, const Vect& aSrc) noexcept final;
+        void from(Vect&       aDst,
+                  const Vect& aSrc,
+                  float       aRatio) noexcept;
         
         
     private:

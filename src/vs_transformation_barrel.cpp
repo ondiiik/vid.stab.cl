@@ -5,6 +5,7 @@
  *      Author: ondiiik
  */
 #include "vs_transformation_barrel.h"
+#include <iostream> // DEBUG
 
 
 namespace VidStab
@@ -15,10 +16,6 @@ namespace VidStab
                                                int   aWidth,
                                                int   aHeight) noexcept
         :
-        Transformation
-    {
-    
-    },
     _center
     {
         float(aWidth)  / 2,
@@ -37,20 +34,28 @@ namespace VidStab
     }
     
     
-    void TransformationBarrel::to(Vect& aDst, const Vect& aSrc) noexcept
+    void TransformationBarrel::to(Vect&       aDst,
+                                  const Vect& aSrc,
+                                  float       aRatio) noexcept
     {
         /*
          * Conversion from linear space is simple by filling in
          * equation variables
          */
-        Vect   src = aSrc - _center;
-        double rq  = src.qsize();
-        double acc = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
-        aDst       = (aSrc / acc) + _center;
+        Vect  center = _center / aRatio;
+        Vect  src    = aSrc - center;
+        src         *= aRatio;
+        float rq     = src.qsize();
+        float acc    = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
+        aDst         = (src / acc);
+        aDst        /= aRatio;
+        aDst        += center;
     }
     
     
-    void TransformationBarrel::from(Vect& aDst, const Vect& aSrc) noexcept
+    void TransformationBarrel::from(Vect&       aDst,
+                                    const Vect& aSrc,
+                                    float       aRatio) noexcept
     {
         /*
          * To get back transformation, we have to run equation resolver.
@@ -82,7 +87,7 @@ namespace VidStab
              * process estimation correction to get closer to solution.
              */
             Vect reality;
-            to(  reality, _lastDst);
+            to(  reality, _lastDst, aRatio);
             _lastDst += (src - reality);
             
             /*

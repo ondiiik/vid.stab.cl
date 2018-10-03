@@ -28,6 +28,7 @@
 #include "frameinfo.h"
 #include "vidstabdefines.h"
 #include "vs_exception.h"
+#include "vs_transformation_barrel.h"
 #include <cmath>
 #include <libgen.h>
 #include <cassert>
@@ -131,7 +132,7 @@ namespace VidStab
         Frame::Frame             fsrc;
         Frame::Frame             fdst;
         Frame::Frame             fdstB;
-        
+
         
     private:
         void _initVsTransform();
@@ -153,5 +154,11 @@ namespace VidStab
          * @param   aT  Private data structure of this filter
          */
         void _transformPlanar(VSTransform& aT);
+
+
+        /**
+         * @brief   Lens transformation object
+         */
+        TransformationBarrel _lensTrn;
     };
 }

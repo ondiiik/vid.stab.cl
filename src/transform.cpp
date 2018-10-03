@@ -21,6 +21,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#include <iostream>
 #define iToFp8(v)  ((v)<<8)
 #define fToFp8(v)  ((int32_t)((v)*((float)0xFF)))
 #define iToFp16(v) ((v)<<16)
@@ -48,6 +49,8 @@
 #include "transformfixedpoint.h"
 
 #include "vs_exception.h"
+#include "vs_transformation_barrel.h"
+
 #include "sys_omp.h"
 #include <math.h>
 #include <libgen.h>
@@ -334,7 +337,8 @@ namespace VidStab
         idst        { fiDest            },
         fsrc        { aTd.src,     isrc },
         fdst        { aTd.dest,    idst },
-        fdstB       { aTd.destbuf, idst }
+        fdstB       { aTd.destbuf, idst },
+        _lensTrn    {                   }
     {
         _initVsTransform();
     }
@@ -342,6 +346,7 @@ namespace VidStab
     
     VSTR::~VSTR()
     {
+    
     }
     
     
@@ -593,23 +598,28 @@ namespace VidStab
                 /*
                  * swapping of the loops brought 15% performace gain
                  */
-                Common::Vect<int> delta { 0, y - centerDst.y };
-                
                 for (int x = 0; x < dimDst.x; ++x)
                 {
-                    delta.x = x - centerDst.x;
+                    Transformation::Vect lin  { x, y };
+                    Transformation::Vect lens { x, y };
                     
-                    Common::Vect<float> transformed { rotA* delta.x + rotB* delta.y + centerTr  };
-                    uint8_t*            dest        { &dataDst[y * destbuf.linesize[plane] + x] };
+//                    _lensTrn.from(lin, lens, wsub + 1);
                     
-                    interpolate(dest,
-                                transformed.x,
-                                transformed.y,
+                    Common::Vect<int>   delta      { lin - centerDst };
+                    Common::Vect<float> stabilized { rotA* delta.x + rotB* delta.y + centerTr };
+                    
+                    _lensTrn.to(lens, stabilized, wsub + 1);
+                    
+                    uint8_t* output { &dataDst[y * destbuf.linesize[plane] + x] };
+                    
+                    interpolate(output,
+                                lens.x,
+                                lens.y,
                                 dataSrc,
                                 src.linesize[plane],
                                 dimSrc.x,
                                 dimSrc.y,
-                                conf.crop ? black : *dest);
+                                conf.crop ? black : *output);
                 }
             }
         }
