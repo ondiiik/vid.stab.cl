@@ -600,10 +600,10 @@ namespace VidStab
                  */
                 for (int x = 0; x < dimDst.x; ++x)
                 {
-                    Transformation::Vect lin  { x, y };
+                    Transformation::Vect lin  {      };
                     Transformation::Vect lens { x, y };
                     
-//                    _lensTrn.from(lin, lens, wsub + 1);
+                    _lensTrn.from(lin, lens, wsub + 1);
                     
                     Common::Vect<int>   delta      { lin - centerDst };
                     Common::Vect<float> stabilized { rotA* delta.x + rotB* delta.y + centerTr };

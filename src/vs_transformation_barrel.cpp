@@ -16,10 +16,10 @@ namespace VidStab
                                                int   aWidth,
                                                int   aHeight) noexcept
         :
-    _center
+        _center
     {
         float(aWidth)  / 2,
-        float(aHeight) / 2
+              float(aHeight) / 2
     }
     {
         _k[0] = aK0;
@@ -46,7 +46,7 @@ namespace VidStab
         Vect  src    = aSrc - center;
         src         *= aRatio;
         float rq     = src.qsize();
-        float acc    = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
+        float acc    = 1.0F + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
         aDst         = (src / acc);
         aDst        /= aRatio;
         aDst        += center;
@@ -63,16 +63,11 @@ namespace VidStab
          * result. The best estimation is to use last result, if calculated
          * vector was somewhere close. Otherwise we have to take a guess.
          */
-        Vect src = aSrc - _center;
-
-        if (!_lastSrc.isCloseSq(src, 4))
-        {
-            double rq  = src.qsize();
-            double acc = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
-            _lastDst   = src * acc;
-        }
-        
-        _lastSrc = src;
+        Vect  center    { _center / aRatio                              };
+        Vect  src       { (aSrc - center) * aRatio                      };
+        float rq        { src.qsize()                                   };
+        float acc       { 1.0F + rq* (_k[0] + rq * (_k[1] + rq* _k[2])) };
+        Vect  estimated { src * acc                                     };
         
         
         /*
@@ -86,9 +81,11 @@ namespace VidStab
              * Calculates real point related to last guess. Then we
              * process estimation correction to get closer to solution.
              */
-            Vect reality;
-            to(  reality, _lastDst, aRatio);
-            _lastDst += (src - reality);
+            rq         = estimated.qsize();
+            acc        = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
+            Vect reality { estimated / acc };
+            estimated += (src - reality);
+            
             
             /*
              * We consider equation resolved when our difference from
@@ -103,6 +100,7 @@ namespace VidStab
         /*
          * Calculation done. Write result of resolver.
          */
-        aDst = _lastDst + _center;
+        estimated /= aRatio;
+        aDst       = estimated + center;
     }
 }

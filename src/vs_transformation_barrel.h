@@ -79,25 +79,5 @@ namespace VidStab
          * Defines size where coefficients was calculated
          */
         Vect _center;
-        
-        
-        /**
-         * @brief   Last destination transformation in @c from barrel
-         *          direction
-         *
-         * Value is used for faster resolver guess when there is repeated
-         * calculation for close point.
-         */
-        Vect _lastSrc;
-        
-        
-        /**
-         * @brief   Last source transformation in @c from barrel
-         *          direction
-         *
-         * Value is used for faster resolver guess when there is repeated
-         * calculation for close point.
-         */
-        Vect _lastDst;
     };
 }
