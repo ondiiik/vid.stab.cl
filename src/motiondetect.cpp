@@ -49,8 +49,8 @@
  * C++ includes
  */
 #include "motiondetect.h"
-#include "vs_exception.h"
 #include "frame_canvas.h"
+#include "common_exception.h"
 
 #include "dbg_profiler.h"
 
@@ -90,7 +90,7 @@ namespace
         }
         else
         {
-            throw VS_EXCEPTION("Detect data C structure is NULL!");
+            throw Common::VS_EXCEPTION("Detect data C structure is NULL!");
         }
     }
     
@@ -379,6 +379,12 @@ void vsMotionDetectionCleanup(VSMotionDetect* aMd)
 
 
 // returns true if match of local motion is better than threshold
+bool __lm_match_better(const LocalMotion& lm, const double& tresh)
+{
+    return (lm.match <= tresh);
+}
+
+
 short lm_match_better(void* thresh, void* lm)
 {
     if (((LocalMotion*)lm)->match <= *((double*)thresh))
@@ -560,12 +566,12 @@ namespace VidStab
     {
         if (nullptr == aConf)
         {
-            throw VS_EXCEPTION("Configuration structure is NULL!");
+            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw VS_EXCEPTION("Frame info structure is NULL!");
+            throw Common::VS_EXCEPTION("Frame info structure is NULL!");
         }
         
         _initMsg();
@@ -644,7 +650,7 @@ namespace VidStab
         
         if (first)
         {
-            throw VS_EXCEPTION("There is no device available!");
+            throw Common::VS_EXCEPTION("There is no device available!");
         }
         
         _clContext = new cl::Context({_clDevice});
@@ -670,7 +676,7 @@ namespace VidStab
             
             if (CL_SUCCESS != pgm->build({_clDevice}))
             {
-                throw VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+                throw Common::VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
             }
             
             _clProgram.push_back(pgm);
@@ -708,12 +714,12 @@ namespace VidStab
          */
         if (nullptr == aConf)
         {
-            throw VS_EXCEPTION("Configuration structure is NULL!");
+            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw VS_EXCEPTION("Frame info is NULL!");
+            throw Common::VS_EXCEPTION("Frame info is NULL!");
         }
         
         conf    = *aConf;
@@ -727,7 +733,7 @@ namespace VidStab
             (fi.pixFormat() == PF_PACKED) ||
             (fi.pixFormat() >= PF_NUMBER))
         {
-            throw VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
+            throw Common::VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
         }
         
         
@@ -809,7 +815,7 @@ namespace VidStab
         
         if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
         {
-            throw VS_EXCEPTION("Allocation failed!");
+            throw Common::VS_EXCEPTION("Allocation failed!");
         }
         else
         {

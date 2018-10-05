@@ -7,11 +7,11 @@
 #pragma once
 
 
+#include "common_vect.h"
 #include <cstdint>
 #include <cmath>
 
-
-#include "common_vect.h"
+#include "common_exception.h"
 
 
 namespace Frame
@@ -57,6 +57,17 @@ namespace Frame
                      const Vec&  aSize,
                      uint8_t     color)
         {
+            if (_invalidRange(aPos))
+            {
+                throw Common::VS_EXCEPTION_M(canvas, "Really so big coordinates (%i x %i)?", aPos.x, aPos.y);
+            }
+            
+            if (_invalidRange(aPos))
+            {
+                throw Common::VS_EXCEPTION_M(canvas, "Really that big size (%i x %i)?", aSize.x, aSize.y);
+            }
+            
+            
             uint8_t* p { (*this)(aPos - (aSize / 2)) };
             
             for (int j = 0; j < aSize.y; ++j)
@@ -167,6 +178,12 @@ namespace Frame
                            int           sizey,
                            unsigned char color)
         {
+            if (_invalidRange(x, y))
+            {
+                throw Common::VS_EXCEPTION_M(canvas, "Really so big coordinates (%i x %i)?", x, y);
+            }
+            
+            
             unsigned       szX2 = sizex / 2;
             unsigned       szY2 = sizey / 2;
             unsigned char* p    = (*this)(x - szX2, y - szY2);
@@ -212,5 +229,26 @@ namespace Frame
         const Common::Vect<int> dim;    /**< @brief Canvas dimensions */
         uint8_t* const          buf;    /**< @brief Canvas buffer */
         int      const          bpp;    /**< @brief Bytes per pixel */
+        
+        
+    private:
+        static inline bool _invalidRange(int aX, int aY)
+        {
+            return ((16384 < aX) ||
+                    (16384 < aY) ||
+                    (0     > aX) ||
+                    (0     > aY));
+                    
+        }
+        
+        
+        static inline bool _invalidRange(const Vec& aV)
+        {
+            return ((16384 < aV.x) ||
+                    (16384 < aV.y) ||
+                    (0     > aV.x) ||
+                    (0     > aV.y));
+                    
+        }
     };
 }

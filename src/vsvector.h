@@ -21,8 +21,283 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "libvidstab.h"
-#include <stddef.h>
-#include <stdio.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstring>
+
+#include "common_exception.h"
+
+
+namespace Common
+{
+    template <typename _Tp> class VsVector
+    {
+    public:
+        typedef _Tp value_type;
+        
+        
+        typedef size_t size_type;
+        
+        
+        typedef value_type& reference;
+        
+        
+        typedef const value_type& const_reference;
+        
+        
+        typedef value_type* pointer;
+        
+        
+        typedef const value_type* const_pointer;
+        
+        
+        typedef value_type* iterator;
+        
+        
+        typedef const value_type* const_iterator;
+        
+        
+        VsVector(LocalMotions& aM)
+            :
+            _m { aM }
+        {
+        
+        }
+        
+        
+        ~VsVector()
+        {
+            if ((_m._nelems < 1) || (nullptr == _m._data))
+            {
+                for (int i = 0; i < _m._nelems; i++)
+                {
+                    if (nullptr != _m._data[i])
+                    {
+                        vs_free(_m._data[i]);
+                    }
+                }
+                
+                _m._nelems = 0;
+                
+                if (_m._data)
+                {
+                    vs_free(_m._data);
+                }
+                
+                _m._data       = 0;
+                _m._buffersize = 0;
+                _m._nelems     = 0;
+            }
+        }
+        
+        
+        inline int size() const noexcept
+        {
+            return _m._nelems;
+        }
+        
+        
+        inline reference operator[](std::size_t aIdx)
+        {
+            if (std::size_t(_m._buffersize) <= aIdx)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
+            }
+            
+            if (nullptr == _m._data[aIdx])
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
+            }
+            
+            return *(pointer(_m._data[aIdx]));
+        }
+        
+        
+        inline const_reference operator[](std::size_t aIdx) const
+        {
+            if (std::size_t(_m._buffersize) <= aIdx)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
+            }
+            
+            if (nullptr == _m._data[aIdx])
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
+            }
+            
+            return *(const_pointer(_m._data[aIdx]));
+        }
+        
+        
+        /**
+         * @brief   Initialize buffers
+         * @param   aCnt    Count of items
+         */
+        void init(std::size_t aCnt)
+        {
+            if (aCnt > 0)
+            {
+                _m._data       = (void**)vs_zalloc(sizeof(pointer) * aCnt);
+                _m._buffersize = aCnt;
+                
+                if (nullptr == _m._data)
+                {
+                    throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                }
+            }
+            else
+            {
+                _m._data       = nullptr;
+                _m._buffersize = aCnt;
+            }
+            
+            _m._nelems = 0;
+        }
+        
+        
+        void reserve(int aNewsize)
+        {
+            if (aNewsize < 1)
+            {
+                aNewsize = 1;
+            }
+            
+            if (_m._buffersize < aNewsize)
+            {
+                _m._data = (void**)vs_realloc(_m._data, aNewsize * sizeof(pointer));
+                
+                if (nullptr == _m._data)
+                {
+                    throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                }
+                
+                _m._buffersize = aNewsize;
+            }
+        }
+        
+        
+        void push_back(pointer aData)
+        {
+            _initBase();
+            
+            if (_m._nelems >= _m._buffersize)
+            {
+                reserve(_m._buffersize * 2);
+            }
+            
+            _m._data[_m._nelems] = aData;
+            ++_m._nelems;
+        }
+        
+        
+        void push_back(const_reference aData)
+        {
+            _initBase();
+            
+            pointer d = pointer(vs_malloc(sizeof(value_type)));
+            
+            if (nullptr == d)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+            }
+            
+            *d = aData;
+            push_back(d);
+        }
+        
+        
+        pointer exchange(int     aIdx,
+                         pointer aNewData)
+        {
+            _initBase();
+            
+            if (_m._buffersize <= aIdx)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of rang (0 - %i)!", aIdx, _m._buffersize);
+            }
+            
+            
+            int    cnt  = _m._buffersize;
+            while (cnt <= aIdx)
+            {
+                cnt *= 2;
+            }
+            
+            reserve(cnt);
+            
+            if (aIdx >= _m._nelems)
+            {
+                for (int i = _m._nelems; i < (aIdx + 1); ++i)
+                {
+                    _m._data[i] = nullptr;
+                }
+                
+                _m._nelems = aIdx + 1;
+            }
+            
+            pointer  old   = pointer(_m._data[aIdx]);
+            _m._data[aIdx] = aNewData;
+            return old;
+        }
+        
+        
+        pointer exchange(int       aIdx,
+                         reference aData)
+        {
+            pointer d = pointer(vs_malloc(sizeof(value_type)));
+            
+            if (nullptr == d)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+            }
+            
+            *d = aData;
+            return exchange(aIdx, d);
+        }
+        
+        
+        template <typename _Tp2> void filter(VsVector&   result,
+                                             bool      (*pred)(const_reference, const _Tp2&),
+                                             const _Tp2& param) const
+        {
+            result.init(_m._nelems);
+            
+            for (int i = 0; i < _m._nelems; ++i)
+            {
+                if (pred(*(pointer(_m._data[i])), param))
+                {
+                    result.push_back(pointer(_m._data + i));
+                }
+            }
+        }
+        
+        
+        void concat(VsVector&       aResult,
+                    const VsVector& aSrc) const
+        {
+            aResult.init(_m._nelems + aSrc._m._nelems);
+            
+            memcpy(aResult._m._data,                   _m._data, sizeof(pointer) *      _m._nelems);
+            memcpy(aResult._m._data + _m._nelems, aSrc._m._data, sizeof(pointer) * aSrc._m._nelems);
+            
+            aResult._m._nelems = _m._nelems + aSrc._m._nelems;
+        }
+        
+        
+    private:
+        inline void _initBase()
+        {
+            if ((nullptr == _m._data) || (_m._buffersize < 1))
+            {
+                init(4);
+            }
+        }
+        
+        
+        LocalMotions& _m;
+    };
+}
+
 
 
 /**

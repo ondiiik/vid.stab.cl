@@ -23,11 +23,6 @@
  */
 #include <stdio.h>
 #include "vsvector.h"
-
-
-#ifdef __cplusplus
-
-
 #include "common_vect.h"
 
 
@@ -72,6 +67,14 @@ struct LocalMotion
     double contrast; // local contrast of the measurement field
     double match;    // quality of match
 };
-#endif
+
+
+namespace VidStab
+{
+    typedef Common::VsVector<LocalMotion>  LmList;
+    typedef Common::VsVector<LocalMotions> LmLists;
+}
+
+
 
 

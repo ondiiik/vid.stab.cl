@@ -27,7 +27,7 @@
 #include "transformtype.h"
 #include "frameinfo.h"
 #include "vidstabdefines.h"
-#include "vs_exception.h"
+#include "common_exception.h"
 #include "vs_transformation_barrel.h"
 #include <cmath>
 #include <libgen.h>

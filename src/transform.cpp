@@ -48,7 +48,7 @@
 
 #include "transformfixedpoint.h"
 
-#include "vs_exception.h"
+#include "common_exception.h"
 #include "vs_transformation_barrel.h"
 
 #include "sys_omp.h"
@@ -79,7 +79,7 @@ namespace
         }
         else
         {
-            throw VS_EXCEPTION("Transform data C structure is NULL!");
+            throw Common::VS_EXCEPTION("Transform data C structure is NULL!");
         }
     }
     

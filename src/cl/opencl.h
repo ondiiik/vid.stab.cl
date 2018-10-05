@@ -8,6 +8,7 @@
 
 
 #if defined(USE_OPENCL)
+#include "common_exception.h"
 #include <CL/cl2.hpp>
 #include <exception>
 #include <cstdarg>
@@ -15,32 +16,6 @@
 
 namespace OpenCl
 {
-    /**
-     * @brief   OpenCL exception
-     */
-    class exception: public std::exception
-    {
-    public:
-        /**
-         * @brief   Construct exception
-         * @param   aFmt    Formating text
-         */
-        exception(const char* aFmt, ...);
-        
-        
-        /**
-         * @brief   Return text of exception
-         * @return  Text of exception
-         */
-        virtual const char* what() const throw();
-        
-        
-    private:
-        static const std::size_t _bufSize { 1024 };
-        char             _errTxt[_bufSize];
-    };
-    
-    
     /**
      * @brief   Convert error code to string
      * @param   aErr    Error code
@@ -243,9 +218,9 @@ namespace OpenCl
                                                               
             if (CL_SUCCESS != ret)
             {
-                throw exception("[OpenCL] Enqueue write buffer reported %i (%s)!",
-                                int(ret),
-                                OpenCl::err2string(ret));
+                throw Common::exception("[OpenCL] Enqueue write buffer reported %i (%s)!",
+                                        int(ret),
+                                        OpenCl::err2string(ret));
             }
         }
         
@@ -266,9 +241,9 @@ namespace OpenCl
                                                                 
             if (CL_SUCCESS != ret)
             {
-                throw exception("[OpenCL] Enqueue kernel reported %i (%s)!",
-                                int(ret),
-                                OpenCl::err2string(ret));
+                throw Common::exception("[OpenCL] Enqueue kernel reported %i (%s)!",
+                                        int(ret),
+                                        OpenCl::err2string(ret));
             }
         }
         
@@ -291,9 +266,9 @@ namespace OpenCl
                                                              
             if (CL_SUCCESS != ret)
             {
-                throw exception("[OpenCL] Enqueue read buffer reported %i (%s)!",
-                                int(ret),
-                                OpenCl::err2string(ret));
+                throw Common::exception("[OpenCL] Enqueue read buffer reported %i (%s)!",
+                                        int(ret),
+                                        OpenCl::err2string(ret));
             }
         }
     };
@@ -313,10 +288,10 @@ namespace OpenCl
         {
             if (CL_SUCCESS != _ret)
             {
-                throw exception("[OpenCL-%s] Kernel constructor reported %i (%s)!",
-                                _name.c_str(),
-                                int(_ret),
-                                OpenCl::err2string(_ret));
+                throw Common::exception("[OpenCL-%s] Kernel constructor reported %i (%s)!",
+                                        _name.c_str(),
+                                        int(_ret),
+                                        OpenCl::err2string(_ret));
             }
         }
         
@@ -328,11 +303,11 @@ namespace OpenCl
             
             if (CL_SUCCESS != ret)
             {
-                throw exception("[OpenCL-%s] Set arg idx %i reported %i (%s)!",
-                                _name.c_str(),
-                                int(aIdx),
-                                int(ret),
-                                OpenCl::err2string(ret));
+                throw Common::exception("[OpenCL-%s] Set arg idx %i reported %i (%s)!",
+                                        _name.c_str(),
+                                        int(aIdx),
+                                        int(ret),
+                                        OpenCl::err2string(ret));
             }
             
             return aIdx + 1;
@@ -360,9 +335,9 @@ namespace OpenCl
         {
             if (CL_SUCCESS != _ret)
             {
-                throw exception("[OpenCL] Buffer constructor reported %i (%s)!",
-                                int(_ret),
-                                OpenCl::err2string(_ret));
+                throw Common::exception("[OpenCL] Buffer constructor reported %i (%s)!",
+                                        int(_ret),
+                                        OpenCl::err2string(_ret));
             }
         }
         

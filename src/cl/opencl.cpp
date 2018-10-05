@@ -26,7 +26,7 @@ namespace OpenCl
         
         if ((CL_SUCCESS != result) && (CL_DEVICE_NOT_FOUND != result))
         {
-            throw exception("[OpenCL] Get devices reported %i!", result);
+            throw Common::exception("[OpenCL] Get devices reported %i!", result);
         }
     }
     
@@ -35,8 +35,8 @@ namespace OpenCl
     {
         if (aIdx >= _devices.size())
         {
-            throw exception("[OpenCL] Device index %d out of range <%d - %d>!",
-                            aIdx, 0, _devices.size());
+            throw Common::exception("[OpenCL] Device index %d out of range <%d - %d>!",
+                                    aIdx, 0, _devices.size());
         }
         
         return _devices[aIdx];
@@ -52,12 +52,12 @@ namespace OpenCl
         
         if (CL_SUCCESS != result)
         {
-            throw exception("[OpenCL] Get platforms reported %i!", result);
+            throw Common::exception("[OpenCL] Get platforms reported %i!", result);
         }
         
         if (0 == platforms.size())
         {
-            throw exception("[OpenCL] No platforms found!");
+            throw Common::exception("[OpenCL] No platforms found!");
         }
         
         for (auto& i : platforms)
@@ -72,26 +72,11 @@ namespace OpenCl
     {
         if (aIdx >= _platforms.size())
         {
-            throw exception("[OpenCL] Platform index %d out of range <%d - %d>!",
-                            aIdx, 0, _platforms.size());
+            throw Common::exception("[OpenCL] Platform index %d out of range <%d - %d>!",
+                                    aIdx, 0, _platforms.size());
         }
         
         return _platforms[aIdx];
-    }
-    
-    
-    exception::exception(const char* aFmt, ...)
-    {
-        va_list                            args;
-        va_start(                          args, aFmt);
-        vsnprintf(_errTxt, _bufSize, aFmt, args);
-        va_end(                            args);
-    }
-    
-    
-    const char* exception::what() const throw ()
-    {
-        return _errTxt;
     }
     
     

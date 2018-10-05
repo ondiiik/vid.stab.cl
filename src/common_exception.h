@@ -10,12 +10,14 @@
 #include <exception>
 #include <cstdarg>
 #include <cstring>
+#include <cstdio>
 
 
-#define VS_EXCEPTION(...) exception(moduleName, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define VS_EXCEPTION(...)           exception(moduleName, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define VS_EXCEPTION_M(module, ...) exception(#module,    __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
-namespace VidStab
+namespace Common
 {
     /**
      * @brief   Vidstab exception
