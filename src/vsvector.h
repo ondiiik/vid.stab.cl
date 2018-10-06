@@ -67,27 +67,25 @@ namespace Common
         
         ~VsVector()
         {
-            if ((_m._nelems < 1) || (nullptr == _m._data))
-            {
-                for (int i = 0; i < _m._nelems; i++)
-                {
-                    if (nullptr != _m._data[i])
-                    {
-                        vs_free(_m._data[i]);
-                    }
-                }
-                
-                _m._nelems = 0;
-                
-                if (_m._data)
-                {
-                    vs_free(_m._data);
-                }
-                
-                _m._data       = 0;
-                _m._buffersize = 0;
-                _m._nelems     = 0;
-            }
+//            if (nullptr != _m._data)
+//            {
+//                for (int i = 0; i < _m._nelems; i++)
+//                {
+//                    if (nullptr != _m._data[i])
+//                    {
+//                        vs_free(_m._data[i]);
+//                    }
+//                }
+//            }
+//
+//            if (_m._data)
+//            {
+//                vs_free(_m._data);
+//            }
+//
+//            _m._data       = 0;
+//            _m._buffersize = 0;
+//            _m._nelems     = 0;
         }
         
         
@@ -99,6 +97,11 @@ namespace Common
         
         inline reference operator[](std::size_t aIdx)
         {
+            if (nullptr == _m._data)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+            }
+            
             if (std::size_t(_m._buffersize) <= aIdx)
             {
                 throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
@@ -115,6 +118,11 @@ namespace Common
         
         inline const_reference operator[](std::size_t aIdx) const
         {
+            if (nullptr == _m._data)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+            }
+            
             if (std::size_t(_m._buffersize) <= aIdx)
             {
                 throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
@@ -149,6 +157,25 @@ namespace Common
             {
                 _m._data       = nullptr;
                 _m._buffersize = aCnt;
+            }
+            
+            _m._nelems = 0;
+        }
+        
+        
+        void erase()
+        {
+            if (nullptr == _m._data)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+            }
+            
+            for (int i = 0; i < _m._nelems; i++)
+            {
+                if (nullptr != _m._data[i])
+                {
+                    vs_free(_m._data[i]);
+                }
             }
             
             _m._nelems = 0;
@@ -260,6 +287,11 @@ namespace Common
                                              bool      (*pred)(const_reference, const _Tp2&),
                                              const _Tp2& param) const
         {
+            if (nullptr == _m._data)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+            }
+            
             result.init(_m._nelems);
             
             for (int i = 0; i < _m._nelems; ++i)
@@ -275,6 +307,11 @@ namespace Common
         void concat(VsVector&       aResult,
                     const VsVector& aSrc) const
         {
+            if (nullptr == _m._data)
+            {
+                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+            }
+            
             aResult.init(_m._nelems + aSrc._m._nelems);
             
             memcpy(aResult._m._data,                   _m._data, sizeof(pointer) *      _m._nelems);
@@ -284,10 +321,10 @@ namespace Common
         }
         
         
-
-
-
-
+        
+        
+        
+        
         /*
          * Deprecated
          */
@@ -295,13 +332,15 @@ namespace Common
         {
             return _m;
         }
-
+        
         const LocalMotions& LocalMotionsC() const
         {
             return _m;
         }
-
-
+        
+        
+        
+        
     private:
         inline void _initBase()
         {
