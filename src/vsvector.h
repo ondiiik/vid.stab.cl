@@ -284,6 +284,24 @@ namespace Common
         }
         
         
+
+
+
+
+        /*
+         * Deprecated
+         */
+        LocalMotions& LocalMotionsC()
+        {
+            return _m;
+        }
+
+        const LocalMotions& LocalMotionsC() const
+        {
+            return _m;
+        }
+
+
     private:
         inline void _initBase()
         {

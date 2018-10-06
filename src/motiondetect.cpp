@@ -862,8 +862,9 @@ namespace VidStab
                                         calcFieldTransFunc    fieldfunc,
                                         contrastSubImgFunc    contrastfunc)
     {
-        LocalMotions    localmotions;
-        vs_vector_init(&localmotions, fields.maxFields);
+        LocalMotions                   localmotionsC;
+        LmList          localmotions { localmotionsC };
+        localmotions.init(fields.maxFields);
         
         
         std::vector<ContrastIdx> goodflds {};
@@ -885,12 +886,12 @@ namespace VidStab
                 
                 OMP_CRITICAL(localmotions_append)
                 {
-                    vs_vector_append_dup(&localmotions, &m, sizeof(LocalMotion));
+                    vs_vector_append_dup(&localmotionsC, &m, sizeof(LocalMotion));
                 }
             }
         }
         
-        return localmotions;
+        return localmotionsC;
     }
     
     
@@ -907,7 +908,8 @@ namespace VidStab
         }
         else
         {
-            vs_vector_init(aMotions, 1);
+            LmList lm { *aMotions };
+            lm.init(1);
             firstFrame = false;
         }
         
@@ -1182,13 +1184,15 @@ namespace VidStab
     void VSMD::_detect(LocalMotions*        aMotions,
                        const Frame::Frame&  aFrame)
     {
-        LocalMotions motionsfine;
-        LocalMotions motionscoarse;
-        int          num_motions = _detectContrast(motionscoarse);
+        LocalMotions                 motionsfineC;
+        LmList       motionsfine   { motionsfineC };
+        LocalMotions                 motionscoarseC;
+        LmList       motionscoarse { motionscoarseC };
+        int          num_motions   { _detectContrast(motionscoarse) };
         
         if (num_motions < 1)
         {
-            vs_vector_init(&motionsfine, 0);
+            motionsfine.init(0);
             vs_log_warn(conf.modName,
                         "Too low contrast. (no translations are detected in frame %i)\n",
                         frameNum);
@@ -1198,7 +1202,7 @@ namespace VidStab
             /*
              * Calculates transformation and perform another scan with small fields
              */
-            VSTransform        t = vsSimpleMotionsToTransform(fiInfoC, conf.modName, &motionscoarse);
+            VSTransform        t = vsSimpleMotionsToTransform(fiInfoC, conf.modName, &motionscoarseC);
             fieldsfine.offset    = t;
             fieldsfine.useOffset = 1;
             fieldsfine.pt        = prepare_transform(&fieldsfine.offset, &fiInfoC);
@@ -1221,10 +1225,10 @@ namespace VidStab
             /*
              * Through out those with bad match (worse than mean of coarse scan)
              */
-            VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
+            VSArray matchQualities1 = localmotionsGetMatch(&motionscoarseC);
             double  meanMatch       = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
             
-            motionsfine = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
+            motionsfineC = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
         }
         
         
@@ -1243,33 +1247,35 @@ namespace VidStab
                 1
             };
             
-            _draw(canvas, num_motions, motionscoarse, motionsfine);
+            _draw(canvas, num_motions, motionscoarseC, motionsfineC);
         }
         
-        *aMotions = vs_vector_concat(&motionscoarse, &motionsfine);
+        *aMotions = vs_vector_concat(&motionscoarseC, &motionsfineC);
     }
     
     
-    int VSMD::_detectContrast(LocalMotions& aMotionscoarse)
+    int VSMD::_detectContrast(LmList& aLmCoarse)
     {
-        vs_vector_init(&aMotionscoarse, 0);
+        aLmCoarse.init(0);
+        LocalMotions& motionscoarse = aLmCoarse.LocalMotionsC();
         
+
         fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fiInfoC);
         
         if (fiInfoC.pFormat > PF_PACKED)
         {
-            aMotionscoarse = _calcTransFields(fieldscoarse,
+            motionscoarse = _calcTransFields(fieldscoarse,
                                               visitor_calcFieldTransPacked,
                                               visitor_contrastSubImgPacked);
         }
         else
         {
-            aMotionscoarse = _calcTransFields(fieldscoarse,
+            motionscoarse = _calcTransFields(fieldscoarse,
                                               visitor_calcFieldTransPlanar,
                                               visitor_contrastSubImgPlanar);
         }
         
-        return vs_vector_size(&aMotionscoarse);
+        return aLmCoarse.size();
     }
     
     

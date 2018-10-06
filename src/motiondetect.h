@@ -329,7 +329,7 @@ namespace VidStab
          * @param   aMotionscoarse    Coarse motion results
          * @return  Number of detected motions
          */
-        int _detectContrast(LocalMotions& aMotionscoarse);
+        int _detectContrast(LmList& aMotionscoarse);
         
         
         /**

@@ -90,38 +90,47 @@ int vsStoreLocalmotions(FILE* f, const LocalMotions* lms)
 /// restores local motions from file
 LocalMotions vsRestoreLocalmotions(FILE* f)
 {
-    LocalMotions lms;
+    LocalMotions          lmsC;
+    VidStab::LmList lms { lmsC };
     int i;
     char c;
     int len;
-    vs_vector_init(&lms, 0);
+    
+    lms.init(0);
+    
     if (fscanf(f, "List %i [", &len) != 1)
     {
         vs_log_error(modname, "Cannot parse localmotions list expect 'List len ['!\n");
-        return lms;
+        return lmsC;
     }
+    
     if (len > 0)
     {
-        vs_vector_init(&lms, len);
+        lms.init(len);
+        
         for (i = 0; i < len; i++)
         {
             if (i > 0) while ((c = fgetc(f)) && c != ',' && c != EOF);
             LocalMotion lm = restoreLocalmotion(f);
-            vs_vector_append_dup(&lms, &lm, sizeof(LocalMotion));
+            vs_vector_append_dup(&lmsC, &lm, sizeof(LocalMotion));
         }
     }
-    if (len != vs_vector_size(&lms))
+    
+    if (len != vs_vector_size(&lmsC))
     {
         vs_log_error(modname, "Cannot parse the given number of localmotions!\n");
-        return lms;
+        return lmsC;
     }
+    
     while ((c = fgetc(f)) && c != ']' && c != EOF);
+    
     if (c == EOF)
     {
         vs_log_error(modname, "Cannot parse localmotions list missing ']'!\n");
-        return lms;
+        return lmsC;
     }
-    return lms;
+    
+    return lmsC;
 }
 
 
@@ -187,7 +196,7 @@ int vsReadFromFile(FILE* f, LocalMotions* lms)
     }
 }
 
-int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlms)
+int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlmsC)
 {
     int version = vsReadFileVersion(f);
     if (version < 1) // old format or unknown
@@ -200,9 +209,11 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlms)
                      version);
         return VS_ERROR;
     }
-    assert(mlms);
+    assert(mlmsC);
     // initial number of frames, but it will automatically be increaseed
-    vs_vector_init(mlms, 1024);
+    VidStab::LmLists mlms { *mlmsC };
+    mlms.init(1024);
+
     int index;
     int oldindex = 0;
     LocalMotions lms;
@@ -219,7 +230,7 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlms)
         }
         else
         {
-            vs_vector_set_dup(mlms, index - 1, &lms, sizeof(LocalMotions));
+            vs_vector_set_dup(mlmsC, index - 1, &lms, sizeof(LocalMotions));
         }
         oldindex = index;
     }

@@ -12,7 +12,7 @@ cmake \
     -DUSE_OPENCL_DEBUG=OFF \
     -DCMAKE_VERBOSE_MAKEFILE=FALSE \
     -DCMAKE_INSTALL_PREFIX:PATH=/usr/local \
-    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_BUILD_TYPE=Release \
     . || exit 1
 
 make -j16 "$ROLE" || exit 1 
