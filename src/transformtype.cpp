@@ -413,26 +413,28 @@ LocalMotion null_localmotion()
     return lm;
 }
 
-int* localmotions_getx(const LocalMotions* localmotions)
+int* localmotions_getx(const LocalMotions* localmotionsC)
 {
-    int len = vs_vector_size(localmotions);
+    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    int len = localmotions.size();
     int* xs = (int*)vs_malloc(sizeof(int) * len);
     int i;
     for (i = 0; i < len; i++)
     {
-        xs[i] = LMGet(localmotions, i)->v.x;
+        xs[i] = LMGet(localmotionsC, i)->v.x;
     }
     return xs;
 }
 
-int* localmotions_gety(const LocalMotions* localmotions)
+int* localmotions_gety(const LocalMotions* localmotionsC)
 {
-    int len = vs_vector_size(localmotions);
+    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    int len = localmotions.size();
     int* ys = (int*)vs_malloc(sizeof(int) * len);
     int i;
     for (i = 0; i < len; i++)
     {
-        ys[i] = LMGet(localmotions, i)->v.y;
+        ys[i] = LMGet(localmotionsC, i)->v.y;
     }
     return ys;
 }
@@ -461,12 +463,13 @@ LocalMotion sub_localmotion(const LocalMotion* lm1, const LocalMotion* lm2)
  * Side effects:
  *     None
  */
-LocalMotion cleanmean_localmotions(const LocalMotions* localmotions)
+LocalMotion cleanmean_localmotions(const LocalMotions* localmotionsC)
 {
-    int len = vs_vector_size(localmotions);
+    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    int len = localmotions.size();
     int i, cut = len / 5;
-    int* xs = localmotions_getx(localmotions);
-    int* ys = localmotions_gety(localmotions);
+    int* xs = localmotions_getx(localmotionsC);
+    int* ys = localmotions_gety(localmotionsC);
     LocalMotion m = null_localmotion();
     m.v.x = 0;
     m.v.y = 0;
@@ -487,24 +490,13 @@ LocalMotion cleanmean_localmotions(const LocalMotions* localmotions)
     return m;
 }
 
-VSArray localmotionsGetMatch(const LocalMotions* localmotions)
+VSArray localmotionsGetMatch(const LocalMotions* localmotionsC)
 {
-    VSArray m = vs_array_new(vs_vector_size(localmotions));
+    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    VSArray m = vs_array_new(localmotions.size());
     for (int i = 0; i < m.len; i++)
     {
-        m.dat[i] = LMGet(localmotions, i)->match;
+        m.dat[i] = LMGet(localmotionsC, i)->match;
     }
     return m;
 }
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

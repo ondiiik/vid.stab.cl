@@ -67,23 +67,29 @@ LocalMotion restoreLocalmotion(FILE* f)
     return lm;
 }
 
-int vsStoreLocalmotions(FILE* f, const LocalMotions* lms)
+int vsStoreLocalmotions(FILE*               f,
+                        const LocalMotions* lmsC)
 {
-    int len = vs_vector_size(lms);
-    int i;
+    const VidStab::LmList lms { *const_cast<LocalMotions*>(lmsC) };
+    int                   len { lms.size()                       };
+    
     fprintf(f, "List %i [", len);
-    for (i = 0; i < len; i++)
+    
+    for (int i = 0; i < len; i++)
     {
         if (i > 0)
         {
             fprintf(f, ",");
         }
-        if (storeLocalmotion(f, LMGet(lms, i)) <= 0)
+        
+        if (storeLocalmotion(f, LMGet(lmsC, i)) <= 0)
         {
             return 0;
         }
     }
+    
     fprintf(f, "]");
+    
     return 1;
 }
 
@@ -116,7 +122,7 @@ LocalMotions vsRestoreLocalmotions(FILE* f)
         }
     }
     
-    if (len != vs_vector_size(&lmsC))
+    if (len != lms.size())
     {
         vs_log_error(modname, "Cannot parse the given number of localmotions!\n");
         return lmsC;
@@ -213,7 +219,7 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlmsC)
     // initial number of frames, but it will automatically be increaseed
     VidStab::LmLists mlms { *mlmsC };
     mlms.init(1024);
-
+    
     int index;
     int oldindex = 0;
     LocalMotions lms;

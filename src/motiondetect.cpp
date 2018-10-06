@@ -1282,7 +1282,7 @@ namespace VidStab
     void VSMD::_draw(Frame::Canvas&       canvas,
                      int                  num_motions,
                      const LocalMotions&  motionscoarse,
-                     const LocalMotions&  motionsfine)
+                     const LocalMotions&  motionsfineC)
     {
         if (conf.show > 1)
         {
@@ -1293,7 +1293,8 @@ namespace VidStab
         }
         
         
-        int num_motions_fine = vs_vector_size(&motionsfine);
+        const LmList motionsfine { *const_cast<LocalMotions*>(&motionsfineC) };
+        int num_motions_fine = motionsfine.size();
         
         for (int i = 0; i < num_motions; i++)
         {
@@ -1302,7 +1303,7 @@ namespace VidStab
         
         for (int i = 0; i < num_motions_fine; i++)
         {
-            _drawField(canvas, LMGet(&motionsfine, i), 0);
+            _drawField(canvas, LMGet(&motionsfineC, i), 0);
         }
         
         for (int i = 0; i < num_motions; i++)
@@ -1312,7 +1313,7 @@ namespace VidStab
         
         for (int i = 0; i < num_motions_fine; i++)
         {
-            _drawFieldTrans(canvas, LMGet(&motionsfine, i), 64);
+            _drawFieldTrans(canvas, LMGet(&motionsfineC, i), 64);
         }
     }
     
