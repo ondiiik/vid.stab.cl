@@ -163,6 +163,19 @@ namespace Common
         }
         
         
+        void destroy()
+        {
+            if (nullptr == _m._data)
+            {
+                erase();
+                vs_free(_m._data);
+                
+                _m._data       = nullptr;
+                _m._buffersize = 0;
+            }
+        }
+        
+        
         void erase()
         {
             if (nullptr == _m._data)
