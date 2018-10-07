@@ -29,29 +29,48 @@ namespace Frame
                unsigned aWidth,
                unsigned aHeight)
             :
-            dim    { aWidth, aHeight },
-            buf    { aBuf            }
+            _dim    { aWidth, aHeight },
+            _buf    { aBuf            }
         {
         
         }
         
         
-        inline pix_t& operator[](const Vec& aPixel) const
+        inline const pix_t& operator[](const Vec& aPixel) const
         {
             return (*this)(aPixel.x, aPixel.y);
         }
         
         
-        inline pix_t& operator()(const Vec& aPixel) const
+        inline pix_t& operator[](const Vec& aPixel)
         {
             return (*this)(aPixel.x, aPixel.y);
+        }
+        
+        
+        inline const pix_t& operator()(const Vec& aPixel) const
+        {
+            return (*this)(aPixel.x, aPixel.y);
+        }
+        
+        
+        inline pix_t& operator()(const Vec& aPixel)
+        {
+            return (*this)(aPixel.x, aPixel.y);
+        }
+        
+        
+        inline const pix_t& operator()(int aX,
+                                       int aY) const
+        {
+            return *(_buf + (aY * _dim.x + aX));
         }
         
         
         inline pix_t& operator()(int aX,
-                                 int aY) const
+                                 int aY)
         {
-            return *(buf + (aY * dim.x + aX));
+            return *(_buf + (aY * _dim.x + aX));
         }
         
         
@@ -64,17 +83,6 @@ namespace Frame
                      const Vec&   aSize,
                      pix_t        aColor)
         {
-            if (_invalidRange(aPos))
-            {
-                throw Common::VS_EXCEPTION_M(canvas, "Really so big coordinates (%i x %i)?", aPos.x, aPos.y);
-            }
-            
-            if (_invalidRange(aPos))
-            {
-                throw Common::VS_EXCEPTION_M(canvas, "Really that big size (%i x %i)?", aSize.x, aSize.y);
-            }
-            
-            
             pix_t* p { &((*this)(aPos - (aSize / 2))) };
             
             for (int j = 0; j < aSize.y; ++j)
@@ -85,7 +93,7 @@ namespace Frame
                     p++;
                 }
                 
-                p += (dim.x - aSize.x);
+                p += (_dim.x - aSize.x);
             }
         }
         
@@ -148,7 +156,7 @@ namespace Frame
                     for (int k { 0 }; k <= div.y; ++k)
                     {
                         *p = aColor;
-                        p += dim.x;
+                        p += _dim.x;
                     }
                 }
                 
@@ -184,12 +192,6 @@ namespace Frame
                            int   sizey,
                            pix_t color)
         {
-            if (_invalidRange(x, y))
-            {
-                throw Common::VS_EXCEPTION_M(canvas, "Really so big coordinates (%i x %i)?", x, y);
-            }
-            
-            
             unsigned szX2 = sizex / 2;
             unsigned szY2 = sizey / 2;
             pix_t*   p    = &((*this)(x - szX2, y - szY2));
@@ -215,7 +217,7 @@ namespace Frame
             for (int k = 0; k < sizey; k++)
             {
                 *p = color;    // left line
-                p += dim.x;
+                p += _dim.x;
             }
             
             
@@ -224,35 +226,14 @@ namespace Frame
             for (int k = 0; k < sizey; k++)
             {
                 *p = color;    // right line
-                p += dim.x;
+                p += _dim.x;
             }
         }
         
         
         
-        
-        const Common::Vect<unsigned> dim;   /**< @brief Canvas dimensions */
-        pix_t*                 const buf;   /**< @brief Canvas buffer */
-        
-        
     private:
-        static inline bool _invalidRange(int aX, int aY)
-        {
-            return ((16384 < aX) ||
-                    (16384 < aY) ||
-                    (0     > aX) ||
-                    (0     > aY));
-                    
-        }
-        
-        
-        static inline bool _invalidRange(const Vec& aV)
-        {
-            return ((16384 < aV.x) ||
-                    (16384 < aV.y) ||
-                    (0     > aV.x) ||
-                    (0     > aV.y));
-                    
-        }
+        const Common::Vect<unsigned> _dim;   /**< @brief Canvas dimensions */
+        pix_t*                 const _buf;   /**< @brief Canvas buffer */
     };
 }
