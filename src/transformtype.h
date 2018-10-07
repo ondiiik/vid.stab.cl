@@ -22,8 +22,8 @@
  *
  */
 #include <stdio.h>
-#include "vsvector.h"
 #include "common_vect.h"
+#include "vs_vector.h"
 
 
 typedef Common::Vect<int> Vec;

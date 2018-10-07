@@ -24,8 +24,8 @@
 #include "libvidstab.h"
 #include "transformtype.h"
 #include "vidstabdefines.h"
-#include "vsvector.h"
 #include "frameinfo.h"
+#include "vs_vector.h"
 
 
 #ifdef __cplusplus

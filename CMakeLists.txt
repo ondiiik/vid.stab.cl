@@ -75,7 +75,7 @@ set(SOURCES
     src/motiondetect_opt.cpp
     src/serialize.cpp
     src/localmotion2transform.cpp
-    src/vsvector.cpp
+    src/vs_vector.cpp
     src/vs_transformation_barrel.cpp
     src/orc/motiondetectorc.c
     src/cl/opencl.cpp
@@ -92,8 +92,8 @@ set(HEADERS
     src/motiondetect.h
     src/serialize.h
     src/localmotion2transform.h
-    src/vsvector.h
-    src/md_exception.hpp
+    src/common_exception.h
+    src/vs_vector.h
     src/vs_transformation.h
     src/vs_transformation_barrel.h
     src/cl/opencl.hpp

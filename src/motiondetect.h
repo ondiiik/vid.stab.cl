@@ -28,7 +28,6 @@
 #include "transformtype.h"
 #include "transformtype_operations.h"
 #include "vidstabdefines.h"
-#include "vsvector.h"
 #include "frameinfo.h"
 
 #include "frame_canvas.h"
@@ -36,6 +35,7 @@
 #include <string>
 #include <cassert>
 #include <vector>
+#include "vs_vector.h"
 
 
 /** returns the default config

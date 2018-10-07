@@ -188,6 +188,7 @@ namespace Common
                 if (nullptr != _m._data[i])
                 {
                     vs_free(_m._data[i]);
+                    _m._data[i] = nullptr;
                 }
             }
             
@@ -317,20 +318,14 @@ namespace Common
         }
         
         
-        void concat(VsVector&       aResult,
-                    const VsVector& aSrc) const
+        void concat(const VsVector& aSrc1,
+                    const VsVector& aSrc2)
         {
-            if (nullptr == _m._data)
-            {
-                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
-            }
+            init(aSrc1._m._nelems + aSrc2._m._nelems);
+            memcpy(_m._data,                    aSrc1._m._data, sizeof(pointer) * aSrc1._m._nelems);
+            memcpy(_m._data + aSrc1._m._nelems, aSrc2._m._data, sizeof(pointer) * aSrc2._m._nelems);
             
-            aResult.init(_m._nelems + aSrc._m._nelems);
-            
-            memcpy(aResult._m._data,                   _m._data, sizeof(pointer) *      _m._nelems);
-            memcpy(aResult._m._data + _m._nelems, aSrc._m._data, sizeof(pointer) * aSrc._m._nelems);
-            
-            aResult._m._nelems = _m._nelems + aSrc._m._nelems;
+            _m._nelems = aSrc1._m._nelems + aSrc2._m._nelems;
         }
         
         

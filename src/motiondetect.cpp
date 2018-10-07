@@ -1181,9 +1181,10 @@ namespace VidStab
     }
     
     
-    void VSMD::_detect(LocalMotions*        aMotions,
-                       const Frame::Frame&  aFrame)
+    void VSMD::_detect(LocalMotions*       aMotions,
+                       const Frame::Frame& aFrame)
     {
+        LmList       motions       { *aMotions };
         LocalMotions                 motionsfineC;
         LmList       motionsfine   { motionsfineC };
         LocalMotions                 motionscoarseC;
@@ -1250,7 +1251,8 @@ namespace VidStab
             _draw(canvas, num_motions, motionscoarseC, motionsfineC);
         }
         
-        *aMotions = vs_vector_concat(&motionscoarseC, &motionsfineC);
+        motions.concat(motionscoarse, motionsfine);
+//        *aMotions = vs_vector_concat(&motionscoarseC, &motionsfineC);
     }
     
     

@@ -20,10 +20,10 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "vsvector.h"
 #include "vidstabdefines.h"
 #include <assert.h>
 #include <string.h>
+#include "vs_vector.h"
 
 
 /*************************************************************************/
