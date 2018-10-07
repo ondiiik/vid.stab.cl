@@ -470,12 +470,6 @@ void* vs_vector_get(const _VSVector* V, int pos);
  */
 _VSVector vs_vector_filter(const _VSVector* V, short (*pred)(void*, void*), void* param);
 
-/*
- * vs_vector_concat:
- *      returns a new vector with elements of vector V1 and V2 after another
- */
-_VSVector vs_vector_concat(const _VSVector* V1, const _VSVector* V2);
-
 
 /**
    A simple fixed-size double vector

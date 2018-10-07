@@ -235,17 +235,6 @@ _VSVector vs_vector_filter(const _VSVector* V, short (*pred)(void*, void*), void
     return result;
 }
 
-_VSVector vs_vector_concat(const _VSVector* V1, const _VSVector* V2)
-{
-    _VSVector result;
-    assert(V1 && V2);
-    vs_vector_init(&result, V1->_nelems + V2->_nelems);
-    memcpy(result._data, V1->_data, sizeof(void*)* V1->_nelems);
-    memcpy(result._data + V1->_nelems, V2->_data, sizeof(void*)* V2->_nelems);
-    result._nelems = V1->_nelems + V2->_nelems;
-    return result;
-}
-
 
 /* ARRAY */
 

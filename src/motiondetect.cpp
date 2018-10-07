@@ -1252,7 +1252,6 @@ namespace VidStab
         }
         
         motions.concat(motionscoarse, motionsfine);
-//        *aMotions = vs_vector_concat(&motionscoarseC, &motionsfineC);
     }
     
     
