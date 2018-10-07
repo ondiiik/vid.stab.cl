@@ -336,30 +336,115 @@ namespace VidStab
          * @brief   Draw results of detection
          * @param   num_motions Number of motions
          */
-        void _draw(Frame::Canvas&      canvas,
-                   int                 num_motions,
-                   const LocalMotions& motionscoarse,
-                   const LocalMotions& motionsfine);
-                   
-                   
+        template <typename _PixTp> void _draw(Frame::Canvas<_PixTp>& aCanvas,
+                                              int                    aNum_motions,
+                                              const LocalMotions&    aMotionscoarse,
+                                              const LocalMotions&    aMotionsfineC)
+        {
+            if (conf.show > 1)
+            {
+                for (int i = 0; i < aNum_motions; i++)
+                {
+                    _drawFieldScanArea(aCanvas, LMGet(&aMotionscoarse, i), fieldscoarse.maxShift);
+                }
+            }
+            
+            
+            const LmList motionsfine { *const_cast<LocalMotions*>(&aMotionsfineC) };
+            int num_motions_fine = motionsfine.size();
+            
+            for (int i = 0; i < aNum_motions; i++)
+            {
+                _drawField(aCanvas, LMGet(&aMotionscoarse, i), 1);
+            }
+            
+            for (int i = 0; i < num_motions_fine; i++)
+            {
+                _drawField(aCanvas, LMGet(&aMotionsfineC, i), 0);
+            }
+            
+            for (int i = 0; i < aNum_motions; i++)
+            {
+                _drawFieldTrans(aCanvas, LMGet(&aMotionscoarse, i), uint8_t(180));
+            }
+            
+            for (int i = 0; i < num_motions_fine; i++)
+            {
+                _drawFieldTrans(aCanvas, LMGet(&aMotionsfineC, i), uint8_t(64));
+            }
+        }
+        
+        
+        
+        
         /** draws the field scanning area */
-        void _drawFieldScanArea(Frame::Canvas&     canvas,
-                                const LocalMotion* lm,
-                                int                maxShift);
-                                
-                                
+        template <typename _PixTp> void _drawFieldScanArea(Frame::Canvas<_PixTp>& aCanvas,
+                                                           const LocalMotion*     aLm,
+                                                           int                    aMaxShift)
+        {
+            _PixTp color { 80 };
+            
+            if (fiInfoC.pFormat <= PF_PACKED)
+            {
+                aCanvas.drawRectangle(aLm->f.x,
+                                      aLm->f.y,
+                                      aLm->f.size + 2 * aMaxShift,
+                                      aLm->f.size + 2 * aMaxShift,
+                                      color);
+            }
+        }
+        
+        
         /** draws the field */
-        void _drawField(Frame::Canvas&     canvas,
-                        const LocalMotion* lm,
-                        short              box);
-                        
-                        
+        template <typename _PixTp> void _drawField(Frame::Canvas<_PixTp>& aCanvas,
+                                                   const LocalMotion*     aLm,
+                                                   int                    aBox)
+        {
+            _PixTp color { 40 };
+            
+            if (fiInfoC.pFormat <= PF_PACKED)
+            {
+                Vec size { aLm->f.size, aLm->f.size };
+                
+                if (aBox)
+                {
+                    aCanvas.drawBox(Vec(aLm->f), size, 40);
+                }
+                else
+                {
+                    aCanvas.drawRectangle(aLm->f.x,
+                                          aLm->f.y,
+                                          aLm->f.size,
+                                          aLm->f.size,
+                                          color);
+                }
+            }
+        }
+        
+        
+        
+        
         /** draws the transform data of this field */
-        void _drawFieldTrans(Frame::Canvas&     canvas,
-                             const LocalMotion* lm,
-                             int                color);
-                             
-                             
+        template <typename _PixTp> void _drawFieldTrans(Frame::Canvas<_PixTp>& aCanvas,
+                                                        const LocalMotion*     aLm,
+                                                        _PixTp                 aColor)
+        {
+            if (fiInfoC.pFormat <= PF_PACKED)
+            {
+                Vec end  { Vec(aLm->f) + aLm->v };
+                Vec size { 5, 5                 };
+                
+                _PixTp color1 { 0   };
+                _PixTp color2 { 250 };
+                aCanvas.drawBox( Vec(aLm->f),          size, color1); // draw center
+                aCanvas.drawBox( Vec(aLm->f) + aLm->v, size, color2); // draw translation
+                aCanvas.drawLine(Vec(aLm->f), end,     3,    aColor);
+            }
+        }
+        
+        
+        
+        
         /* select only the best 'maxfields' fields
            first calc contrasts then select from each part of the
            frame some fields
@@ -400,14 +485,14 @@ namespace VidStab
          * @brief   Compiled binary of code we want to run over OpenCL
          */
         std::vector<cl::Program*> _clProgram;
-
-
+        
+        
         /**
          * @brief   Compiled binary of code we want to run over OpenCL
          */
         std::vector<const char*> _clProgramName;
-
-
+        
+        
 #endif /* defined(USE_OPENCL) */
     };
     

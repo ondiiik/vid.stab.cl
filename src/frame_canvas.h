@@ -19,32 +19,39 @@ namespace Frame
     /**
      * @brief   Represents painting canvas
      */
-    class Canvas
+    template <typename _Pix> class Canvas
     {
     public:
-        Canvas(uint8_t* aBuf,
-               int      aWidth,
-               int      aHeight,
-               int      aBpp)
+        typedef _Pix pix_t;
+        
+        
+        Canvas(pix_t*   aBuf,
+               unsigned aWidth,
+               unsigned aHeight)
             :
             dim    { aWidth, aHeight },
-            buf    { aBuf            },
-            bpp    { aBpp            }
+            buf    { aBuf            }
         {
         
         }
         
         
-        inline uint8_t* operator()(const Vec& aPixel) const
+        inline pix_t& operator[](const Vec& aPixel) const
         {
             return (*this)(aPixel.x, aPixel.y);
         }
         
         
-        uint8_t* operator()(int aX,
-                            int aY) const
+        inline pix_t& operator()(const Vec& aPixel) const
         {
-            return buf + ((aY * dim.x + aX) * bpp);
+            return (*this)(aPixel.x, aPixel.y);
+        }
+        
+        
+        inline pix_t& operator()(int aX,
+                                 int aY) const
+        {
+            return *(buf + (aY * dim.x + aX));
         }
         
         
@@ -53,9 +60,9 @@ namespace Frame
          *
          *(the same for all channels)
          */
-        void drawBox(const Vec&  aPos,
-                     const Vec&  aSize,
-                     uint8_t     color)
+        void drawBox(const Vec&   aPos,
+                     const Vec&   aSize,
+                     pix_t        aColor)
         {
             if (_invalidRange(aPos))
             {
@@ -68,17 +75,17 @@ namespace Frame
             }
             
             
-            uint8_t* p { (*this)(aPos - (aSize / 2)) };
+            pix_t* p { &((*this)(aPos - (aSize / 2))) };
             
             for (int j = 0; j < aSize.y; ++j)
             {
-                for (int k = 0; k < aSize.x * bpp; ++k)
+                for (int k = 0; k < aSize.x; ++k)
                 {
-                    *p = color;
+                    *p = aColor;
                     p++;
                 }
                 
-                p += (dim.x - aSize.x) * bpp;
+                p += (dim.x - aSize.x);
             }
         }
         
@@ -92,7 +99,7 @@ namespace Frame
         void drawLine(const Vec& aPix1,
                       const Vec& aPix2,
                       int        aThickness,
-                      uint8_t    aColor)
+                      pix_t      aColor)
         {
             Vec div { aPix2 - aPix1 };
             
@@ -110,12 +117,12 @@ namespace Frame
                 
                 for (int r { -th2 }; r <= th2; ++r)
                 {
-                    uint8_t* p  { (*this)(pix1.x, pix1.y + r) };
+                    pix_t* p { &((*this)(pix1.x, pix1.y + r)) };
                     
                     for (int k { 0 }; k <= div.x; k++)
                     {
                         *p = aColor;
-                        p += bpp;
+                        ++p;
                     }
                 }
                 
@@ -133,16 +140,15 @@ namespace Frame
                 }
                 
                 int th2    { aThickness / 2 };
-                int bwidth { dim.x * bpp   };
                 
                 for (int r { -th2 }; r <= th2; ++r)
                 {
-                    uint8_t* p  { (*this)(pix1.x + r, pix1.y) };
+                    pix_t* p  { &((*this)(pix1.x + r, pix1.y)) };
                     
                     for (int k { 0 }; k <= div.y; ++k)
                     {
                         *p = aColor;
-                        p += bwidth;
+                        p += dim.x;
                     }
                 }
                 
@@ -155,14 +161,14 @@ namespace Frame
             
             for (int c = 0; c <= abs(div.y); c++)
             {
-                int      dy { (div.y < 0) ? -c : c               };
-                int      x  { aPix1.x + int(m * dy) - horlen / 2 };
-                uint8_t* p  { (*this)(x, aPix1.y + dy)           };
+                int    dy { (div.y < 0) ? -c : c               };
+                int    x  { aPix1.x + int(m * dy) - horlen / 2 };
+                pix_t* p  { &((*this)(x, aPix1.y + dy))        };
                 
                 for (int k = 0; k <= horlen; k++)
                 {
                     *p = aColor;
-                    p += bpp;
+                    ++p;
                 }
             }
         }
@@ -172,11 +178,11 @@ namespace Frame
          * draws a rectangle (not filled) at the given position x,y (center) in the given color
          at the first channel
         */
-        void drawRectangle(int           x,
-                           int           y,
-                           int           sizex,
-                           int           sizey,
-                           unsigned char color)
+        void drawRectangle(int   x,
+                           int   y,
+                           int   sizex,
+                           int   sizey,
+                           pix_t color)
         {
             if (_invalidRange(x, y))
             {
@@ -184,51 +190,49 @@ namespace Frame
             }
             
             
-            unsigned       szX2 = sizex / 2;
-            unsigned       szY2 = sizey / 2;
-            unsigned char* p    = (*this)(x - szX2, y - szY2);
+            unsigned szX2 = sizex / 2;
+            unsigned szY2 = sizey / 2;
+            pix_t*   p    = &((*this)(x - szX2, y - szY2));
             
             for (int k = 0; k < sizex; k++)
             {
                 *p = color;    // upper line
-                p += bpp;
+                ++p;
             }
             
             
-            p = (*this)(x - szX2, y + szY2);
+            p = &((*this)(x - szX2, y + szY2));
             
             for (int k = 0; k < sizex; k++)
             {
                 *p = color;    // lower line
-                p += bpp;
+                ++p;
             }
             
             
-            p             = (*this)(x - szX2, y - szY2);
-            unsigned wbpp = dim.x * bpp;
+            p = &((*this)(x - szX2, y - szY2));
             
             for (int k = 0; k < sizey; k++)
             {
                 *p = color;    // left line
-                p += wbpp;
+                p += dim.x;
             }
             
             
-            p = (*this)(x + szX2, y - szY2);
+            p = &((*this)(x + szX2, y - szY2));
             
             for (int k = 0; k < sizey; k++)
             {
                 *p = color;    // right line
-                p += wbpp;
+                p += dim.x;
             }
         }
         
         
         
         
-        const Common::Vect<int> dim;    /**< @brief Canvas dimensions */
-        uint8_t* const          buf;    /**< @brief Canvas buffer */
-        int      const          bpp;    /**< @brief Bytes per pixel */
+        const Common::Vect<unsigned> dim;   /**< @brief Canvas dimensions */
+        pix_t*                 const buf;   /**< @brief Canvas buffer */
         
         
     private:

@@ -1240,12 +1240,11 @@ namespace VidStab
                 aFrame[0]
             };
             
-            Frame::Canvas canvas
+            Frame::Canvas<uint8_t> canvas
             {
                 plane.buff(),
-                plane.lineSize(),
-                fi.height(),
-                1
+                unsigned(plane.lineSize()),
+                unsigned(fi.height())
             };
             
             _draw(canvas, num_motions, motionscoarseC, motionsfineC);
@@ -1277,100 +1276,6 @@ namespace VidStab
         }
         
         return aLmCoarse.size();
-    }
-    
-    
-    void VSMD::_draw(Frame::Canvas&       canvas,
-                     int                  num_motions,
-                     const LocalMotions&  motionscoarse,
-                     const LocalMotions&  motionsfineC)
-    {
-        if (conf.show > 1)
-        {
-            for (int i = 0; i < num_motions; i++)
-            {
-                _drawFieldScanArea(canvas, LMGet(&motionscoarse, i), fieldscoarse.maxShift);
-            }
-        }
-        
-        
-        const LmList motionsfine { *const_cast<LocalMotions*>(&motionsfineC) };
-        int num_motions_fine = motionsfine.size();
-        
-        for (int i = 0; i < num_motions; i++)
-        {
-            _drawField(canvas, LMGet(&motionscoarse, i), 1);
-        }
-        
-        for (int i = 0; i < num_motions_fine; i++)
-        {
-            _drawField(canvas, LMGet(&motionsfineC, i), 0);
-        }
-        
-        for (int i = 0; i < num_motions; i++)
-        {
-            _drawFieldTrans(canvas, LMGet(&motionscoarse, i), 180);
-        }
-        
-        for (int i = 0; i < num_motions_fine; i++)
-        {
-            _drawFieldTrans(canvas, LMGet(&motionsfineC, i), 64);
-        }
-    }
-    
-    
-    void VSMD::_drawFieldScanArea(Frame::Canvas&     canvas,
-                                  const LocalMotion* lm,
-                                  int                maxShift)
-    {
-        if (fiInfoC.pFormat <= PF_PACKED)
-        {
-            canvas.drawRectangle(lm->f.x,
-                                 lm->f.y,
-                                 lm->f.size + 2 * maxShift,
-                                 lm->f.size + 2 * maxShift,
-                                 80);
-        }
-    }
-    
-    
-    void VSMD::_drawField(Frame::Canvas&     canvas,
-                          const LocalMotion* lm,
-                          short              box)
-    {
-        if (fiInfoC.pFormat <= PF_PACKED)
-        {
-            Vec size { lm->f.size, lm->f.size };
-            
-            if (box)
-            {
-                canvas.drawBox(Vec(lm->f), size, 40);
-            }
-            else
-            {
-                canvas.drawRectangle(lm->f.x,
-                                     lm->f.y,
-                                     lm->f.size,
-                                     lm->f.size,
-                                     40);
-            }
-        }
-    }
-    
-    
-    void VSMD::_drawFieldTrans(Frame::Canvas&     canvas,
-                               const LocalMotion* lm,
-                               int                color)
-    {
-        if (fiInfoC.pFormat <= PF_PACKED)
-        {
-            Vec           end    { Vec(lm->f) + lm->v };
-            Vec           size   { 5, 5               };
-            
-            canvas.drawBox( Vec(lm->f),         size, 0);   // draw center
-            canvas.drawBox( Vec(lm->f) + lm->v, size, 250); // draw translation
-            canvas.drawLine(Vec(lm->f), end, 3, color);
-        }
     }
     
     
