@@ -22,6 +22,11 @@ namespace Frame
     template <typename _Pix> class Canvas
     {
     public:
+        /**
+         * @brief   Pixel type
+         *
+         * Depends on frame type (RGB, YUV, ...)
+         */
         typedef _Pix pix_t;
         
         
@@ -60,17 +65,32 @@ namespace Frame
         }
         
         
-        inline const pix_t& operator()(int aX,
-                                       int aY) const
+        inline const pix_t& operator()(unsigned aX,
+                                       unsigned aY) const
         {
-            return *(_buf + (aY * _dim.x + aX));
+            if (_inside(aX, aY))
+            {
+                return *(_buf + (aY * _dim.x + aX));
+            }
+            else
+            {
+                return _rnull;
+            }
         }
         
         
-        inline pix_t& operator()(int aX,
-                                 int aY)
+        inline pix_t& operator()(unsigned aX,
+                                 unsigned aY)
         {
-            return *(_buf + (aY * _dim.x + aX));
+            if (_inside(aX, aY))
+            {
+                return *(_buf + (aY * _dim.x + aX));
+            }
+            else
+            {
+                _wnull = _rnull;
+                return   _wnull;
+            }
         }
         
         
@@ -83,7 +103,7 @@ namespace Frame
                      const Vec&   aSize,
                      pix_t        aColor)
         {
-            pix_t* p { &((*this)(aPos - (aSize / 2))) };
+            pix_t* p { &(*this)[aPos - (aSize / 2)] };
             
             for (int j = 0; j < aSize.y; ++j)
             {
@@ -233,7 +253,16 @@ namespace Frame
         
         
     private:
-        const Common::Vect<unsigned> _dim;   /**< @brief Canvas dimensions */
-        pix_t*                 const _buf;   /**< @brief Canvas buffer */
+        inline bool _inside(unsigned aX,
+                            unsigned aY) const noexcept
+        {
+            return (aX < _dim.x) && (aY < _dim.y);
+        }
+        
+        
+        const Common::Vect<unsigned> _dim;          /**< @brief Canvas dimensions */
+        pix_t*                 const _buf;          /**< @brief Canvas buffer */
+        pix_t                        _wnull;        /**< @brief Reference on writable null pixel */
+        static const pix_t           _rnull { 0 };  /**< @brief Reference on read only null pixel */
     };
 }
