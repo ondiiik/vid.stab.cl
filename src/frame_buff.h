@@ -13,6 +13,9 @@
 
 namespace Frame
 {
+    /**
+     * @brief   YUV layers indexes
+     */
     enum PixYUV_Layers
     {
         Pix_Y,
@@ -22,6 +25,9 @@ namespace Frame
     };
     
     
+    /**
+     * @brief   RGB colors indexes
+     */
     enum PixRGB_Layers
     {
         Pix_R,
@@ -32,6 +38,9 @@ namespace Frame
     
     
 #   pragma pack(push, 1)
+    /**
+     * @brief   YUV pixel interface
+     */
     class PixYUV
     {
     public:
@@ -62,6 +71,9 @@ namespace Frame
     };
     
     
+    /**
+     * @brief   RGB pixel interface
+     */
     class PixRGB
     {
     public:
@@ -93,20 +105,36 @@ namespace Frame
 #   pragma pack(pop)
     
     
-    
-    
-    
+    /**
+     * @brief   BW pixel abstract factory
+     * @tparam  \_PixT      Pixel type
+     * @param   aBwColor    BW color in range 0 .. 256
+     * @param   aLayerIdx   Pixel layer
+     * @return  Value for selected layer
+     */
     template <typename _PixT> inline _PixT Pix(unsigned aBwColor,
                                                unsigned aLayerIdx);
                                                
                                                
+    /**
+     * @brief   BW pixel YUV factory
+     * @param   aBwColor    BW color in range 0 .. 256
+     * @param   aLayerIdx   Pixel layer
+     * @return  Value for selected layer
+     */
     template <> inline PixYUV Pix<PixYUV>(unsigned aBwColor,
                                           unsigned aLayerIdx)
     {
         return PixYUV(aBwColor);
     }
     
-
+    
+    /**
+     * @brief   BW pixel RGB factory
+     * @param   aBwColor    BW color in range 0 .. 256
+     * @param   aLayerIdx   Pixel layer
+     * @return  Value for selected layer
+     */
     template <> inline PixRGB Pix<PixRGB>(unsigned aBwColor,
                                           unsigned aLayerIdx)
     {
@@ -114,17 +142,20 @@ namespace Frame
     }
     
     
-    
-    template <typename _Pix> class Layer
+    /**
+     * @brief   One single layer abstract factory
+     * @tparam  \_PixT  Pixel type
+     */
+    template <typename _PixT> class Layer
         :
-        public Canvas<_Pix>
+        public Canvas<_PixT>
     {
     public:
         Layer(const Common::Vect<unsigned>& aDim)
             :
-            Canvas<_Pix>
+            Canvas<_PixT>
         {
-            new _Pix[aDim.dim()], aDim
+            new _PixT[aDim.dim()], aDim
         }
         {
             if (nullptr == this->_buf)
@@ -141,8 +172,34 @@ namespace Frame
     };
     
     
-    typedef Canvas<PixYUV> BuffYUV[__Pix_YUV_CNT];
+    /**
+     * @brief   YUV pixels buffer type
+     */
+    struct BuffYUV
+    {
+        BuffYUV(const Common::Vect<unsigned>& aDim)
+            :
+            m { aDim, aDim, aDim }
+        {
+        
+        }
+        
+        Layer<PixYUV> m[__Pix_YUV_CNT];
+    };
     
     
-    typedef Canvas<PixRGB> BuffRGB;
+    /**
+     * @brief   RGB pixels buffer type
+     */
+    struct BuffRGB
+    {
+        BuffRGB(const Common::Vect<unsigned>& aDim)
+            :
+            m { aDim }
+        {
+
+        }
+
+        Layer<PixRGB> m[1];
+    };
 }

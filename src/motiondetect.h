@@ -87,6 +87,29 @@ namespace VidStab
     };
     
     
+    template <typename _PixT> struct Piramids
+    {
+        Piramids(const Common::Vect<unsigned>& aDim,
+                 unsigned                      aMin)
+            :
+            fm_1    { aDim, aMin },
+            fm_10   { aDim, aMin },
+            fm_30   { aDim, aMin },
+            fm_60   { aDim, aMin },
+            fm_120  { aDim, aMin }
+        {
+        
+        }
+        
+        
+        Frame::Piramid<_PixT> fm_1;
+        Frame::Piramid<_PixT> fm_10;
+        Frame::Piramid<_PixT> fm_30;
+        Frame::Piramid<_PixT> fm_60;
+        Frame::Piramid<_PixT> fm_120;
+    };
+    
+    
     /**
      * @brief   Data structure for motion detection part of deshaking
      */
@@ -146,8 +169,8 @@ namespace VidStab
         VSMotionDetectFields fieldscoarse;
         VSMotionDetectFields fieldsfine;
         
-
-
+        
+        
     private:
         /**
          * @brief Current pre-processed frame storage
@@ -474,19 +497,20 @@ namespace VidStab
         std::string _mn;
         
         
-
-
-
-
-
-        Frame::Piramid<Frame::PixYUV> _piramidYUV;
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        Piramids<Frame::PixRGB>* _piramidRGB;
+        Piramids<Frame::PixYUV>* _piramidYUV;
+        
+        
+        
+        
+        
+        
+        
 #if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL

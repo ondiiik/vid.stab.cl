@@ -104,9 +104,9 @@ namespace Frame
         }
         
         
-        inline Common::Vect<int> dim() const
+        inline Common::Vect<unsigned> dim() const
         {
-            return Common::Vect<int>(_info.width, _info.height);
+            return Common::Vect<unsigned>(_info.width, _info.height);
         }
         
         

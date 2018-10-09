@@ -74,8 +74,8 @@ using namespace VidStab;
 namespace
 {
     const char moduleName[] { "Detect" };
-    
-    
+
+
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -556,9 +556,10 @@ namespace VidStab
         currTmp        { _currTmpFrameC,  fi },
         prev           { _prevFrameC,     fi },
         _mn            { aModName            },
-
-        _piramidYUV    { unsigned(aFi->width), unsigned(aFi->height), 240U }
-
+        
+        _piramidRGB    { nullptr /*unsigned(aFi->width), unsigned(aFi->height), 240U*/ },
+        _piramidYUV    { nullptr /*unsigned(aFi->width), unsigned(aFi->height), 240U*/ }
+        
 #if defined(USE_OPENCL)
         ,
         _clDevice      {          },
@@ -580,11 +581,30 @@ namespace VidStab
         _initMsg();
         _initVsDetect(aConf, aFi);
         _initOpenCl();
+        
+        
+        
+        
+        
+        if (fi.pixFormat() > PF_PACKED)
+        {
+            _piramidRGB = new Piramids<Frame::PixRGB>(fi.dim(), 240U);
+        }
+        else
+        {
+            _piramidYUV = new Piramids<Frame::PixYUV>(fi.dim(), 240U);
+        }
     }
     
     
     VSMD::~VSMD()
     {
+        delete _piramidRGB;
+        delete _piramidYUV;
+
+
+
+
         if (fieldscoarse.fields)
         {
             vs_free(fieldscoarse.fields);
@@ -1262,20 +1282,20 @@ namespace VidStab
         aLmCoarse.init(0);
         LocalMotions& motionscoarse = aLmCoarse.LocalMotionsC();
         
-
+        
         fieldscoarse.pt = prepare_transform(&fieldsfine.offset, &fiInfoC);
         
         if (fiInfoC.pFormat > PF_PACKED)
         {
             motionscoarse = _calcTransFields(fieldscoarse,
-                                              visitor_calcFieldTransPacked,
-                                              visitor_contrastSubImgPacked);
+                                             visitor_calcFieldTransPacked,
+                                             visitor_contrastSubImgPacked);
         }
         else
         {
             motionscoarse = _calcTransFields(fieldscoarse,
-                                              visitor_calcFieldTransPlanar,
-                                              visitor_contrastSubImgPlanar);
+                                             visitor_calcFieldTransPlanar,
+                                             visitor_contrastSubImgPlanar);
         }
         
         return aLmCoarse.size();
