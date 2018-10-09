@@ -35,6 +35,8 @@
 #include <string>
 #include <cassert>
 #include <vector>
+
+#include "frame_pyramid.h"
 #include "vs_vector.h"
 
 
@@ -42,7 +44,6 @@
 
 
 
-#include "frame_piramid.h"
 
 
 
@@ -87,9 +88,9 @@ namespace VidStab
     };
     
     
-    template <typename _PixT> struct Piramids
+    template <typename _PixT> struct Pyramids
     {
-        Piramids(const Common::Vect<unsigned>& aDim,
+        Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
             fm_1    { aDim, aMin },
@@ -102,11 +103,11 @@ namespace VidStab
         }
         
         
-        Frame::Piramid<_PixT> fm_1;
-        Frame::Piramid<_PixT> fm_10;
-        Frame::Piramid<_PixT> fm_30;
-        Frame::Piramid<_PixT> fm_60;
-        Frame::Piramid<_PixT> fm_120;
+        Frame::Pyramid<_PixT> fm_1;
+        Frame::Pyramid<_PixT> fm_10;
+        Frame::Pyramid<_PixT> fm_30;
+        Frame::Pyramid<_PixT> fm_60;
+        Frame::Pyramid<_PixT> fm_120;
     };
     
     
@@ -502,8 +503,8 @@ namespace VidStab
         
         
         
-        Piramids<Frame::PixRGB>* _piramidRGB;
-        Piramids<Frame::PixYUV>* _piramidYUV;
+        Pyramids<Frame::PixRGB>* _piramidRGB;
+        Pyramids<Frame::PixYUV>* _piramidYUV;
         
         
         

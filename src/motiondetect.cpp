@@ -74,8 +74,11 @@ using namespace VidStab;
 namespace
 {
     const char moduleName[] { "Detect" };
-
-
+    
+    
+    const unsigned piramidMinSize { 64 };
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -557,8 +560,8 @@ namespace VidStab
         prev           { _prevFrameC,     fi },
         _mn            { aModName            },
         
-        _piramidRGB    { nullptr /*unsigned(aFi->width), unsigned(aFi->height), 240U*/ },
-        _piramidYUV    { nullptr /*unsigned(aFi->width), unsigned(aFi->height), 240U*/ }
+        _piramidRGB    { nullptr },
+        _piramidYUV    { nullptr }
         
 #if defined(USE_OPENCL)
         ,
@@ -586,13 +589,16 @@ namespace VidStab
         
         
         
+        /*
+         * Allocates piramids for faster corelation
+         */
         if (fi.pixFormat() > PF_PACKED)
         {
-            _piramidRGB = new Piramids<Frame::PixRGB>(fi.dim(), 240U);
+            _piramidRGB = new Pyramids<Frame::PixRGB>(fi.dim(), piramidMinSize);
         }
         else
         {
-            _piramidYUV = new Piramids<Frame::PixYUV>(fi.dim(), 240U);
+            _piramidYUV = new Pyramids<Frame::PixYUV>(fi.dim(), piramidMinSize);
         }
     }
     
@@ -601,10 +607,10 @@ namespace VidStab
     {
         delete _piramidRGB;
         delete _piramidYUV;
-
-
-
-
+        
+        
+        
+        
         if (fieldscoarse.fields)
         {
             vs_free(fieldscoarse.fields);
