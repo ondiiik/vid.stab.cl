@@ -32,7 +32,7 @@ namespace Frame
         {
             for (auto* b = new Layer<_Pix>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<_Pix>(b->dim() / 2))
             {
-                std::cout << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
+                std::cout << "[VIDSTAB DBG] " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 _pyramid.push_back(b);
             }
         }
