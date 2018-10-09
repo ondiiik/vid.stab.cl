@@ -38,6 +38,17 @@
 #include "vs_vector.h"
 
 
+
+
+
+
+#include "frame_piramid.h"
+
+
+
+
+
+
 /** returns the default config
  */
 VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName);
@@ -135,6 +146,8 @@ namespace VidStab
         VSMotionDetectFields fieldscoarse;
         VSMotionDetectFields fieldsfine;
         
+
+
     private:
         /**
          * @brief Current pre-processed frame storage
@@ -365,12 +378,12 @@ namespace VidStab
             
             for (int i = 0; i < aNum_motions; i++)
             {
-                _drawFieldTrans(aCanvas, LMGet(&aMotionscoarse, i), uint8_t(180));
+                _drawFieldTrans(aCanvas, LMGet(&aMotionscoarse, i), Frame::Pix<_PixTp>(180U, 0U));
             }
             
             for (int i = 0; i < num_motions_fine; i++)
             {
-                _drawFieldTrans(aCanvas, LMGet(&aMotionsfineC, i), uint8_t(64));
+                _drawFieldTrans(aCanvas, LMGet(&aMotionsfineC, i), Frame::Pix<_PixTp>(64U, 0U));
             }
         }
         
@@ -461,6 +474,19 @@ namespace VidStab
         std::string _mn;
         
         
+
+
+
+
+
+        Frame::Piramid<Frame::PixYUV> _piramidYUV;
+
+
+
+
+
+
+
 #if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL

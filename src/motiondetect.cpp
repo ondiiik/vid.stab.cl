@@ -548,14 +548,17 @@ namespace VidStab
                const VSMotionDetectConfig* aConf,
                const VSFrameInfo*          aFi)
         :
-        fiInfoC        { aMd->fi            },
-        firstFrame     { true               },
-        fi             { fiInfoC            },
+        fiInfoC        { aMd->fi             },
+        firstFrame     { true                },
+        fi             { fiInfoC             },
         curr           { _currPrepFrameC, fi },
         currPrep       { _currPrepFrameC, fi },
         currTmp        { _currTmpFrameC,  fi },
         prev           { _prevFrameC,     fi },
-        _mn            { aModName           }
+        _mn            { aModName            },
+
+        _piramidYUV    { unsigned(aFi->width), unsigned(aFi->height), 240U }
+
 #if defined(USE_OPENCL)
         ,
         _clDevice      {          },
@@ -1240,9 +1243,9 @@ namespace VidStab
                 aFrame[0]
             };
             
-            Frame::Canvas<uint8_t> canvas
+            Frame::Canvas<Frame::PixYUV> canvas
             {
-                plane.buff(),
+                (Frame::PixYUV*)plane.buff(),
                 unsigned(plane.lineSize()),
                 unsigned(fi.height())
             };

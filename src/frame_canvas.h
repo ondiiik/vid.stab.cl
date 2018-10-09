@@ -30,6 +30,16 @@ namespace Frame
         typedef _Pix pix_t;
         
         
+        Canvas(pix_t*                        aBuf,
+               const Common::Vect<unsigned>& aDim)
+            :
+            _dim    { aDim },
+            _buf    { aBuf }
+        {
+        
+        }
+        
+        
         Canvas(pix_t*   aBuf,
                unsigned aWidth,
                unsigned aHeight)
@@ -91,6 +101,24 @@ namespace Frame
                 _wnull = _rnull;
                 return   _wnull;
             }
+        }
+        
+        
+        inline const Common::Vect<unsigned> dim() const noexcept
+        {
+            return _dim;
+        }
+        
+        
+        inline unsigned width() const noexcept
+        {
+            return _dim.x;
+        }
+        
+        
+        inline unsigned height() const noexcept
+        {
+            return _dim.y;
         }
         
         
@@ -260,9 +288,12 @@ namespace Frame
         }
         
         
-        const Common::Vect<unsigned> _dim;          /**< @brief Canvas dimensions */
+        const Common::Vect<unsigned> _dim;    /**< @brief Canvas dimensions */
+        pix_t                        _wnull;  /**< @brief Reference on writable null pixel */
+        const pix_t                  _rnull;  /**< @brief Reference on read only null pixel */
+        
+        
+    protected:
         pix_t*                 const _buf;          /**< @brief Canvas buffer */
-        pix_t                        _wnull;        /**< @brief Reference on writable null pixel */
-        static const pix_t           _rnull { 0 };  /**< @brief Reference on read only null pixel */
     };
 }

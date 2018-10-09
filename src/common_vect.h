@@ -167,8 +167,8 @@ namespace Common
             r.y /= _Tp(aSrc.y);
             return r;
         }
-
-
+        
+        
         template <typename _SrcTp> inline Vect mul(const Vect<_SrcTp>& aSrc) const noexcept
         {
             Vect r { *this };
@@ -176,8 +176,8 @@ namespace Common
             r.y *= _Tp(aSrc.y);
             return r;
         }
-
-
+        
+        
         /**
          * @brief   Say if another vector is close to this
          *
@@ -211,6 +211,12 @@ namespace Common
         inline double angle() const noexcept
         {
             return atan2(double(y), double(x));
+        }
+        
+        
+        inline _Tp dim() const noexcept
+        {
+            return x * y;
         }
         
         
