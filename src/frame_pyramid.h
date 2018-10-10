@@ -61,10 +61,12 @@ namespace Frame
         void operator()(const Canvas<_PixT>& aSrc)
         {
             *(_pyramid[0]) = aSrc;
+            const Canvas<_PixT>* src { _pyramid[0] };
             
             for (auto b {_pyramid.begin() + 1}; b != _pyramid.end(); ++b)
             {
-
+                _packLayer(*b, *src);
+                src = b;
             }
         }
         
@@ -80,5 +82,22 @@ namespace Frame
         
     private:
         std::vector<Layer<_PixT>*> _pyramid;
+        
+        
+        static void _packLayer(Canvas<_PixT>&       aDst,
+                               const Canvas<_PixT>& aSrc)
+        {
+            const auto dim { aDst.dim() };
+            
+            for (unsigned y { 0 }; y < dim.y; ++y)
+            {
+                for (unsigned x { 0 }; x < dim.x; ++x)
+                {
+                    const Common::Vect<unsigned> srcIdx { x * 2, y * 2 };
+
+
+                }
+            }
+        }
     };
 }

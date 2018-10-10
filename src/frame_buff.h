@@ -37,9 +37,9 @@ namespace Frame
     };
     
     
-#   pragma pack(push, 1)
+#pragma pack(push, 1)
     /**
-     * @brief   YUV pixel interface
+     * @brief   YUV packed pixel container
      */
     class PixYUV
     {
@@ -66,13 +66,25 @@ namespace Frame
         }
         
         
+        inline const uint8_t& operator[](unsigned aIdx) const noexcept
+        {
+            return _px;
+        }
+        
+        
+        inline uint8_t& operator[](unsigned aIdx) noexcept
+        {
+            return _px;
+        }
+        
+        
     private:
         uint8_t _px;
     };
     
     
     /**
-     * @brief   RGB pixel interface
+     * @brief   RGB packed pixel container
      */
     class PixRGB
     {
@@ -99,10 +111,32 @@ namespace Frame
         }
         
         
+        inline const uint8_t& operator[](unsigned aIdx) const noexcept
+        {
+            if (aIdx >= __Pix_RGB_CNT)
+            {
+                aIdx %= __Pix_RGB_CNT;
+            }
+            
+            return _px[aIdx];
+        }
+        
+        
+        inline uint8_t& operator[](unsigned aIdx) noexcept
+        {
+            if (aIdx >= __Pix_RGB_CNT)
+            {
+                aIdx %= __Pix_RGB_CNT;
+            }
+            
+            return _px[aIdx];
+        }
+        
+        
     private:
         uint8_t _px[__Pix_RGB_CNT];
     };
-#   pragma pack(pop)
+#pragma pack(pop)
     
     
     /**
@@ -143,6 +177,94 @@ namespace Frame
     
     
     /**
+     * @brief   Pixel operation interface
+     */
+    template <typename _PixT, typename _numT = unsigned> class PixIfc;
+    
+    
+    template <> class PixIfc<PixYUV>
+    {
+    public:
+        PixIfc() noexcept
+            :
+            _px
+        {
+            0U
+        }
+        {
+        
+        }
+        
+        
+        PixIfc(unsigned aBwColor) noexcept
+            :
+            _px
+        {
+            aBwColor
+        }
+        {
+        
+        }
+        
+        
+        PixIfc(const PixYUV& aSrc) noexcept
+            :
+            _px
+        {
+            aSrc[0]
+        }
+        {
+        
+        }
+        
+        
+    private:
+        unsigned _px;
+    };
+    
+    
+    template <> class PixIfc<PixRGB>
+    {
+    public:
+        PixIfc() noexcept
+            :
+            _px
+        {
+            0U, 0U, 0U
+        }
+        {
+        
+        }
+        
+        
+        PixIfc(unsigned aBwColor) noexcept
+            :
+            _px
+        {
+            aBwColor, aBwColor, aBwColor
+        }
+        {
+        
+        }
+        
+        
+        PixIfc(const PixRGB& aSrc) noexcept
+            :
+            _px
+        {
+            aSrc[0], aSrc[1], aSrc[2]
+        }
+        {
+        
+        }
+        
+        
+    private:
+        unsigned _px[__Pix_RGB_CNT];
+    };
+    
+    
+    /**
      * @brief   One single layer abstract factory
      * @tparam  \_PixT  Pixel type
      */
@@ -151,11 +273,14 @@ namespace Frame
         public Canvas<_PixT>
     {
     public:
+        typedef _PixT pix_t;
+        
+        
         Layer(const Common::Vect<unsigned>& aDim)
             :
-            Canvas<_PixT>
+            Canvas<pix_t>
         {
-            new _PixT[aDim.dim()], aDim
+            new pix_t[aDim.dim()], aDim
         }
         {
             if (nullptr == this->_buf)
@@ -197,9 +322,9 @@ namespace Frame
             :
             m { aDim }
         {
-
+        
         }
-
+        
         Layer<PixRGB> m[1];
     };
 }

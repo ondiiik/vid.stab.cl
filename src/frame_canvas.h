@@ -52,25 +52,25 @@ namespace Frame
         }
         
         
-        inline const pix_t& operator[](const Vec& aPixel) const
+        inline const pix_t& operator[](const Common::Vect<unsigned>& aPixel) const
         {
             return (*this)(aPixel.x, aPixel.y);
         }
         
         
-        inline pix_t& operator[](const Vec& aPixel)
+        inline pix_t& operator[](const Common::Vect<unsigned>& aPixel)
         {
             return (*this)(aPixel.x, aPixel.y);
         }
         
         
-        inline const pix_t& operator()(const Vec& aPixel) const
+        inline const pix_t& operator()(const Common::Vect<unsigned>& aPixel) const
         {
             return (*this)(aPixel.x, aPixel.y);
         }
         
         
-        inline pix_t& operator()(const Vec& aPixel)
+        inline pix_t& operator()(const Common::Vect<unsigned>& aPixel)
         {
             return (*this)(aPixel.x, aPixel.y);
         }
@@ -146,15 +146,15 @@ namespace Frame
          *
          *(the same for all channels)
          */
-        void drawBox(const Vec&   aPos,
-                     const Vec&   aSize,
-                     pix_t        aColor)
+        void drawBox(const Common::Vect<unsigned>&   aPos,
+                     const Common::Vect<unsigned>&   aSize,
+                     pix_t                           aColor)
         {
             pix_t* p { &(*this)[aPos - (aSize / 2)] };
             
-            for (int j = 0; j < aSize.y; ++j)
+            for (unsigned j = 0; j < aSize.y; ++j)
             {
-                for (int k = 0; k < aSize.x; ++k)
+                for (unsigned k = 0; k < aSize.x; ++k)
                 {
                     *p = aColor;
                     p++;
@@ -171,10 +171,10 @@ namespace Frame
          * with given thickness(not filled) at the given position x,y (center)
          * in the given color at the first channel
          */
-        void drawLine(const Vec& aPix1,
-                      const Vec& aPix2,
-                      int        aThickness,
-                      pix_t      aColor)
+        void drawLine(const Common::Vect<unsigned>& aPix1,
+                      const Common::Vect<unsigned>& aPix2,
+                      int                           aThickness,
+                      pix_t                         aColor)
         {
             Vec div { aPix2 - aPix1 };
             
@@ -231,16 +231,16 @@ namespace Frame
             }
             
             
-            double m      = (double)div.x / (double)div.y;
-            int    horlen = aThickness + fabs(m);
+            double   m      = (double)div.x / (double)div.y;
+            unsigned horlen = aThickness + fabs(m);
             
             for (int c = 0; c <= abs(div.y); c++)
             {
-                int    dy { (div.y < 0) ? -c : c               };
-                int    x  { aPix1.x + int(m * dy) - horlen / 2 };
-                pix_t* p  { &((*this)(x, aPix1.y + dy))        };
+                int      dy { (div.y < 0) ? -c : c                     };
+                unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
+                pix_t*   p  { &((*this)(x, aPix1.y + dy))              };
                 
-                for (int k = 0; k <= horlen; k++)
+                for (unsigned k = 0; k <= horlen; k++)
                 {
                     *p = aColor;
                     ++p;
