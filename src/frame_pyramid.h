@@ -14,7 +14,7 @@
 
 namespace Frame
 {
-    template <typename _Pix> class Pyramid
+    template <typename _PixT> class Pyramid
     {
     public:
         Pyramid(unsigned aWidth,
@@ -30,19 +30,41 @@ namespace Frame
         Pyramid(const Common::Vect<unsigned>& aDim,
                 unsigned                      aMin)
         {
-            for (auto* b = new Layer<_Pix>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<_Pix>(b->dim() / 2))
+            for (auto* b = new Layer<_PixT>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<_PixT>(b->dim() / 2))
             {
-                std::cout << "[VIDSTAB DBG] " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
+                std::cout << "[VIDSTAB DBG] construct " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 _pyramid.push_back(b);
+            }
+            
+            if (1 > _pyramid.size())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid", "Frame pyramid needs at least one layer!");
             }
         }
         
         
         virtual ~Pyramid()
         {
-            for (auto* b : _pyramid)
+            for (auto& b : _pyramid)
             {
+                std::cout << "[VIDSTAB DBG] destroy " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 delete b;
+            }
+            
+            if (1 > _pyramid.size())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid", "Frame pyramid needs at least one layer!");
+            }
+        }
+        
+        
+        void operator()(const Canvas<_PixT>& aSrc)
+        {
+            *(_pyramid[0]) = aSrc;
+            
+            for (auto b {_pyramid.begin() + 1}; b != _pyramid.end(); ++b)
+            {
+
             }
         }
         
@@ -57,6 +79,6 @@ namespace Frame
         
         
     private:
-        std::vector<Layer<_Pix>*> _pyramid;
+        std::vector<Layer<_PixT>*> _pyramid;
     };
 }

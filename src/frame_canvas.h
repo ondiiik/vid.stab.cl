@@ -10,6 +10,7 @@
 #include "common_vect.h"
 #include <cstdint>
 #include <cmath>
+#include <cstring>
 
 #include "common_exception.h"
 
@@ -101,6 +102,24 @@ namespace Frame
                 _wnull = _rnull;
                 return   _wnull;
             }
+        }
+        
+        
+        Canvas& operator=(const Canvas& aSrc)
+        {
+            if (_dim != aSrc._dim)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas",
+                                             "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
+                                             width(),
+                                             height(),
+                                             aSrc.width(),
+                                             aSrc.height());
+            }
+            
+            _dim = aSrc._dim;
+            memcpy(_buf, aSrc._buf, sizeof(_buf[0]) * _dim.dim());
+            return *this;
         }
         
         

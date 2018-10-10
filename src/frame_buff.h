@@ -160,7 +160,7 @@ namespace Frame
         {
             if (nullptr == this->_buf)
             {
-                throw Common::VS_EXCEPTION_M("FramBuf", "Memory allocation failed!");
+                throw Common::VS_EXCEPTION_M("FrmBuf", "Memory allocation failed!");
             }
         }
         
