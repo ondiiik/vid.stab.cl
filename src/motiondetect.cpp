@@ -927,6 +927,24 @@ namespace VidStab
     void VSMD::operator ()(LocalMotions* aMotions,
                            VSFrame&      aFrame)
     {
+        if (fi.pixFormat() > PF_PACKED)
+        {
+            Frame::Canvas<Frame::PixRGB> c { (Frame::PixRGB*)aFrame.data[0], fi.dim() };
+            std::cout << "[VIDSTAB DBG] PYRAMID RGB[0]:\n";
+            _piramidRGB[0].fm_1(c);
+        }
+        else
+        {
+            std::cout << "[VIDSTAB DBG] PYRAMID YUV[0]:\n";
+            Frame::Canvas<Frame::PixYUV> c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
+            _piramidYUV[0].fm_1(c);
+        }
+        
+        
+        
+        
+        
+        
         Frame::Frame frm { aFrame, fi };
         
         _blur(frm);

@@ -8,11 +8,11 @@
 
 
 #include "common_vect.h"
+#include "common_exception.h"
 #include <cstdint>
 #include <cmath>
 #include <cstring>
-
-#include "common_exception.h"
+#include <iostream> // DEBUG
 
 
 namespace Frame
@@ -107,6 +107,7 @@ namespace Frame
         
         Canvas& operator=(const Canvas& aSrc)
         {
+            std::cout << "[VIDSTAB DBG] copy Canvas[" << (void*)_buf << ":" << this->width() << "x" << this->height() << "=" << _dim.dim() << "x" << sizeof(_buf[0]) << "] <-- Canvas[" << (void*)aSrc._buf << ":" << aSrc.width() << "x" << aSrc.height() << "]\n";
             if (_dim != aSrc._dim)
             {
                 throw Common::VS_EXCEPTION_M("FrmCanvas",
@@ -117,8 +118,8 @@ namespace Frame
                                              aSrc.height());
             }
             
-            _dim = aSrc._dim;
             memcpy(_buf, aSrc._buf, sizeof(_buf[0]) * _dim.dim());
+            std::cout << "[VIDSTAB DBG] copy done\n";
             return *this;
         }
         
@@ -307,12 +308,12 @@ namespace Frame
         }
         
         
-        const Common::Vect<unsigned> _dim;    /**< @brief Canvas dimensions */
         pix_t                        _wnull;  /**< @brief Reference on writable null pixel */
         const pix_t                  _rnull;  /**< @brief Reference on read only null pixel */
         
         
     protected:
+        const Common::Vect<unsigned> _dim;    /**< @brief Canvas dimensions */
         pix_t*                 const _buf;          /**< @brief Canvas buffer */
     };
 }

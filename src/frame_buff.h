@@ -9,6 +9,7 @@
 
 #include "frame_canvas.h"
 #include "common_exception.h"
+#include <iostream> // DEBUG
 
 
 namespace Frame
@@ -179,28 +180,31 @@ namespace Frame
     /**
      * @brief   Pixel operation interface
      */
-    template <typename _PixT, typename _numT = unsigned> class PixIfc;
+    template <typename _PixT, typename _NumT = unsigned> class PixIfc;
     
     
-    template <> class PixIfc<PixYUV>
+    template <typename _NumT> class PixIfc<PixYUV, _NumT>
     {
     public:
+        typedef _NumT num_t;
+        
+        
         PixIfc() noexcept
             :
             _px
         {
-            0U
+            num_t(0U)
         }
         {
         
         }
         
         
-        PixIfc(unsigned aBwColor) noexcept
+        PixIfc(num_t aBwColor) noexcept
             :
             _px
         {
-            aBwColor
+            num_t(aBwColor)
         }
         {
         
@@ -211,26 +215,48 @@ namespace Frame
             :
             _px
         {
-            aSrc[0]
+            num_t(aSrc[0])
         }
         {
         
+        }
+        
+        
+        inline const num_t& operator[](unsigned aIdx) const noexcept
+        {
+            return this->_px;
+        }
+        
+        
+        inline num_t& operator[](unsigned aIdx) noexcept
+        {
+            return this->_px;
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator+=(const _SrcT& aSrc)
+        {
+            _px += num_t(aSrc[0]);
+            return *this;
         }
         
         
     private:
-        unsigned _px;
+        num_t _px;
     };
     
     
-    template <> class PixIfc<PixRGB>
+    template <typename _NumT> class PixIfc<PixRGB, _NumT>
     {
     public:
+        typedef _NumT num_t;
+        
+        
         PixIfc() noexcept
             :
             _px
         {
-            0U, 0U, 0U
+            num_t(0), num_t(0), num_t(0)
         }
         {
         
@@ -241,7 +267,7 @@ namespace Frame
             :
             _px
         {
-            aBwColor, aBwColor, aBwColor
+            num_t(aBwColor), num_t(aBwColor), num_t(aBwColor)
         }
         {
         
@@ -252,15 +278,46 @@ namespace Frame
             :
             _px
         {
-            aSrc[0], aSrc[1], aSrc[2]
+            num_t(aSrc[0]), num_t(aSrc[1]), num_t(aSrc[2])
         }
         {
         
         }
         
         
+        inline const num_t& operator[](unsigned aIdx) const noexcept
+        {
+            if (aIdx >= __Pix_RGB_CNT)
+            {
+                aIdx %= __Pix_RGB_CNT;
+            }
+            
+            return _px[aIdx];
+        }
+        
+        
+        inline num_t& operator[](unsigned aIdx) noexcept
+        {
+            if (aIdx >= __Pix_RGB_CNT)
+            {
+                aIdx %= __Pix_RGB_CNT;
+            }
+            
+            return _px[aIdx];
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator+=(const _SrcT& aSrc)
+        {
+            _px[0] += num_t(aSrc[0]);
+            _px[1] += num_t(aSrc[1]);
+            _px[2] += num_t(aSrc[2]);
+            return *this;
+        }
+        
+        
     private:
-        unsigned _px[__Pix_RGB_CNT];
+        num_t _px[__Pix_RGB_CNT];
     };
     
     
@@ -293,6 +350,14 @@ namespace Frame
         virtual ~Layer() noexcept
         {
             delete this->_buf;
+        }
+        
+        
+        inline Layer& operator=(const Canvas<pix_t>& aSrc)
+        {
+            std::cout << "[VIDSTAB DBG] copy Layer[<?>:" << this->width() << "x" << this->height() << "] <-- Canvas[<?>:" << aSrc.width() << "x" << aSrc.height() << "]\n";
+            Canvas<_PixT>::operator=(aSrc);
+            return *this;
         }
     };
     

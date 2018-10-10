@@ -63,6 +63,18 @@ namespace Common
         }
         
         
+        inline bool operator==(const Vect& aSrc) const noexcept
+        {
+            return ((this->x == aSrc.x) && (this->y == aSrc.y));
+        }
+        
+        
+        bool operator!=(const Vect& aSrc) const noexcept
+        {
+            return !(*this == aSrc);
+        }
+
+
         template <typename _SrcTp> inline Vect& operator-=(const Vect<_SrcTp>& aSrc) noexcept
         {
             this->x -= _Tp(aSrc.x);

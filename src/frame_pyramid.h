@@ -17,6 +17,9 @@ namespace Frame
     template <typename _PixT> class Pyramid
     {
     public:
+        typedef _PixT pix_t;
+
+
         Pyramid(unsigned aWidth,
                 unsigned aHeight,
                 unsigned aMin)
@@ -30,7 +33,7 @@ namespace Frame
         Pyramid(const Common::Vect<unsigned>& aDim,
                 unsigned                      aMin)
         {
-            for (auto* b = new Layer<_PixT>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<_PixT>(b->dim() / 2))
+            for (auto* b = new Layer<pix_t>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<pix_t>(b->dim() / 2))
             {
                 std::cout << "[VIDSTAB DBG] construct " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 _pyramid.push_back(b);
@@ -58,16 +61,17 @@ namespace Frame
         }
         
         
-        void operator()(const Canvas<_PixT>& aSrc)
+        void operator()(const Canvas<pix_t>& aSrc)
         {
+            std::cout << "[VIDSTAB DBG] PYRAMID " << (void*)_pyramid[0] << ":\n";
             *(_pyramid[0]) = aSrc;
-            const Canvas<_PixT>* src { _pyramid[0] };
-            
-            for (auto b {_pyramid.begin() + 1}; b != _pyramid.end(); ++b)
-            {
-                _packLayer(*b, *src);
-                src = b;
-            }
+//            const Canvas<pix_t>* src { _pyramid[0] };
+//
+//            for (auto b {_pyramid.begin() + 1}; b != _pyramid.end(); ++b)
+//            {
+//                _packLayer(*b, *src);
+//                src = b;
+//            }
         }
         
         
@@ -81,11 +85,11 @@ namespace Frame
         
         
     private:
-        std::vector<Layer<_PixT>*> _pyramid;
+        std::vector<Layer<pix_t>*> _pyramid;
         
         
-        static void _packLayer(Canvas<_PixT>&       aDst,
-                               const Canvas<_PixT>& aSrc)
+        static void _packLayer(Canvas<pix_t>&       aDst,
+                               const Canvas<pix_t>& aSrc)
         {
             const auto dim { aDst.dim() };
             
@@ -93,9 +97,18 @@ namespace Frame
             {
                 for (unsigned x { 0 }; x < dim.x; ++x)
                 {
-                    const Common::Vect<unsigned> srcIdx { x * 2, y * 2 };
-
-
+                    Common::Vect<unsigned> srcIdx { x * 2, y * 2 };
+                    
+                    PixIfc<_PixT> acc { aSrc[srcIdx] };
+                    
+                    ++srcIdx.x;
+                    acc += aSrc[srcIdx];
+                    
+                    ++srcIdx.y;
+                    acc += aSrc[srcIdx];
+                    
+                    --srcIdx.x;
+                    acc += aSrc[srcIdx];
                 }
             }
         }
