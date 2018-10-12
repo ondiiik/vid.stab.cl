@@ -82,7 +82,7 @@ namespace
     /**
      * @brief   Minimal count of detection boxes in each direction
      */
-    const unsigned _detectBoxes { 24 };
+    const unsigned _detectBoxes { 16 };
     
     
     /**
@@ -100,7 +100,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _selectThreshold { 100 };
+    const unsigned _selectThreshold { _piramidMinSize };
     
     
     /**
@@ -1150,10 +1150,10 @@ namespace VidStab
                                                        const Common::Vect<unsigned> aRect) const
     {
         Common::Vect<unsigned> i;
-        Common::Vect<unsigned> h    { 1, 0      };
-        Common::Vect<unsigned> v    { 0, 1      };
+        Common::Vect<unsigned> h    { 2, 0      };
+        Common::Vect<unsigned> v    { 0, 2      };
         unsigned               acc  { 0         };
-        Common::Vect<unsigned> rect { aRect - 1 };
+        Common::Vect<unsigned> rect { aRect - 2 };
         
         for (i.y = 0; i.y < rect.y; ++i.y)
         {
