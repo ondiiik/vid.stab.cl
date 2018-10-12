@@ -296,44 +296,41 @@ namespace Frame
          * draws a rectangle (not filled) at the given position x,y (center) in the given color
          at the first channel
         */
-        void drawRectangle(int   x,
-                           int   y,
-                           int   sizex,
-                           int   sizey,
-                           pix_t color)
+        void drawRectangle(const Common::Vect<unsigned>&   aPos,
+                           const Common::Vect<unsigned>&   aSize,
+                           pix_t                           color)
         {
-            unsigned szX2 = sizex / 2;
-            unsigned szY2 = sizey / 2;
-            pix_t*   p    = &((*this)(x - szX2, y - szY2));
+            const Common::Vect<unsigned> sz2 = aSize / 2;
+            pix_t* p = &((*this)(aPos.x - sz2.x, aPos.y - sz2.y));
             
-            for (int k = 0; k < sizex; k++)
+            for (unsigned k = 0; k < aSize.x; k++)
             {
                 *p = color;    // upper line
                 ++p;
             }
             
             
-            p = &((*this)(x - szX2, y + szY2));
+            p = &((*this)(aPos.x - sz2.x, aPos.y + sz2.y));
             
-            for (int k = 0; k < sizex; k++)
+            for (unsigned k = 0; k <= aSize.x; k++)
             {
                 *p = color;    // lower line
                 ++p;
             }
             
             
-            p = &((*this)(x - szX2, y - szY2));
+            p = &((*this)(aPos.x - sz2.x, aPos.y - sz2.y));
             
-            for (int k = 0; k < sizey; k++)
+            for (unsigned k = 0; k < aSize.y; k++)
             {
                 *p = color;    // left line
                 p += _dim.x;
             }
             
             
-            p = &((*this)(x + szX2, y - szY2));
+            p = &((*this)(aPos.x + sz2.x, aPos.y - sz2.y));
             
-            for (int k = 0; k < sizey; k++)
+            for (unsigned k = 0; k < aSize.y; k++)
             {
                 *p = color;    // right line
                 p += _dim.x;

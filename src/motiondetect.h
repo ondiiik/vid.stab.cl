@@ -90,6 +90,9 @@ namespace VidStab
     
     template <typename _PixT> struct Pyramids
     {
+        typedef _PixT pix_t;
+        
+        
         Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
@@ -108,6 +111,13 @@ namespace VidStab
         
         
         Frame::Pyramid<_PixT> fm[6];
+    };
+    
+    
+    struct Cell
+    {
+        Common::Vect<unsigned> position;
+        Common::Vect<int>      direction;
     };
     
     
@@ -357,10 +367,10 @@ namespace VidStab
          * @param[out]  aMotions    Motions vector
          * @param[in]   aFrame      Current frame
          */
-        void _detect(LocalMotions*       aMotions,
-                     const Frame::Frame& aFrame);
-                     
-                     
+        void _vs_detect(LocalMotions*       aMotions,
+                        const Frame::Frame& aFrame);
+                        
+                        
         /**
          * @brief   Detect motion - contrast part
          * @param   aMotionscoarse    Coarse motion results
@@ -505,13 +515,102 @@ namespace VidStab
         
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        /**
+         * @brief   Process frame
+         * @param   aPt     Pyramid type
+         * @param   aFrame  Frame to be processed
+         */
+        template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
+                                                       VSFrame&         aFrame)
+        {
+            _next(  aPt, aFrame);
+            _select(aPt, aFrame);
+            _detect(aPt, aFrame);
+        }
+        
+        
+        /**
+         * @brief   Read new frame pyramid including initialization
+         * @param   aFrame  New frame
+         */
+        template <typename _PixT> inline void _next(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame)
+        {
+            if (0 == _idx)
+            {
+                _nextPiramid(aPt, aFrame);
+            }
+            
+            _nextPiramid(aPt, aFrame);
+        }
+        
+        
         /**
          * @brief   Read new frame pyramid
          * @param   aFrame  New frame
          */
-        void _nextPiramid(VSFrame& aFrame);
-        
-        
+        template <typename _PixT> void _nextPiramid(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame);
+                                                    
+                                                    
+        /**
+         * @brief   Find best places for detection cells
+         */
+        template <typename _PixT> void _select(Pyramids<_PixT>& aPt,
+                                               VSFrame&         aFrame);
+                                               
+                                               
+        /**
+         * @brief   Correlate frames to detect movements
+         */
+        template <typename _PixT> void _detect(Pyramids<_PixT>& aPt,
+                                               VSFrame&         aFrame);
+                                               
+                                               
+        /**
+         * @brief   Calculates correlation of source and destination
+         *
+         * @param aCurrC    Current canvas
+         * @param aPrevC    Previous canvas
+         * @param aCurrV    Current rectangle position
+         * @param aPrevV    Previous rectangle position
+         * @param aRect     Rectangle size
+         *
+         * @return  Correlation result
+         */
+        template <typename _PixT> unsigned _corelate(const Frame::Canvas<_PixT>&  aCurrC,
+                                                     const Frame::Canvas<_PixT>&  aPrevC,
+                                                     const Common::Vect<unsigned> aCurrV,
+                                                     const Common::Vect<unsigned> aPrevV,
+                                                     const Common::Vect<unsigned> aRect) const;
+                                                     
+                                                     
         /**
          * @brief   RGB based piramids
          */
@@ -522,6 +621,12 @@ namespace VidStab
          * @brief   YUV based piramids
          */
         Pyramids<Frame::PixYUV>* _piramidYUV;
+        
+        
+        /**
+         * @brief   Movement cells list
+         */
+        std::vector<Cell> _cells;
         
         
         /**
@@ -540,6 +645,23 @@ namespace VidStab
          * @brief   Previous frame pyramid index
          */
         unsigned _idxPrev;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         

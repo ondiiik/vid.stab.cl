@@ -79,6 +79,12 @@ namespace Frame
         }
         
         
+        inline const uint8_t abs() const noexcept
+        {
+            return _px;
+        }
+
+
     private:
         uint8_t _px;
     };
@@ -147,6 +153,12 @@ namespace Frame
         }
         
         
+        inline const uint8_t abs() const noexcept
+        {
+            return (unsigned(_px[0]) + unsigned(_px[1]) + unsigned(_px[2])) / 3U;
+        }
+
+
     private:
         uint8_t _px[__Pix_RGB_CNT];
     };

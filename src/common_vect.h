@@ -48,6 +48,21 @@ namespace Common
         }
         
         
+        template <typename _SrcTp> Vect(_SrcTp aN) noexcept
+            :
+            x
+        {
+            _Tp(aN)
+        },
+        y
+        {
+            _Tp(aN)
+        }
+        {
+
+        }
+
+
         template <typename _SrcTp> Vect(const Vect<_SrcTp>& aSrc) noexcept
             :
             x

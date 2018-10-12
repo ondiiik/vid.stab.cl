@@ -73,10 +73,28 @@ using namespace VidStab;
 
 namespace
 {
+    /**
+     * @brief   Module name used by exceptions
+     */
     const char moduleName[] { "Detect" };
     
     
-    const unsigned piramidMinSize { 64 };
+    /**
+     * @brief   Minimal pyramid size
+     */
+    const unsigned _piramidMinSize { 128 };
+    
+    
+    /**
+     * @brief   Minimal count of detection boxes in each direction
+     */
+    const unsigned _detectBoxes { 16 };
+    
+    
+    /**
+     * @brief   Detection box size
+     */
+    const unsigned _detectBoxSize { _piramidMinSize / _detectBoxes };
     
     
     /**
@@ -565,6 +583,7 @@ namespace VidStab
         
         _piramidRGB    { nullptr },
         _piramidYUV    { nullptr },
+        _cells         (  ),
         _idx           { 0U      },
         _idxCurrent    { 0U      },
         _idxPrev       { 0U      }
@@ -603,11 +622,11 @@ namespace VidStab
          */
         if (fi.pixFormat() > PF_PACKED)
         {
-            _piramidRGB = new Pyramids<Frame::PixRGB>(fi.dim(), piramidMinSize);
+            _piramidRGB = new Pyramids<Frame::PixRGB>(fi.dim(), _piramidMinSize);
         }
         else
         {
-            _piramidYUV = new Pyramids<Frame::PixYUV>(fi.dim(), piramidMinSize);
+            _piramidYUV = new Pyramids<Frame::PixYUV>(fi.dim(), _piramidMinSize);
         }
     }
     
@@ -936,45 +955,23 @@ namespace VidStab
     void VSMD::operator ()(LocalMotions* aMotions,
                            VSFrame&      aFrame)
     {
-        if (0 == _idx)
+        if      (nullptr != _piramidYUV)
         {
-            _nextPiramid(aFrame);
+            _process(      *_piramidYUV, aFrame);
+        }
+        else if (nullptr != _piramidRGB)
+        {
+            _process(      *_piramidRGB, aFrame);
+        }
+        else
+        {
+            throw Common::VS_EXCEPTION("No valid pixel model selected!");
         }
         
-        _nextPiramid(aFrame);
         
         
         
-        Frame::Canvas<Frame::PixYUV>  c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
         
-        for (unsigned i = 1; i < _piramidYUV[0].fm[_idxPrev].size(); ++i)
-        {
-            Frame::Canvas<Frame::PixYUV>& l = _piramidYUV[0].fm[_idxPrev][i];
-            
-            for (unsigned y = 0; y < l.height(); ++y)
-            {
-                for (unsigned x = 0; x < l.width(); ++x)
-                {
-                    c(x, y) = l(x, y);
-                }
-            }
-        }
-        
-        for (unsigned i = 1; i < _piramidYUV[0].fm[_idxCurrent].size(); ++i)
-        {
-            Frame::Canvas<Frame::PixYUV>& l = _piramidYUV[0].fm[_idxCurrent][i];
-            
-            for (unsigned y = 0; y < l.height(); ++y)
-            {
-                for (unsigned x = 0; x < l.width(); ++x)
-                {
-                    Frame::PixIfc<Frame::PixYUV> pix { c(x, y) };
-                    
-                    pix    -= l(x, y);
-                    c(x, y) = pix;
-                }
-            }
-        }
         
         
         
@@ -986,7 +983,7 @@ namespace VidStab
         
         if (!firstFrame)
         {
-            _detect(aMotions, frm);
+            _vs_detect(aMotions, frm);
         }
         else
         {
@@ -1007,24 +1004,145 @@ namespace VidStab
     }
     
     
-    void VSMD::_nextPiramid(VSFrame& aFrame)
+    template <typename _PixT> void VSMD::_nextPiramid(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame)
     {
         _idxPrev    = _idx & 1;
         ++_idx;
         _idxCurrent = _idx & 1;
         
-        
-        if (fi.pixFormat() > PF_PACKED)
+        Frame::Canvas<_PixT> c { (_PixT*)aFrame.data[0], fi.dim() };
+        aPt.fm[_idxCurrent](c);
+    }
+    
+    
+    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
+                                                 VSFrame&         aFrame)
+    {
+        _cells.resize(0);
+
+
+        Cell cell { Common::Vect<unsigned>(400, 400), Common::Vect<int>(36, 45) };
+        _cells.push_back(cell);
+
+
+
+
+
+
+
+
+    }
+    
+    
+    template <typename _PixT> void VSMD::_detect(Pyramids<_PixT>& aPt,
+                                                 VSFrame&         aFrame)
+    {
+//        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
+//        {
+//            Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][i];
+//            Frame::Canvas<_PixT>& prevCanvas = aPt.fm[_idxPrev][   i];
+//
+//            Common::Vect<unsigned> currShift;
+//            Common::Vect<unsigned> prevShift { 32, 32             };
+//            Common::Vect<unsigned> rect      { _detectBoxSize * 1 };
+//
+//            Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
+//
+//
+//
+//
+//
+//            std::vector<unsigned>  corelates(currCanvas.dim().dim(), 0);
+//            unsigned               min(UINT_MAX);
+//            Common::Vect<unsigned> minp;
+//
+//            for (currShift.y = 0; currShift.y < currCanvas.height(); ++currShift.y)
+//            {
+//                for (currShift.x = 0; currShift.x < currCanvas.width(); ++currShift.x)
+//                {
+//                    unsigned crl = _corelate(currCanvas, prevCanvas, currShift, prevShift, rect);
+//
+//                    if (min > crl)
+//                    {
+//                        min = crl;
+//                        minp = currShift;
+//                    }
+//
+//                    corelates[currShift.dim()] = crl;
+//                }
+//            }
+//
+//
+//            for (currShift.y = 0; currShift.y < currCanvas.height(); ++currShift.y)
+//            {
+//                for (currShift.x = 0; currShift.x < currCanvas.width(); ++currShift.x)
+//                {
+//                    disp[currShift] = currCanvas[currShift];
+//
+//                    if (currShift.isCloseSq(prevShift, 4))
+//                    {
+//                        disp[currShift] = _PixT(127);
+//                    }
+//
+//                    if (currShift.isCloseSq(minp, 4))
+//                    {
+//                        disp[currShift] = _PixT(255);
+//                    }
+//
+//                    disp.drawLine(minp, prevShift, 2, _PixT(0));
+//
+////                    disp[cv] = _PixT((corelates[cv.dim()] * 255) / max);
+//                }
+//            }
+//
+//            break;
+//        }
+
+
+
+        Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
+        Common::Vect<unsigned> rect { 32, 32                           };
+
+        for (const auto& i : _cells)
         {
-            Frame::Canvas<Frame::PixRGB> c { (Frame::PixRGB*)aFrame.data[0], fi.dim() };
-            _piramidRGB[0].fm[_idxCurrent](c);
-        }
-        else
-        {
-            Frame::Canvas<Frame::PixYUV> c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
-            _piramidYUV[0].fm[_idxCurrent](c);
+            disp.drawRectangle(i.position, rect, _PixT(0));
+            disp.drawLine(     i.position, i.position + i.direction, 2, _PixT(255));
         }
     }
+    
+    
+    template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>&  aCurrCanvas,
+                                                       const Frame::Canvas<_PixT>&  aPrevCanvas,
+                                                       const Common::Vect<unsigned> aCurrShift,
+                                                       const Common::Vect<unsigned> aPrevShift,
+                                                       const Common::Vect<unsigned> aRect) const
+    {
+        Common::Vect<unsigned> i;
+        unsigned               acc { 0 };
+        
+        for (i.y = 0; i.y < aRect.y; ++i.y)
+        {
+            for (i.x = 0; i.x < aRect.x; ++i.x)
+            {
+                acc += aCurrCanvas[aCurrShift + i].abs();
+                acc -= aPrevCanvas[aPrevShift + i].abs();
+            }
+        }
+        
+        return abs(acc);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
@@ -1284,8 +1402,8 @@ namespace VidStab
     }
     
     
-    void VSMD::_detect(LocalMotions*       aMotions,
-                       const Frame::Frame& aFrame)
+    void VSMD::_vs_detect(LocalMotions*       aMotions,
+                          const Frame::Frame& aFrame)
     {
         LmList       motions       { *aMotions };
         LocalMotions                 motionsfineC;
