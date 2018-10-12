@@ -1149,11 +1149,12 @@ namespace VidStab
                                                        const Common::Vect<unsigned> aPosition,
                                                        const Common::Vect<unsigned> aRect) const
     {
+        const unsigned         dist { _detectBoxSize / 2 };
         Common::Vect<unsigned> i;
-        Common::Vect<unsigned> h    { 2, 0      };
-        Common::Vect<unsigned> v    { 0, 2      };
-        unsigned               acc  { 0         };
-        Common::Vect<unsigned> rect { aRect - 2 };
+        Common::Vect<unsigned> h    { int(dist), 0       };
+        Common::Vect<unsigned> v    { 0, int(dist)       };
+        unsigned               acc  { 0                  };
+        Common::Vect<unsigned> rect { aRect - dist       };
         
         for (i.y = 0; i.y < rect.y; ++i.y)
         {
