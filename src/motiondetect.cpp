@@ -80,21 +80,21 @@ namespace
     
     
     /**
-     * @brief   Minimal pyramid size
-     */
-    const unsigned _piramidMinSize { 128 };
-    
-    
-    /**
      * @brief   Minimal count of detection boxes in each direction
      */
-    const unsigned _detectBoxes { 16 };
+    const unsigned _detectBoxes { 24 };
     
     
     /**
      * @brief   Detection box size
      */
-    const unsigned _detectBoxSize { _piramidMinSize / _detectBoxes };
+    const unsigned _detectBoxSize { 8 };
+    
+    
+    /**
+     * @brief   Minimal pyramid size
+     */
+    const unsigned _piramidMinSize { _detectBoxes * _detectBoxSize };
     
     
     /**
@@ -1036,8 +1036,10 @@ namespace VidStab
         
         Common::Vect<unsigned> i;
         
-        for (i.y = 0; i.y < cnt.y; ++i.y)
+        for (unsigned y = 0; y < cnt.y; ++y)
         {
+            i.y = y;
+            
             for (i.x = 0; i.x < cnt.x; ++i.x)
             {
                 Common::Vect<unsigned> pos { i * _detectBoxSize };
@@ -1132,9 +1134,9 @@ namespace VidStab
         for (const auto& i : _cells)
         {
             Common::Vect<unsigned> pos { i.position + i.size / 2  };
-            Common::Vect<unsigned> rs  { i.size - 16              };
+            Common::Vect<unsigned> rs  { i.size - 4               };
             Common::Vect<unsigned> dst { pos + i.direction        };
-
+            
             disp.drawBox(      pos, rs,     _PixT(255));
             disp.drawRectangle(pos, rs,     _PixT(0));
             disp.drawLine(     pos, dst, 2, _PixT(255));
