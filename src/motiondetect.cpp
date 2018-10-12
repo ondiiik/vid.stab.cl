@@ -98,6 +98,12 @@ namespace
     
     
     /**
+     * @brief   Quality threshold for selection
+     */
+    const unsigned _selectThreshold { 100 };
+    
+    
+    /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
@@ -1019,19 +1025,36 @@ namespace VidStab
     template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame)
     {
+        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
+        const unsigned               mul    { 1U << idx                      };
+        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]       };
+        const Common::Vect<unsigned> cnt    { canvas.dim() / _detectBoxSize  };
+        const Common::Vect<unsigned> rect   { _detectBoxSize                 };
+        
+        
         _cells.resize(0);
-
-
-        Cell cell { Common::Vect<unsigned>(400, 400), Common::Vect<int>(36, 45) };
-        _cells.push_back(cell);
-
-
-
-
-
-
-
-
+        
+        Common::Vect<unsigned> i;
+        
+        for (i.y = 0; i.y < cnt.y; ++i.y)
+        {
+            for (i.x = 0; i.x < cnt.x; ++i.x)
+            {
+                Common::Vect<unsigned> pos { i * _detectBoxSize };
+                
+                if (_selectThreshold <= _validate(canvas, pos, rect))
+                {
+                    Cell cell
+                    {
+                        pos  * mul,
+                        rect * mul,
+                        Common::Vect<int>(2, 2)
+                    };
+                    
+                    _cells.push_back(cell);
+                }
+            }
+        }
     }
     
     
@@ -1098,17 +1121,49 @@ namespace VidStab
 //
 //            break;
 //        }
-
-
-
+    }
+    
+    
+    template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame)
+    {
         Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
-        Common::Vect<unsigned> rect { 32, 32                           };
-
+        
         for (const auto& i : _cells)
         {
-            disp.drawRectangle(i.position, rect, _PixT(0));
-            disp.drawLine(     i.position, i.position + i.direction, 2, _PixT(255));
+            Common::Vect<unsigned> pos { i.position + i.size / 2  };
+            Common::Vect<unsigned> rs  { i.size - 16              };
+            Common::Vect<unsigned> dst { pos + i.direction        };
+
+            disp.drawBox(      pos, rs,     _PixT(255));
+            disp.drawRectangle(pos, rs,     _PixT(0));
+            disp.drawLine(     pos, dst, 2, _PixT(255));
         }
+    }
+    
+    
+    
+    template <typename _PixT> unsigned VSMD::_validate(const Frame::Canvas<_PixT>&  aCanvas,
+                                                       const Common::Vect<unsigned> aPosition,
+                                                       const Common::Vect<unsigned> aRect) const
+    {
+        Common::Vect<unsigned> i;
+        Common::Vect<unsigned> h    { 1, 0      };
+        Common::Vect<unsigned> v    { 0, 1      };
+        unsigned               acc  { 0         };
+        Common::Vect<unsigned> rect { aRect - 1 };
+        
+        for (i.y = 0; i.y < rect.y; ++i.y)
+        {
+            for (i.x = 0; i.x < rect.x; ++i.x)
+            {
+                acc += aCanvas[aPosition + i    ].abs() * 2;
+                acc -= aCanvas[aPosition + i + h].abs();
+                acc -= aCanvas[aPosition + i + v].abs();
+            }
+        }
+        
+        return abs(acc);
     }
     
     

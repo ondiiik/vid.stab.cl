@@ -117,6 +117,7 @@ namespace VidStab
     struct Cell
     {
         Common::Vect<unsigned> position;
+        Common::Vect<unsigned> size;
         Common::Vect<int>      direction;
     };
     
@@ -549,9 +550,10 @@ namespace VidStab
         template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
                                                        VSFrame&         aFrame)
         {
-            _next(  aPt, aFrame);
-            _select(aPt, aFrame);
-            _detect(aPt, aFrame);
+            _next(     aPt, aFrame);
+            _select(   aPt, aFrame);
+            _detect(   aPt, aFrame);
+            _visualize(aPt, aFrame);
         }
         
         
@@ -593,6 +595,18 @@ namespace VidStab
                                                VSFrame&         aFrame);
                                                
                                                
+        /**
+         * @brief   Visualize detection
+         */
+        template <typename _PixT> void _visualize(Pyramids<_PixT>& aPt,
+                                                  VSFrame&         aFrame);
+                                                  
+                                                  
+        template <typename _PixT> unsigned _validate(const Frame::Canvas<_PixT>&  aCanvas,
+                                                     const Common::Vect<unsigned> aPosition,
+                                                     const Common::Vect<unsigned> aRect) const;
+                                                     
+                                                     
         /**
          * @brief   Calculates correlation of source and destination
          *

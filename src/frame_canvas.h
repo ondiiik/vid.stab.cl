@@ -193,17 +193,22 @@ namespace Frame
                      const Common::Vect<unsigned>&   aSize,
                      pix_t                           aColor)
         {
-            pix_t* p { &(*this)[aPos - (aSize / 2)] };
+            const Common::Vect<unsigned> sz2 = aSize / 2;
+            Common::Vect<unsigned>       i;
+
             
-            for (unsigned j = 0; j < aSize.y; ++j)
+            for (i.y = 0; i.y < aSize.y; ++i.y)
             {
-                for (unsigned k = 0; k < aSize.x; ++k)
+                for (i.x = 0; i.x < aSize.x; ++i.x)
                 {
-                    *p = aColor;
-                    p++;
+                    Common::Vect<unsigned> pos { i + aPos - sz2};
+                    
+                    unsigned  c = (*this)[pos].abs() * 3;
+                    c          += aColor.abs();
+                    c          /= 4;
+                    
+                    (*this)[pos] = c;
                 }
-                
-                p += (_dim.x - aSize.x);
             }
         }
         
@@ -235,12 +240,9 @@ namespace Frame
                 
                 for (int r { -th2 }; r <= th2; ++r)
                 {
-                    pix_t* p { &((*this)(pix1.x, pix1.y + r)) };
-                    
                     for (int k { 0 }; k <= div.x; k++)
                     {
-                        *p = aColor;
-                        ++p;
+                        (*this)(pix1.x + k, pix1.y + r) = aColor;
                     }
                 }
                 
@@ -261,12 +263,9 @@ namespace Frame
                 
                 for (int r { -th2 }; r <= th2; ++r)
                 {
-                    pix_t* p  { &((*this)(pix1.x + r, pix1.y)) };
-                    
                     for (int k { 0 }; k <= div.y; ++k)
                     {
-                        *p = aColor;
-                        p += _dim.x;
+                        (*this)(pix1.x + r, pix1.y + k) = aColor;
                     }
                 }
                 
@@ -281,12 +280,10 @@ namespace Frame
             {
                 int      dy { (div.y < 0) ? -c : c                     };
                 unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
-                pix_t*   p  { &((*this)(x, aPix1.y + dy))              };
                 
                 for (unsigned k = 0; k <= horlen; k++)
                 {
-                    *p = aColor;
-                    ++p;
+                    (*this)(x + k, aPix1.y + dy) = aColor;
                 }
             }
         }
@@ -301,39 +298,25 @@ namespace Frame
                            pix_t                           color)
         {
             const Common::Vect<unsigned> sz2 = aSize / 2;
-            pix_t* p = &((*this)(aPos.x - sz2.x, aPos.y - sz2.y));
             
-            for (unsigned k = 0; k < aSize.x; k++)
+            for (unsigned k = 0; k < aSize.x; ++k)
             {
-                *p = color;    // upper line
-                ++p;
+                (*this)(aPos.x - sz2.x + k, aPos.y - sz2.y) = color;
             }
             
-            
-            p = &((*this)(aPos.x - sz2.x, aPos.y + sz2.y));
-            
-            for (unsigned k = 0; k <= aSize.x; k++)
+            for (unsigned k = 0; k <= aSize.x; ++k)
             {
-                *p = color;    // lower line
-                ++p;
+                (*this)(aPos.x - sz2.x + k, aPos.y + sz2.y) = color;
             }
             
-            
-            p = &((*this)(aPos.x - sz2.x, aPos.y - sz2.y));
-            
-            for (unsigned k = 0; k < aSize.y; k++)
+            for (unsigned k = 0; k < aSize.y; ++k)
             {
-                *p = color;    // left line
-                p += _dim.x;
+                (*this)(aPos.x - sz2.x, aPos.y - sz2.y + k) = color;
             }
             
-            
-            p = &((*this)(aPos.x + sz2.x, aPos.y - sz2.y));
-            
-            for (unsigned k = 0; k < aSize.y; k++)
+            for (unsigned k = 0; k < aSize.y; ++k)
             {
-                *p = color;    // right line
-                p += _dim.x;
+                (*this)(aPos.x + sz2.x, aPos.y - sz2.y + k) = color;
             }
         }
         
