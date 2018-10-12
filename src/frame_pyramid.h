@@ -113,7 +113,7 @@ namespace Frame
                     acc += aSrc[srcIdx];
 
                     acc         /= 4U;
-//                    aDst[dstIdx] = acc;
+                    aDst[dstIdx] = acc;
                 }
             }
         }

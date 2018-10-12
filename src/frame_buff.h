@@ -112,6 +112,19 @@ namespace Frame
         }
         
         
+        PixRGB(unsigned aR,
+               unsigned aG,
+               unsigned aB) noexcept
+            :
+            _px
+        {
+            uint8_t(aR), uint8_t(aG), uint8_t(aB)
+        }
+        {
+        
+        }
+        
+        
         inline const uint8_t& operator[](unsigned aIdx) const noexcept
         {
             if (aIdx >= __Pix_RGB_CNT)
@@ -222,15 +235,21 @@ namespace Frame
         }
         
         
+        inline operator PixYUV() const noexcept
+        {
+            return PixYUV(this->_px[0]);
+        }
+        
+        
         inline const num_t& operator[](unsigned aIdx) const noexcept
         {
-            return this->_px;
+            return this->_px[0];
         }
         
         
         inline num_t& operator[](unsigned aIdx) noexcept
         {
-            return this->_px;
+            return this->_px[0];
         }
         
         
@@ -303,6 +322,14 @@ namespace Frame
         }
         {
         
+        }
+        
+        
+        inline operator PixRGB() const noexcept
+        {
+            return PixRGB(this->_px[0],
+                          this->_px[1],
+                          this->_px[2]);
         }
         
         
