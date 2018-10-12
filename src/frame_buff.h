@@ -236,13 +236,34 @@ namespace Frame
         
         template<typename _SrcT> inline PixIfc& operator+=(const _SrcT& aSrc)
         {
-            _px += num_t(aSrc[0]);
+            _px[0] += num_t(aSrc[0]);
+            return *this;
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator-=(const _SrcT& aSrc)
+        {
+            _px[0] += num_t(aSrc[0]);
+            return *this;
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator/=(const _SrcT& aSrc)
+        {
+            _px[0] /= num_t(aSrc);
+            return *this;
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator*=(const _SrcT& aSrc)
+        {
+            _px[0] *= num_t(aSrc);
             return *this;
         }
         
         
     private:
-        num_t _px;
+        num_t _px[1];
     };
     
     
@@ -316,49 +337,35 @@ namespace Frame
         }
         
         
-    private:
-        num_t _px[__Pix_RGB_CNT];
-    };
-    
-    
-    /**
-     * @brief   One single layer abstract factory
-     * @tparam  \_PixT  Pixel type
-     */
-    template <typename _PixT> class Layer
-        :
-        public Canvas<_PixT>
-    {
-    public:
-        typedef _PixT pix_t;
-        
-        
-        Layer(const Common::Vect<unsigned>& aDim)
-            :
-            Canvas<pix_t>
+        template<typename _SrcT> inline PixIfc& operator-=(const _SrcT& aSrc)
         {
-            new pix_t[aDim.dim()], aDim
-        }
-        {
-            if (nullptr == this->_buf)
-            {
-                throw Common::VS_EXCEPTION_M("FrmBuf", "Memory allocation failed!");
-            }
-        }
-        
-        
-        virtual ~Layer() noexcept
-        {
-            delete this->_buf;
-        }
-        
-        
-        inline Layer& operator=(const Canvas<pix_t>& aSrc)
-        {
-            std::cout << "[VIDSTAB DBG] copy Layer[<?>:" << this->width() << "x" << this->height() << "] <-- Canvas[<?>:" << aSrc.width() << "x" << aSrc.height() << "]\n";
-            Canvas<_PixT>::operator=(aSrc);
+            _px[0] += num_t(aSrc[0]);
+            _px[1] += num_t(aSrc[1]);
+            _px[2] += num_t(aSrc[2]);
             return *this;
         }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator/=(const _SrcT& aSrc)
+        {
+            _px[0] /= num_t(aSrc);
+            _px[1] /= num_t(aSrc);
+            _px[2] /= num_t(aSrc);
+            return *this;
+        }
+        
+        
+        template<typename _SrcT> inline PixIfc& operator*=(const _SrcT& aSrc)
+        {
+            _px[0] *= num_t(aSrc);
+            _px[1] *= num_t(aSrc);
+            _px[2] *= num_t(aSrc);
+            return *this;
+        }
+        
+        
+    private:
+        num_t _px[__Pix_RGB_CNT];
     };
     
     
@@ -374,7 +381,7 @@ namespace Frame
         
         }
         
-        Layer<PixYUV> m[__Pix_YUV_CNT];
+        Canvas<PixYUV> m[__Pix_YUV_CNT];
     };
     
     
@@ -390,6 +397,6 @@ namespace Frame
         
         }
         
-        Layer<PixRGB> m[1];
+        Canvas<PixRGB> m[1];
     };
 }

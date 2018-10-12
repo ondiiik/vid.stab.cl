@@ -33,7 +33,7 @@ namespace Frame
         Pyramid(const Common::Vect<unsigned>& aDim,
                 unsigned                      aMin)
         {
-            for (auto* b = new Layer<pix_t>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Layer<pix_t>(b->dim() / 2))
+            for (auto* b = new Canvas<pix_t>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Canvas<pix_t>(b->dim() / 2))
             {
                 std::cout << "[VIDSTAB DBG] construct " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 _pyramid.push_back(b);
@@ -65,13 +65,14 @@ namespace Frame
         {
             std::cout << "[VIDSTAB DBG] PYRAMID " << (void*)_pyramid[0] << ":\n";
             *(_pyramid[0]) = aSrc;
-//            const Canvas<pix_t>* src { _pyramid[0] };
-//
-//            for (auto b {_pyramid.begin() + 1}; b != _pyramid.end(); ++b)
-//            {
-//                _packLayer(*b, *src);
-//                src = b;
-//            }
+            const Canvas<pix_t>* src { _pyramid[0] };
+
+            for (auto bi {_pyramid.begin() + 1}; bi != _pyramid.end(); ++bi)
+            {
+                auto& b = *bi;
+                _packLayer(*b, *src);
+                src = b;
+            }
         }
         
         
@@ -85,7 +86,7 @@ namespace Frame
         
         
     private:
-        std::vector<Layer<pix_t>*> _pyramid;
+        std::vector<Canvas<pix_t>*> _pyramid;
         
         
         static void _packLayer(Canvas<pix_t>&       aDst,
@@ -97,9 +98,10 @@ namespace Frame
             {
                 for (unsigned x { 0 }; x < dim.x; ++x)
                 {
-                    Common::Vect<unsigned> srcIdx { x * 2, y * 2 };
+                    Common::Vect<unsigned> dstIdx { x , y      };
+                    Common::Vect<unsigned> srcIdx { dstIdx * 2 };
                     
-                    PixIfc<_PixT> acc { aSrc[srcIdx] };
+                    PixIfc<pix_t> acc { aSrc[srcIdx] };
                     
                     ++srcIdx.x;
                     acc += aSrc[srcIdx];
@@ -109,6 +111,9 @@ namespace Frame
                     
                     --srcIdx.x;
                     acc += aSrc[srcIdx];
+
+                    acc         /= 4U;
+//                    aDst[dstIdx] = acc;
                 }
             }
         }

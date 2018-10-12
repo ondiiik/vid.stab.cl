@@ -31,13 +31,44 @@ namespace Frame
         typedef _Pix pix_t;
         
         
+        Canvas(const Common::Vect<unsigned>& aDim)
+            :
+            _dim     { aDim                  },
+            _buf     { new pix_t[aDim.dim()] },
+        _autobuf { true                  }
+        {
+            if (nullptr == _buf)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
+            }
+        }
+        
+        
+        Canvas(unsigned aWidth,
+               unsigned aHeight)
+            :
+            _dim     { aWidth, aHeight       },
+            _buf     { new pix_t[_dim.dim()] },
+        _autobuf { true                  }
+        {
+            if (nullptr == _buf)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
+            }
+        }
+        
+        
         Canvas(pix_t*                        aBuf,
                const Common::Vect<unsigned>& aDim)
             :
-            _dim    { aDim },
-            _buf    { aBuf }
+            _dim     { aDim  },
+            _buf     { aBuf  },
+            _autobuf { false }
         {
-        
+            if (nullptr == _buf)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
+            }
         }
         
         
@@ -45,10 +76,23 @@ namespace Frame
                unsigned aWidth,
                unsigned aHeight)
             :
-            _dim    { aWidth, aHeight },
-            _buf    { aBuf            }
+            _dim     { aWidth, aHeight },
+            _buf     { aBuf            },
+            _autobuf { false           }
         {
+            if (nullptr == _buf)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
+            }
+        }
         
+        
+        virtual ~Canvas()
+        {
+            if (_autobuf)
+            {
+                delete _buf;
+            }
         }
         
         
@@ -107,7 +151,8 @@ namespace Frame
         
         Canvas& operator=(const Canvas& aSrc)
         {
-            std::cout << "[VIDSTAB DBG] copy Canvas[" << (void*)_buf << ":" << this->width() << "x" << this->height() << "=" << _dim.dim() << "x" << sizeof(_buf[0]) << "] <-- Canvas[" << (void*)aSrc._buf << ":" << aSrc.width() << "x" << aSrc.height() << "]\n";
+            std::cout << "[VIDSTAB DBG] copy Canvas[" << (void*)_buf << ":" << this->width() << "x" << this->height() << "=" << _dim.dim() << "x" << sizeof(_buf[0]) << "] <-- Canvas[" <<
+                      (void*)aSrc._buf << ":" << aSrc.width() << "x" << aSrc.height() << "]\n";
             if (_dim != aSrc._dim)
             {
                 throw Common::VS_EXCEPTION_M("FrmCanvas",
@@ -308,12 +353,12 @@ namespace Frame
         }
         
         
-        pix_t                        _wnull;  /**< @brief Reference on writable null pixel */
-        const pix_t                  _rnull;  /**< @brief Reference on read only null pixel */
+        pix_t                        _wnull;    /**< @brief Reference on writable null pixel */
+        const pix_t                  _rnull;    /**< @brief Reference on read only null pixel */
         
         
-    protected:
-        const Common::Vect<unsigned> _dim;    /**< @brief Canvas dimensions */
-        pix_t*                 const _buf;          /**< @brief Canvas buffer */
+        const Common::Vect<unsigned> _dim;      /**< @brief Canvas dimensions */
+        pix_t*                 const _buf;      /**< @brief Canvas buffer */
+        bool                   const _autobuf;  /**< @brief Automatically allocated buffer flag */
     };
 }
