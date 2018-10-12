@@ -93,21 +93,21 @@ namespace VidStab
         Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
-            fm_1    { aDim, aMin },
-            fm_10   { aDim, aMin },
-            fm_30   { aDim, aMin },
-            fm_60   { aDim, aMin },
-            fm_120  { aDim, aMin }
+            fm
+        {
+            { aDim, aMin },
+            { aDim, aMin },
+            { aDim, aMin },
+            { aDim, aMin },
+            { aDim, aMin },
+            { aDim, aMin }
+        }
         {
         
         }
         
         
-        Frame::Pyramid<_PixT> fm_1;
-        Frame::Pyramid<_PixT> fm_10;
-        Frame::Pyramid<_PixT> fm_30;
-        Frame::Pyramid<_PixT> fm_60;
-        Frame::Pyramid<_PixT> fm_120;
+        Frame::Pyramid<_PixT> fm[6];
     };
     
     
@@ -503,8 +503,52 @@ namespace VidStab
         
         
         
+        
+        
+        /**
+         * @brief   Read new frame pyramid
+         * @param   aFrame  New frame
+         */
+        void _nextPiramid(VSFrame& aFrame);
+        
+        
+        /**
+         * @brief   RGB based piramids
+         */
         Pyramids<Frame::PixRGB>* _piramidRGB;
+        
+        
+        /**
+         * @brief   YUV based piramids
+         */
         Pyramids<Frame::PixYUV>* _piramidYUV;
+        
+        
+        /**
+         * @brief   Frame index
+         */
+        unsigned _idx;
+        
+        
+        /**
+         * @brief   Current frame pyramid index
+         */
+        unsigned _idxCurrent;
+        
+        
+        /**
+         * @brief   Previous frame pyramid index
+         */
+        unsigned _idxPrev;
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         

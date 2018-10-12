@@ -151,8 +151,6 @@ namespace Frame
         
         Canvas& operator=(const Canvas& aSrc)
         {
-            std::cout << "[VIDSTAB DBG] copy Canvas[" << (void*)_buf << ":" << this->width() << "x" << this->height() << "=" << _dim.dim() << "x" << sizeof(_buf[0]) << "] <-- Canvas[" <<
-                      (void*)aSrc._buf << ":" << aSrc.width() << "x" << aSrc.height() << "]\n";
             if (_dim != aSrc._dim)
             {
                 throw Common::VS_EXCEPTION_M("FrmCanvas",
@@ -164,7 +162,6 @@ namespace Frame
             }
             
             memcpy(_buf, aSrc._buf, sizeof(_buf[0]) * _dim.dim());
-            std::cout << "[VIDSTAB DBG] copy done\n";
             return *this;
         }
         

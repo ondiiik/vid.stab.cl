@@ -18,8 +18,8 @@ namespace Frame
     {
     public:
         typedef _PixT pix_t;
-
-
+        
+        
         Pyramid(unsigned aWidth,
                 unsigned aHeight,
                 unsigned aMin)
@@ -35,7 +35,6 @@ namespace Frame
         {
             for (auto* b = new Canvas<pix_t>(aDim); (b->width() > aMin) && (b->height() > aMin); b = new Canvas<pix_t>(b->dim() / 2))
             {
-                std::cout << "[VIDSTAB DBG] construct " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 _pyramid.push_back(b);
             }
             
@@ -50,7 +49,6 @@ namespace Frame
         {
             for (auto& b : _pyramid)
             {
-                std::cout << "[VIDSTAB DBG] destroy " << (void*)this << " PYRAMID " << b->width() << " x " << b->height() << std::endl;
                 delete b;
             }
             
@@ -63,16 +61,43 @@ namespace Frame
         
         void operator()(const Canvas<pix_t>& aSrc)
         {
-            std::cout << "[VIDSTAB DBG] PYRAMID " << (void*)_pyramid[0] << ":\n";
             *(_pyramid[0]) = aSrc;
             const Canvas<pix_t>* src { _pyramid[0] };
-
+            
             for (auto bi {_pyramid.begin() + 1}; bi != _pyramid.end(); ++bi)
             {
                 auto& b = *bi;
                 _packLayer(*b, *src);
                 src = b;
             }
+        }
+        
+        
+        const Canvas<pix_t>& operator[](unsigned aIdx) const
+        {
+            if (aIdx >= _pyramid.size())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid",
+                                             "Layer %u out of range (max %u)!",
+                                             unsigned(aIdx),
+                                             unsigned(_pyramid.size()));
+            }
+            
+            return *(_pyramid[aIdx]);
+        }
+        
+        
+        Canvas<pix_t>& operator[](unsigned aIdx)
+        {
+            if (aIdx >= _pyramid.size())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid",
+                                             "Layer %u out of range (max %u)!",
+                                             unsigned(aIdx),
+                                             unsigned(_pyramid.size()));
+            }
+            
+            return *(_pyramid[aIdx]);
         }
         
         
@@ -98,7 +123,7 @@ namespace Frame
             {
                 for (unsigned x { 0 }; x < dim.x; ++x)
                 {
-                    Common::Vect<unsigned> dstIdx { x , y      };
+                    Common::Vect<unsigned> dstIdx { x, y      };
                     Common::Vect<unsigned> srcIdx { dstIdx * 2 };
                     
                     PixIfc<pix_t> acc { aSrc[srcIdx] };
@@ -111,7 +136,7 @@ namespace Frame
                     
                     --srcIdx.x;
                     acc += aSrc[srcIdx];
-
+                    
                     acc         /= 4U;
                     aDst[dstIdx] = acc;
                 }

@@ -560,8 +560,17 @@ namespace VidStab
         prev           { _prevFrameC,     fi },
         _mn            { aModName            },
         
+        
+        
+        
         _piramidRGB    { nullptr },
-        _piramidYUV    { nullptr }
+        _piramidYUV    { nullptr },
+        _idx           { 0U      },
+        _idxCurrent    { 0U      },
+        _idxPrev       { 0U      }
+        
+        
+        
         
 #if defined(USE_OPENCL)
         ,
@@ -927,19 +936,45 @@ namespace VidStab
     void VSMD::operator ()(LocalMotions* aMotions,
                            VSFrame&      aFrame)
     {
-        if (fi.pixFormat() > PF_PACKED)
+        if (0 == _idx)
         {
-            Frame::Canvas<Frame::PixRGB> c { (Frame::PixRGB*)aFrame.data[0], fi.dim() };
-            std::cout << "[VIDSTAB DBG] PYRAMID RGB[0]:\n";
-            _piramidRGB[0].fm_1(c);
-        }
-        else
-        {
-            std::cout << "[VIDSTAB DBG] PYRAMID YUV[0]:\n";
-            Frame::Canvas<Frame::PixYUV> c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
-            _piramidYUV[0].fm_1(c);
+            _nextPiramid(aFrame);
         }
         
+        _nextPiramid(aFrame);
+        
+        
+        
+        Frame::Canvas<Frame::PixYUV>  c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
+        
+        for (unsigned i = 1; i < _piramidYUV[0].fm[_idxPrev].size(); ++i)
+        {
+            Frame::Canvas<Frame::PixYUV>& l = _piramidYUV[0].fm[_idxPrev][i];
+            
+            for (unsigned y = 0; y < l.height(); ++y)
+            {
+                for (unsigned x = 0; x < l.width(); ++x)
+                {
+                    c(x, y) = l(x, y);
+                }
+            }
+        }
+        
+        for (unsigned i = 1; i < _piramidYUV[0].fm[_idxCurrent].size(); ++i)
+        {
+            Frame::Canvas<Frame::PixYUV>& l = _piramidYUV[0].fm[_idxCurrent][i];
+            
+            for (unsigned y = 0; y < l.height(); ++y)
+            {
+                for (unsigned x = 0; x < l.width(); ++x)
+                {
+                    Frame::PixIfc<Frame::PixYUV> pix { c(x, y) };
+                    
+                    pix    -= l(x, y);
+                    c(x, y) = pix;
+                }
+            }
+        }
         
         
         
@@ -970,6 +1005,27 @@ namespace VidStab
         
         frameNum++;
     }
+    
+    
+    void VSMD::_nextPiramid(VSFrame& aFrame)
+    {
+        _idxPrev    = _idx & 1;
+        ++_idx;
+        _idxCurrent = _idx & 1;
+        
+        
+        if (fi.pixFormat() > PF_PACKED)
+        {
+            Frame::Canvas<Frame::PixRGB> c { (Frame::PixRGB*)aFrame.data[0], fi.dim() };
+            _piramidRGB[0].fm[_idxCurrent](c);
+        }
+        else
+        {
+            Frame::Canvas<Frame::PixYUV> c { (Frame::PixYUV*)aFrame.data[0], fi.dim() };
+            _piramidYUV[0].fm[_idxCurrent](c);
+        }
+    }
+    
     
     
     void VSMD::_blur(const Frame::Frame& aFrame)
@@ -1280,23 +1336,23 @@ namespace VidStab
         }
         
         
-        if (conf.show)
-        {
-            Frame::Plane plane
-            {
-                aFrame[0]
-            };
-            
-            Frame::Canvas<Frame::PixYUV> canvas
-            {
-                (Frame::PixYUV*)plane.buff(),
-                unsigned(plane.lineSize()),
-                unsigned(fi.height())
-            };
-            
-            _draw(canvas, num_motions, motionscoarseC, motionsfineC);
-        }
-        
+//        if (conf.show)
+//        {
+//            Frame::Plane plane
+//            {
+//                aFrame[0]
+//            };
+//
+//            Frame::Canvas<Frame::PixYUV> canvas
+//            {
+//                (Frame::PixYUV*)plane.buff(),
+//                unsigned(plane.lineSize()),
+//                unsigned(fi.height())
+//            };
+//
+//            _draw(canvas, num_motions, motionscoarseC, motionsfineC);
+//        }
+
         motions.concat(motionscoarse, motionsfine);
     }
     
