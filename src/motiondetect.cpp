@@ -590,7 +590,7 @@ namespace VidStab
         _piramidRGB    { nullptr                     },
         _piramidYUV    { nullptr                     },
         _threadsCnt    { OMP_MAX_THREADS             },
-        _cells         { nullptr },
+        _cells         ( ),
         _idx           { 0U                          },
         _idxCurrent    { 0U                          },
         _idxPrev       { 0U                          }
@@ -626,16 +626,6 @@ namespace VidStab
         
         
         /*
-         * Check allocators (for the case when operator new does not throw)
-         */
-        _cells = new CellsBlock[_threadsCnt];
-        
-        if (nullptr == _cells)
-        {
-            throw Common::VS_EXCEPTION("Not enough memory!");
-        }
-        
-        /*
          * Allocates pyramids for faster correlation
          */
         if (fi.pixFormat() > PF_PACKED)
@@ -653,7 +643,6 @@ namespace VidStab
     {
         delete   _piramidRGB;
         delete   _piramidYUV;
-        delete[] _cells;
         
         
         
@@ -1045,20 +1034,12 @@ namespace VidStab
         const Common::Vect<unsigned> rect   { _detectBoxSize                 };
         
         
-        for (unsigned i = 0; i < _threadsCnt; ++i)
-        {
-            _cells[i].resize(0);
-        }
+        _cells.resize(0);
         
         Common::Vect<unsigned> i;
         
-        OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(OMP_MAX_THREADS,
-                         omp parallel for shared(md),
-                         (unsigned y = 0; y < cnt.y; ++y))
+        for (i.y = 0; i.y < cnt.y; ++i.y)
         {
-            i.y = y;
-            
             for (i.x = 0; i.x < cnt.x; ++i.x)
             {
                 Common::Vect<unsigned> pos { i * _detectBoxSize };
@@ -1072,11 +1053,7 @@ namespace VidStab
                         Common::Vect<int>(2, 2)
                     };
                     
-                    OMP_CRITICAL(mmm)
-                    {
-                    std::cout << OMP_THREAD_NUM << " from " << _threadsCnt << " <-- xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n";
-                    }
-                    _cells[OMP_THREAD_NUM].push_back(cell);
+                    _cells.push_back(cell);
                 }
             }
         }
@@ -1153,21 +1130,22 @@ namespace VidStab
                                                     VSFrame&         aFrame)
     {
         Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
+        const unsigned         e    { unsigned(_cells.size())          };
         
-        for (unsigned i = 0; i < _threadsCnt; ++i)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < e; ++idx))
         {
-            auto& cells = _cells[i];
+            auto& i = _cells[idx];
             
-            for (auto i : cells)
-            {
-                Common::Vect<unsigned> pos { i.position + i.size / 2  };
-                Common::Vect<unsigned> rs  { i.size - 4               };
-                Common::Vect<unsigned> dst { pos + i.direction        };
-                
-                disp.drawBox(      pos, rs,     _PixT(255));
-                disp.drawRectangle(pos, rs,     _PixT(0));
-                disp.drawLine(     pos, dst, 2, _PixT(255));
-            }
+            Common::Vect<unsigned> pos { i.position + i.size / 2  };
+            Common::Vect<unsigned> rs  { i.size - 4               };
+            Common::Vect<unsigned> dst { pos + i.direction        };
+            
+            disp.drawBox(      pos, rs,     _PixT(255));
+            disp.drawRectangle(pos, rs,     _PixT(0));
+            disp.drawLine(     pos, dst, 2, _PixT(255));
         }
     }
     

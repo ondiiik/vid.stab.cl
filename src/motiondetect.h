@@ -653,7 +653,7 @@ namespace VidStab
         /**
          * @brief   Movement per-CPU cells list
          */
-        CellsBlock* _cells;
+        CellsBlock _cells;
         
         
         /**
