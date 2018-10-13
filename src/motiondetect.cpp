@@ -1049,7 +1049,7 @@ namespace VidStab
                 {
                     Cell cell
                     {
-                        pos  * mul,
+                        (pos + rect / 2) * mul,
                         rect * mul,
                         Common::Vect<int>(2, 2),
                         q - _selectThreshold
@@ -1065,6 +1065,10 @@ namespace VidStab
     template <typename _PixT> void VSMD::_detect(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame)
     {
+//        for (auto& i : _cells)
+//        {
+//
+//        }
 //        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
 //        {
 //            Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][i];
@@ -1141,9 +1145,9 @@ namespace VidStab
         {
             auto& i = _cells[idx];
             
-            Common::Vect<unsigned> pos { i.position + i.size / 2  };
-            Common::Vect<unsigned> rs  { i.size - 4               };
-            Common::Vect<unsigned> dst { pos + i.direction        };
+            Common::Vect<unsigned> pos { i.position        };
+            Common::Vect<unsigned> rs  { i.size - 8        };
+            Common::Vect<unsigned> dst { pos + i.direction };
             
             if (i.contrasQFactor > _selectThreshold)
             {

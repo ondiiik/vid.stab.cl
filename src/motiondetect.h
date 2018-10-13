@@ -114,12 +114,30 @@ namespace VidStab
     };
     
     
+    /**
+     * @brief   Detection cell
+     */
     struct Cell
     {
+        /**
+         * @brief   Position of center of cell
+         */
         Common::Vect<unsigned> position;
+        
+        /**
+         * @brief   Cell size
+         */
         Common::Vect<unsigned> size;
-        Common::Vect<int>      direction;
-        unsigned               contrasQFactor;
+        
+        /**
+         * @brief   Detected cell direction
+         */
+        Common::Vect<int> direction;
+        
+        /**
+         * @brief   Cell quality factor
+         */
+        unsigned contrasQFactor;
     };
     
     
@@ -642,8 +660,8 @@ namespace VidStab
          * @brief   Count of threads
          */
         unsigned _threadsCnt;
-
-
+        
+        
         /**
          * @brief   Block of cells
          */
