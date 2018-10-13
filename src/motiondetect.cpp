@@ -1042,15 +1042,17 @@ namespace VidStab
         {
             for (i.x = 0; i.x < cnt.x; ++i.x)
             {
-                Common::Vect<unsigned> pos { i * _detectBoxSize };
+                Common::Vect<unsigned> pos { i * _detectBoxSize           };
+                const unsigned         q   { _validate(canvas, pos, rect) };
                 
-                if (_selectThreshold <= _validate(canvas, pos, rect))
+                if (_selectThreshold <= q)
                 {
                     Cell cell
                     {
                         pos  * mul,
                         rect * mul,
-                        Common::Vect<int>(2, 2)
+                        Common::Vect<int>(2, 2),
+                        q - _selectThreshold
                     };
                     
                     _cells.push_back(cell);
@@ -1143,9 +1145,14 @@ namespace VidStab
             Common::Vect<unsigned> rs  { i.size - 4               };
             Common::Vect<unsigned> dst { pos + i.direction        };
             
-            disp.drawBox(      pos, rs,     _PixT(255));
-            disp.drawRectangle(pos, rs,     _PixT(0));
-            disp.drawLine(     pos, dst, 2, _PixT(255));
+            if (i.contrasQFactor > _selectThreshold)
+            {
+                disp.drawBox(pos + 1, rs, _PixT(255));
+            }
+            
+            disp.drawRectangle(pos,     rs,     _PixT(0));
+            disp.drawRectangle(pos + 2, rs,     _PixT(255));
+            disp.drawLine(     pos,     dst, 2, _PixT(255));
         }
     }
     
