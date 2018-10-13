@@ -34,7 +34,7 @@
 #include "cl/opencl.h"
 #include <string>
 #include <cassert>
-#include <vector>
+#include <list>
 
 #include "frame_pyramid.h"
 #include "vs_vector.h"
@@ -119,6 +119,7 @@ namespace VidStab
         Common::Vect<unsigned> position;
         Common::Vect<unsigned> size;
         Common::Vect<int>      direction;
+        unsigned               contrasQFactor;
     };
     
     
@@ -638,9 +639,21 @@ namespace VidStab
         
         
         /**
-         * @brief   Movement cells list
+         * @brief   Count of threads
          */
-        std::vector<Cell> _cells;
+        unsigned _threadsCnt;
+
+
+        /**
+         * @brief   Block of cells
+         */
+        typedef std::vector<Cell> CellsBlock;
+        
+        
+        /**
+         * @brief   Movement per-CPU cells list
+         */
+        CellsBlock* _cells;
         
         
         /**
