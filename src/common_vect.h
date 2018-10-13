@@ -59,10 +59,10 @@ namespace Common
             _Tp(aN)
         }
         {
-
+        
         }
-
-
+        
+        
         template <typename _SrcTp> Vect(const Vect<_SrcTp>& aSrc) noexcept
             :
             x
@@ -88,8 +88,8 @@ namespace Common
         {
             return !(*this == aSrc);
         }
-
-
+        
+        
         template <typename _SrcTp> inline Vect& operator-=(const Vect<_SrcTp>& aSrc) noexcept
         {
             this->x -= _Tp(aSrc.x);
@@ -249,5 +249,55 @@ namespace Common
         
         _Tp x;
         _Tp y;
+    };
+    
+    
+    template <typename _Tp> class VectIt
+    {
+    public:
+        VectIt(const Vect<_Tp>& aEnd) noexcept
+            :
+            _vect {       },
+            _end  { aEnd  }
+        {
+        
+        }
+        
+        
+        inline bool next() noexcept
+        {
+            ++_vect.x;
+            
+            if (_vect.x >= _end.x)
+            {
+                _vect.x = 0;
+                ++_vect.y;
+                
+                if (_vect.y >= _end.y)
+                {
+                    _vect.y = 0;
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        
+        inline operator Vect<_Tp>&() noexcept
+        {
+            return vect();
+        }
+
+
+        inline Vect<_Tp>& vect() noexcept
+        {
+            return _vect;
+        }
+
+
+    private:
+        Vect<_Tp>        _vect;
+        const Vect<_Tp>& _end;
     };
 }

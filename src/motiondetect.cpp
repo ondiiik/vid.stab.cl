@@ -1036,29 +1036,28 @@ namespace VidStab
         
         _cells.resize(0);
         
-        Common::Vect<unsigned> i;
+        Common::VectIt<unsigned> i { cnt };
         
-        for (i.y = 0; i.y < cnt.y; ++i.y)
+        do
         {
-            for (i.x = 0; i.x < cnt.x; ++i.x)
+            Common::Vect<unsigned> pos { i.vect() * _detectBoxSize    };
+            const unsigned         q   { _validate(canvas, pos, rect) };
+            
+            if (_selectThreshold <= q)
             {
-                Common::Vect<unsigned> pos { i * _detectBoxSize           };
-                const unsigned         q   { _validate(canvas, pos, rect) };
-                
-                if (_selectThreshold <= q)
+                Cell cell
                 {
-                    Cell cell
-                    {
-                        (pos + rect / 2) * mul,
-                        rect * mul,
-                        Common::Vect<int>(2, 2),
-                        q - _selectThreshold
-                    };
-                    
-                    _cells.push_back(cell);
-                }
+                    (pos + rect / 2)* mul,
+                    rect * mul,
+                    Common::Vect<int>(2, 2),
+                    q - _selectThreshold
+                };
+                
+                _cells.push_back(cell);
             }
         }
+        while (i.next());
+        
     }
     
     
@@ -1067,8 +1066,16 @@ namespace VidStab
     {
 //        for (auto& i : _cells)
 //        {
+//            Common::VectIt<unsigned> currShift { i.size };
 //
+//            do
+//            {
+//
+//            }
+//            while (currShift.next());
 //        }
+
+
 //        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
 //        {
 //            Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][i];
@@ -1166,22 +1173,20 @@ namespace VidStab
                                                        const Common::Vect<unsigned> aPosition,
                                                        const Common::Vect<unsigned> aRect) const
     {
-        const unsigned         dist { _detectBoxSize / 2 };
-        Common::Vect<unsigned> i;
-        Common::Vect<unsigned> h    { int(dist), 0       };
-        Common::Vect<unsigned> v    { 0, int(dist)       };
-        unsigned               acc  { 0                  };
-        Common::Vect<unsigned> rect { aRect - dist       };
+        const unsigned           dist { _detectBoxSize / 2 };
+        Common::Vect<unsigned>   h    { int(dist), 0       };
+        Common::Vect<unsigned>   v    { 0, int(dist)       };
+        unsigned                 acc  { 0                  };
+        Common::Vect<unsigned>   rect { aRect - dist       };
+        Common::VectIt<unsigned> i    { rect               };
         
-        for (i.y = 0; i.y < rect.y; ++i.y)
+        do
         {
-            for (i.x = 0; i.x < rect.x; ++i.x)
-            {
-                acc += aCanvas[aPosition + i    ].abs() * 2;
-                acc -= aCanvas[aPosition + i + h].abs();
-                acc -= aCanvas[aPosition + i + v].abs();
-            }
+            acc += aCanvas[aPosition + i.vect()    ].abs() * 2;
+            acc -= aCanvas[aPosition + i.vect() + h].abs();
+            acc -= aCanvas[aPosition + i.vect() + v].abs();
         }
+        while (i.next());
         
         return abs(acc);
     }
@@ -1193,17 +1198,15 @@ namespace VidStab
                                                        const Common::Vect<unsigned> aPrevShift,
                                                        const Common::Vect<unsigned> aRect) const
     {
-        Common::Vect<unsigned> i;
-        unsigned               acc { 0 };
+        Common::VectIt<unsigned> i   { aRect };
+        unsigned                 acc { 0     };
         
-        for (i.y = 0; i.y < aRect.y; ++i.y)
+        do
         {
-            for (i.x = 0; i.x < aRect.x; ++i.x)
-            {
-                acc += aCurrCanvas[aCurrShift + i].abs();
-                acc -= aPrevCanvas[aPrevShift + i].abs();
-            }
+            acc += aCurrCanvas[aCurrShift + i].abs();
+            acc -= aPrevCanvas[aPrevShift + i].abs();
         }
+        while (i.next());
         
         return abs(acc);
     }
