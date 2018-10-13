@@ -1030,8 +1030,8 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx                      };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]       };
-        const Common::Vect<unsigned> cnt    { canvas.dim() / _detectBoxSize  };
-        const Common::Vect<unsigned> rect   { _detectBoxSize                 };
+        VectU                        cnt    { canvas.dim() / _detectBoxSize  };
+        VectU                        rect   { _detectBoxSize                 };
         
         
         _cells.resize(0);
@@ -1040,8 +1040,8 @@ namespace VidStab
         
         do
         {
-            Common::Vect<unsigned> pos { i.vect() * _detectBoxSize    };
-            const unsigned         q   { _validate(canvas, pos, rect) };
+            VectU           pos { i.vect() * _detectBoxSize    };
+            const unsigned  q   { _validate(canvas, pos, rect) };
             
             if (_selectThreshold <= q)
             {
@@ -1064,16 +1064,16 @@ namespace VidStab
     template <typename _PixT> void VSMD::_detect(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame)
     {
-//        for (auto& i : _cells)
-//        {
-//            Common::VectIt<unsigned> currShift { i.size };
-//
-//            do
-//            {
-//
-//            }
-//            while (currShift.next());
-//        }
+        for (auto& i : _cells)
+        {
+            VectIter currShift { i.size };
+
+            do
+            {
+
+            }
+            while (currShift.next());
+        }
 
 
 //        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
@@ -1142,8 +1142,8 @@ namespace VidStab
     template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
                                                     VSFrame&         aFrame)
     {
-        Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
-        const unsigned         e    { unsigned(_cells.size())          };
+        Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
+        const unsigned       e    { unsigned(_cells.size())          };
         
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(conf.numThreads,
@@ -1152,9 +1152,9 @@ namespace VidStab
         {
             auto& i = _cells[idx];
             
-            Common::Vect<unsigned> pos { i.position        };
-            Common::Vect<unsigned> rs  { i.size - 8        };
-            Common::Vect<unsigned> dst { pos + i.direction };
+            VectU pos { i.position        };
+            VectU rs  { i.size - 8        };
+            VectU dst { pos + i.direction };
             
             if (i.contrasQFactor > _selectThreshold)
             {
@@ -1169,16 +1169,16 @@ namespace VidStab
     
     
     
-    template <typename _PixT> unsigned VSMD::_validate(const Frame::Canvas<_PixT>&  aCanvas,
-                                                       const Common::Vect<unsigned> aPosition,
-                                                       const Common::Vect<unsigned> aRect) const
+    template <typename _PixT> unsigned VSMD::_validate(const Frame::Canvas<_PixT>& aCanvas,
+                                                       const VectU                 aPosition,
+                                                       const VectU                 aRect) const
     {
-        const unsigned           dist { _detectBoxSize / 2 };
-        Common::Vect<unsigned>   h    { int(dist), 0       };
-        Common::Vect<unsigned>   v    { 0, int(dist)       };
-        unsigned                 acc  { 0                  };
-        Common::Vect<unsigned>   rect { aRect - dist       };
-        Common::VectIt<unsigned> i    { rect               };
+        const unsigned dist { _detectBoxSize / 2 };
+        VectS          h    { int(dist), 0       };
+        VectS          v    { 0, int(dist)       };
+        unsigned       acc  { 0                  };
+        VectU          rect { aRect - dist       };
+        VectIter       i    { rect               };
         
         do
         {
@@ -1192,14 +1192,14 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>&  aCurrCanvas,
-                                                       const Frame::Canvas<_PixT>&  aPrevCanvas,
-                                                       const Common::Vect<unsigned> aCurrShift,
-                                                       const Common::Vect<unsigned> aPrevShift,
-                                                       const Common::Vect<unsigned> aRect) const
+    template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>& aCurrCanvas,
+                                                       const Frame::Canvas<_PixT>& aPrevCanvas,
+                                                       const VectU                 aCurrShift,
+                                                       const VectU                 aPrevShift,
+                                                       const VectU                 aRect) const
     {
-        Common::VectIt<unsigned> i   { aRect };
-        unsigned                 acc { 0     };
+        VectIter i   { aRect };
+        unsigned acc { 0     };
         
         do
         {

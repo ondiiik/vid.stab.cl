@@ -560,6 +560,29 @@ namespace VidStab
         
         
         
+        /**
+         * @brief   Block of cells
+         */
+        typedef std::vector<Cell> CellsBlock;
+        
+        
+        /**
+         * @brief   Alias for unsigned integer vector
+         */
+        typedef Common::Vect<unsigned> VectU;
+        
+        
+        /**
+         * @brief   Alias for signed integer vector
+         */
+        typedef Common::Vect<int> VectS;
+        
+        
+        /**
+         * @brief   Alias for unsigned integer iterator
+         */
+        typedef Common::VectIt<unsigned> VectIter;
+        
         
         /**
          * @brief   Process frame
@@ -621,9 +644,9 @@ namespace VidStab
                                                   VSFrame&         aFrame);
                                                   
                                                   
-        template <typename _PixT> unsigned _validate(const Frame::Canvas<_PixT>&  aCanvas,
-                                                     const Common::Vect<unsigned> aPosition,
-                                                     const Common::Vect<unsigned> aRect) const;
+        template <typename _PixT> unsigned _validate(const Frame::Canvas<_PixT>& aCanvas,
+                                                     const VectU                 aPosition,
+                                                     const VectU                 aRect) const;
                                                      
                                                      
         /**
@@ -639,9 +662,9 @@ namespace VidStab
          */
         template <typename _PixT> unsigned _corelate(const Frame::Canvas<_PixT>&  aCurrC,
                                                      const Frame::Canvas<_PixT>&  aPrevC,
-                                                     const Common::Vect<unsigned> aCurrV,
-                                                     const Common::Vect<unsigned> aPrevV,
-                                                     const Common::Vect<unsigned> aRect) const;
+                                                     const VectU                  aCurrV,
+                                                     const VectU                  aPrevV,
+                                                     const VectU                  aRect) const;
                                                      
                                                      
         /**
@@ -660,12 +683,6 @@ namespace VidStab
          * @brief   Count of threads
          */
         unsigned _threadsCnt;
-        
-        
-        /**
-         * @brief   Block of cells
-         */
-        typedef std::vector<Cell> CellsBlock;
         
         
         /**
