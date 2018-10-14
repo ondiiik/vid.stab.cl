@@ -116,9 +116,9 @@ namespace
     /**
      * @brief   Slow filter B count of frames
      *
-     * Filter used for detecting static scenes
+     * Filter used for filtering slow movements (shifted)
      */
-    const unsigned _slowBCnt { 120 };
+    const unsigned _slowBCnt { _slowACnt / 2 };
     
     
     /**
@@ -1045,9 +1045,13 @@ namespace VidStab
         aPt.fm[_idxCurrent]( c);
         
         
-        if (0 == idx)
+        if (0 == (idx % _slowACnt))
         {
             aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
+        }
+        
+        if ((0 == idx) || (0 == ((idx + _slowBCnt) % _slowBCnt)))
+        {
             aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
     }
@@ -1093,24 +1097,27 @@ namespace VidStab
     template <typename _PixT> void VSMD::_removeVectLen(Pyramids<_PixT>& aPt,
                                                         VSFrame&         aFrame)
     {
-        unsigned qavg { 0 };
-        
-        for (auto& cell : _cells)
+        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
-            qavg += cell.direction[0].vect.qsize();
-        }
-        
-        qavg /= _cells.size();
-        
-        unsigned qavgMax { qavg * 2 };
-        
-        for (auto& cell : _cells)
-        {
-            unsigned q { unsigned(cell.direction[0].vect.qsize()) };
+            unsigned qavg { 0 };
             
-            if (q > qavgMax)
+            for (auto& cell : _cells)
             {
-                cell.direction[0].valid = false;
+                qavg += cell.direction[idx].vect.qsize();
+            }
+            
+            qavg /= _cells.size();
+            
+            unsigned qavgMax { qavg * 2 };
+            
+            for (auto& cell : _cells)
+            {
+                unsigned q { unsigned(cell.direction[idx].vect.qsize()) };
+                
+                if (q > qavgMax)
+                {
+                    cell.direction[idx].valid = false;
+                }
             }
         }
     }
@@ -1147,13 +1154,12 @@ namespace VidStab
                     if (min > crl)
                     {
                         min                    = crl;
-                        cell.direction[aPt.PTYPE_SW0].vect = i();
+                        cell.direction[aPt.PTYPE_SW].vect = i();
                     }
                 }
                 while (i.next());
                 
-                cell.direction[aPt.PTYPE_SW0].vect *= (1U << p);
-                cell.direction[aPt.PTYPE_SW1].vect  = cell.direction[aPt.PTYPE_SW0].vect;
+                cell.direction[aPt.PTYPE_SW].vect *= (1U << p);
             }
             
             
@@ -1190,16 +1196,10 @@ namespace VidStab
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned       e    { unsigned(_cells.size())          };
         
-
-        for (unsigned y = 0; y < disp.height(); ++y)
-        {
-            for (unsigned x = 0; x < disp.width(); ++x)
-            {
-                disp(x,y) = aPt.fm[aPt.PTYPE_SLOW_B][0](x,y);
-            }
-        }
-
-
+        
+//        disp = aPt.fm[aPt.PTYPE_SLOW_A][0];
+        
+        
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(conf.numThreads,
                          omp parallel for shared(md),
@@ -1207,38 +1207,40 @@ namespace VidStab
         {
             auto& i = _cells[idx];
             
-//            VectU pos { i.position                            };
-//            VectU dst { pos + i.direction[aPt.PTYPE_SW0].vect };
-//
-//            if (i.contrasQFactor > _selectThreshold)
-//            {
-//                VectU                 rs  { i.size - 16 };
-//                disp.drawBox(pos + 1, rs, _PixT(0));
-//            }
-//
-//            VectU                   rs { 16 };
-//            disp.drawRectangle(pos, rs, _PixT(0));
-//
-//            if (i.direction[aPt.PTYPE_SW0].valid)
-//            {
-//                disp.drawBox(      dst, rs - 2, _PixT(255));
-//                disp.drawRectangle(dst, rs,     _PixT(255));
-//                disp.drawLine(pos, dst, 2,      _PixT(255));
-//            }
-//            else
-//            {
-//                disp.drawLine(pos, dst, 2, _PixT(0));
-//            }
-
+            
+            /*
+             * Show fast filters
+             */
+            {
+                VectU pos { i.position                            };
+                VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
+                
+                unsigned x { i.direction[aPt.PTYPE_SW].valid ? 255U : 0U };
+                
+                if (i.contrasQFactor > _selectThreshold)
+                {
+                    VectU                 rs  { i.size - 16 };
+                    disp.drawBox(pos + 1, rs, _PixT(x));
+                }
+                
+                disp.drawLine(pos, dst, 2, _PixT(x / 2));
+            }
+            
+            
+            /*
+             * Show slow filters
+             */
             for (unsigned idx = aPt.PTYPE_SLOW_B; idx < aPt.PTYPE_COUNT; ++idx)
             {
-                VectU p { i.position                };
-                VectU d { p + i.direction[idx].vect };
-                VectU r { 32                        };
-                _PixT x { i.direction[idx].valid ? _PixT(200) : _PixT(0) };
-                disp.drawBox(      d, r - 2, x);
-                disp.drawRectangle(d, r,     x);
-                disp.drawLine(p,   d, 2,     x);
+                VectU pos { i.position                  };
+                VectU dst { pos + i.direction[idx].vect };
+                VectU                   rs { 16 };
+                disp.drawRectangle(pos, rs, _PixT(0));
+                
+                _PixT x { i.direction[idx].valid ? _PixT(255) : _PixT(0) };
+                disp.drawBox(      dst, rs - 2, x);
+                disp.drawRectangle(dst, rs,     x);
+                disp.drawLine(pos, dst, 2,      x);
             }
         }
     }

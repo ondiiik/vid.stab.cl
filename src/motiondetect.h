@@ -96,7 +96,7 @@ namespace VidStab
         enum PType
         {
             PTYPE_SW0,
-            PTYPE_SW1,
+            PTYPE_SW,
             PTYPE_SLOW_A,
             PTYPE_SLOW_B,
             PTYPE_COUNT
