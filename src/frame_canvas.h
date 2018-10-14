@@ -195,7 +195,6 @@ namespace Frame
         {
             const Common::Vect<unsigned> sz2 = aSize / 2;
             Common::Vect<unsigned>       i;
-
             
             for (i.y = 0; i.y < aSize.y; ++i.y)
             {
@@ -203,9 +202,9 @@ namespace Frame
                 {
                     Common::Vect<unsigned> pos { i + aPos - sz2};
                     
-                    unsigned  c = (*this)[pos].abs() * 3;
+                    unsigned  c = (*this)[pos].abs() * 7;
                     c          += aColor.abs();
-                    c          /= 4;
+                    c          /= 8;
                     
                     (*this)[pos] = c;
                 }

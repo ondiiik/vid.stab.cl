@@ -120,6 +120,15 @@ namespace VidStab
     struct Cell
     {
         /**
+         * @brief   Cell validity flag
+         *
+         * Some cells can be invalidated in some post-process step.
+         * We uses vector, so is much faster to invalidate item them
+         * instead of removing which is slow in the case of vector.
+         */
+        bool valid;
+        
+        /**
          * @brief   Position of center of cell
          */
         Common::Vect<int> position;
@@ -561,12 +570,6 @@ namespace VidStab
         
         
         /**
-         * @brief   Block of cells
-         */
-        typedef std::vector<Cell> CellsBlock;
-        
-        
-        /**
          * @brief   Alias for unsigned integer vector
          */
         typedef Common::Vect<unsigned> VectU;
@@ -610,10 +613,11 @@ namespace VidStab
         template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
                                                        VSFrame&         aFrame)
         {
-            _next(     aPt, aFrame);
-            _select(   aPt, aFrame);
-            _estimate( aPt, aFrame);
-            _visualize(aPt, aFrame);
+            _next(          aPt, aFrame );
+            _selectCells(   aPt, aFrame );
+            _estimate(      aPt, aFrame );
+            _removeVectLen( aPt, aFrame );
+            _visualize(     aPt, aFrame );
         }
         
         
@@ -651,10 +655,21 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _select(Pyramids<_PixT>& aPt,
-                                               VSFrame&         aFrame);
-                                               
-                                               
+        template <typename _PixT> void _selectCells(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame);
+                                                    
+                                                    
+        /**
+         * @brief   Find directions which deviates in size from the rest and remove them
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _removeVectLen(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame);
+
+
         /**
          * @brief   Process first estimation of movements
          *
@@ -665,9 +680,9 @@ namespace VidStab
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _estimate(Pyramids<_PixT>& aPt,
-                                               VSFrame&         aFrame);
-                                               
-                                               
+                                                 VSFrame&         aFrame);
+                                                 
+                                                 
         /**
          * @brief   Show results of detection graphically
          *
@@ -687,11 +702,11 @@ namespace VidStab
          * @param   aRect       Size of cell
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> unsigned _validate(const Frame::Canvas<_PixT>& aCanvas,
-                                                     const VectU                 aPosition,
-                                                     const VectU                 aRect) const;
-                                                     
-                                                     
+        template <typename _PixT> unsigned _getCellQuality(const Frame::Canvas<_PixT>& aCanvas,
+                                                           const VectU&                aPosition,
+                                                           const VectU&                aRect) const;
+                                                           
+                                                           
         /**
          * @brief   Calculates correlation of source and destination
          *
@@ -705,9 +720,9 @@ namespace VidStab
          */
         template <typename _PixT> unsigned _corelate(const Frame::Canvas<_PixT>&  aCurrC,
                                                      const Frame::Canvas<_PixT>&  aPrevC,
-                                                     const VectS                  aCurrV,
-                                                     const VectS                  aPrevV,
-                                                     const VectU                  aRect,
+                                                     const VectS&                 aCurrV,
+                                                     const VectS&                 aPrevV,
+                                                     const VectU&                 aRect,
                                                      unsigned                     aTrh) const;
                                                      
                                                      
@@ -750,7 +765,7 @@ namespace VidStab
         /**
          * @brief   Movement per-CPU cells list
          */
-        CellsBlock _cells;
+        std::vector<Cell> _cells;
         
         
         /**

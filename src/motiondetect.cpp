@@ -84,7 +84,7 @@ namespace
     /**
      * @brief   Minimal count of detection boxes in shortest direction
      */
-    const unsigned _detectBoxes { 24 };
+    const unsigned _detectBoxes { 12 };
     
     
     /**
@@ -102,7 +102,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _selectThreshold { (_piramidMinSize * 7) / 10 };
+    const unsigned _selectThreshold { 4 * 128 };
     
     
     /**
@@ -1029,8 +1029,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_selectCells(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx                      };
@@ -1045,13 +1045,14 @@ namespace VidStab
         
         do
         {
-            VectU           pos { i()* _detectBoxSize          };
-            const unsigned  q   { _validate(canvas, pos, rect) };
+            VectU           pos { i()* _detectBoxSize                };
+            const unsigned  q   { _getCellQuality(canvas, pos, rect) };
             
             if (_selectThreshold <= q)
             {
                 Cell cell
                 {
+                    true,
                     (pos + rect / 2)* mul,
                     rect * mul,
                     Common::Vect<int>(),
@@ -1063,6 +1064,32 @@ namespace VidStab
         }
         while (i.next());
         
+    }
+    
+    
+    template <typename _PixT> void VSMD::_removeVectLen(Pyramids<_PixT>& aPt,
+                                                        VSFrame&         aFrame)
+    {
+        unsigned qavg { 0 };
+        
+        for (auto& cell : _cells)
+        {
+            qavg += cell.direction.qsize();
+        }
+        
+        qavg /= _cells.size();
+        
+        unsigned qavgMax { qavg * 2 };
+        
+        for (auto& cell : _cells)
+        {
+            unsigned q { unsigned(cell.direction.qsize()) };
+            
+            if (q > qavgMax)
+            {
+                cell.valid = false;
+            }
+        }
     }
     
     
@@ -1120,24 +1147,31 @@ namespace VidStab
             
             if (i.contrasQFactor > _selectThreshold)
             {
-                VectU                 rs  { i.size - 8 };
+                VectU                 rs  { i.size - 16 };
                 disp.drawBox(pos + 1, rs, _PixT(0));
             }
             
-            disp.drawLine(pos, dst, 2, _PixT(255));
+            VectU                   rs { 16 };
+            disp.drawRectangle(pos, rs, _PixT(0));
             
-            VectU                   rs  { 16 };
-            disp.drawRectangle(pos, rs,     _PixT(0));
-            disp.drawBox(      dst, rs - 2, _PixT(255));
-            disp.drawRectangle(dst, rs,     _PixT(255));
+            if (i.valid)
+            {
+                disp.drawBox(      dst, rs - 2, _PixT(255));
+                disp.drawRectangle(dst, rs,     _PixT(255));
+                disp.drawLine(pos, dst, 2,      _PixT(255));
+            }
+            else
+            {
+                disp.drawLine(pos, dst, 2, _PixT(0));
+            }
         }
     }
     
     
     
-    template <typename _PixT> unsigned VSMD::_validate(const Frame::Canvas<_PixT>& aCanvas,
-                                                       const VectU                 aPosition,
-                                                       const VectU                 aRect) const
+    template <typename _PixT> unsigned VSMD::_getCellQuality(const Frame::Canvas<_PixT>& aCanvas,
+                                                             const VectU&                aPosition,
+                                                             const VectU&                aRect) const
     {
         const unsigned dist { _detectBoxSize / 2 };
         VectS          h    { int(dist), 0       };
@@ -1184,9 +1218,9 @@ namespace VidStab
     
     template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>& aCurrCanvas,
                                                        const Frame::Canvas<_PixT>& aPrevCanvas,
-                                                       const VectS                 aCurrShift,
-                                                       const VectS                 aPrevShift,
-                                                       const VectU                 aRect,
+                                                       const VectS&                aCurrShift,
+                                                       const VectS&                aPrevShift,
+                                                       const VectU&                aRect,
                                                        unsigned                    aTrh) const
     {
         VectIterU i   { aRect };
