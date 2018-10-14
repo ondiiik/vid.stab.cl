@@ -138,6 +138,12 @@ namespace
     
     
     /**
+     * @brief   Border detection divider
+     */
+    const unsigned _borderDiv { 6 };
+    
+    
+    /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
@@ -621,16 +627,16 @@ namespace VidStab
         
         
         
-        _piramidRGB    { nullptr                     },
-        _piramidYUV    { nullptr                     },
-        _idx           { 0U                          },
-        _idxCurrent    { 0U                          },
-        _idxPrev       { 0U                          },
+        _piramidRGB    { nullptr                  },
+        _piramidYUV    { nullptr                  },
+        _idx           { 0U                       },
+        _idxCurrent    { 0U                       },
+        _idxPrev       { 0U                       },
         
-        _threadsCnt    { OMP_MAX_THREADS             },
+        _threadsCnt    { OMP_MAX_THREADS          },
         
-        _cells         {                             },
-        _detectRange   { unsigned(aFi->width / 6)    }
+        _cells         {                          },
+        _detectRange   { unsigned(aFi->width / _borderDiv) }
         
         
         
@@ -1089,18 +1095,19 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        VectU                        b      { 1 };
-        VectU                        cnt    { (canvas.dim() - (_cellSize / 2)) / _cellSize };
+        const unsigned               border { _detectRange / (mul* _cellSize * 2) };
+        VectU                        begin  { border };
+        VectU                        end    { (canvas.dim() + _cellSize / 2) / _cellSize - border };
         VectU                        rect   { _cellSize };
         
         
         _cells.resize(0);
         
-        Common::VectIt<unsigned> i { b, cnt };
+        Common::VectIt<unsigned> i { begin, end };
         
         do
         {
-            VectU           pos { i()* _cellSize                };
+            VectU           pos { i()* _cellSize };
             const unsigned  q   { _getCellQuality(canvas, pos, rect) };
             
             if (_contrastThreshold <= q)
