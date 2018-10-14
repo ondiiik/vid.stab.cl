@@ -84,7 +84,7 @@ namespace
     /**
      * @brief   Minimal count of detection boxes in shortest direction
      */
-    const unsigned _detectBoxes { 16 };
+    const unsigned _detectBoxes { 24 };
     
     
     /**
@@ -102,7 +102,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _selectThreshold { (_piramidMinSize * 10) / 7 };
+    const unsigned _selectThreshold { (_piramidMinSize * 7) / 10 };
     
     
     /**
@@ -1084,17 +1084,12 @@ namespace VidStab
                 
                 do
                 {
-                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size) };
+                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
                     
                     if (min > crl)
                     {
                         min            = crl;
                         cell.direction = i();
-                        
-                        if (std::numeric_limits<unsigned>::min() == crl)
-                        {
-                            break;
-                        }
                     }
                 }
                 while (i.next());
@@ -1163,7 +1158,8 @@ namespace VidStab
                                                        const Frame::Canvas<_PixT>& aPrevCanvas,
                                                        const VectS                 aCurrShift,
                                                        const VectS                 aPrevShift,
-                                                       const VectU                 aRect) const
+                                                       const VectU                 aRect,
+                                                       unsigned                    aTrh) const
     {
         VectIterU i   { aRect };
         unsigned  acc { 0     };
@@ -1174,6 +1170,11 @@ namespace VidStab
             int v2 { aPrevCanvas[aPrevShift + i()].abs() };
             
             acc += abs(v1 - v2);
+
+            if (aTrh < acc)
+            {
+                break;
+            }
         }
         while (i.next());
         

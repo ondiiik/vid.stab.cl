@@ -682,7 +682,8 @@ namespace VidStab
                                                      const Frame::Canvas<_PixT>&  aPrevC,
                                                      const VectS                  aCurrV,
                                                      const VectS                  aPrevV,
-                                                     const VectU                  aRect) const;
+                                                     const VectU                  aRect,
+                                                     unsigned                     aTrh) const;
                                                      
                                                      
         /**
