@@ -1115,17 +1115,20 @@ namespace VidStab
             auto& i = _cells[idx];
             
             VectU pos { i.position        };
-            VectU rs  { i.size - 8        };
             VectU dst { pos + i.direction };
             
             if (i.contrasQFactor > _selectThreshold)
             {
-                disp.drawBox(pos + 1, rs, _PixT(255));
+                VectU                 rs  { i.size - 8 };
+                disp.drawBox(pos + 1, rs, _PixT(0));
             }
             
-            disp.drawRectangle(pos,     rs,     _PixT(0));
-            disp.drawRectangle(pos + 2, rs,     _PixT(255));
-            disp.drawLine(     pos,     dst, 2, _PixT(255));
+            disp.drawLine(pos, dst, 2, _PixT(255));
+
+            VectU                   rs  { 16 };
+            disp.drawRectangle(pos, rs,     _PixT(0));
+            disp.drawBox(      dst, rs - 2, _PixT(255));
+            disp.drawRectangle(dst, rs,     _PixT(255));
         }
     }
     
