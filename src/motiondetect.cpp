@@ -84,7 +84,7 @@ namespace
     /**
      * @brief   Minimal count of detection boxes in shortest direction
      */
-    const unsigned _detectBoxes { 12 };
+    const unsigned _detectBoxes { 16 };
     
     
     /**
@@ -1090,9 +1090,7 @@ namespace VidStab
             }
         }
         while (i.next());
-        
     }
-    
     
     
     template <typename _PixT> void VSMD::_optimize(Pyramids<_PixT>& aPt,
@@ -1211,8 +1209,8 @@ namespace VidStab
              * Calculates fast filter
              */
             auto&       cell = _cells[idx];
-            const VectS rb   { -2 };
-            const VectS re   {  2 };
+            const VectS rb   { -1 };
+            const VectS re   {  1 };
             
             for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
             {
@@ -1228,7 +1226,7 @@ namespace VidStab
                 const VectS           dv   { dir.vect / (1U   << p) };
                 Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][p] };
                 Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][   p] };
-                VectIterSSpiral       i    { rb + dv, re + dv       };
+                VectIterS             i    { rb + dv, re + dv       };
                 unsigned              min  { std::numeric_limits<unsigned>::max() };
                 
                 do
@@ -1295,6 +1293,9 @@ namespace VidStab
         const unsigned       e    { unsigned(_cells.size())          };
         
         
+//        disp += aPt.fm[aPt.PTYPE_SLOW_A][0];
+
+
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
@@ -1318,7 +1319,7 @@ namespace VidStab
                     disp.drawBox(pos + 1, rs, x);
                 }
                 
-                disp.drawLine(pos, dst, 4, x);
+                disp.drawLine(pos, dst, 1, _PixT(0));
             }
             
             
@@ -1331,11 +1332,13 @@ namespace VidStab
                 VectU dst { pos + i.direction[idx].vect };
                 VectU                   rs { 16 };
                 disp.drawRectangle(pos, rs, _PixT(0));
-
-                _PixT x { i.direction[idx].valid ? _PixT(255) : _PixT(0) };
-                disp.drawBox(      dst, rs - 2, x);
-                disp.drawRectangle(dst, rs,     x);
-                disp.drawLine(pos, dst, 2,      x);
+                
+                if (i.direction[idx].valid)
+                {
+                    disp.drawBox(      dst, rs - 2, _PixT(255));
+                    disp.drawRectangle(dst, rs,     _PixT(255));
+                    disp.drawLine(pos, dst, 1,      _PixT(255));
+                }
             }
         }
     }

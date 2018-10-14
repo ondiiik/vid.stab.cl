@@ -166,6 +166,27 @@ namespace Frame
         }
         
         
+        Canvas& operator+=(const Canvas& aSrc)
+        {
+            if (_dim != aSrc._dim)
+            {
+                throw Common::VS_EXCEPTION_M("FrmCanvas",
+                                             "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
+                                             width(),
+                                             height(),
+                                             aSrc.width(),
+                                             aSrc.height());
+            }
+            
+            for (pix_t* i = _buf, *j = aSrc._buf, * const e = _buf + _dim.dim(); i != e; ++i, ++j)
+            {
+                *i = pix_t((i->abs() * 3 + j->abs()) / 4);
+            }
+            
+            return *this;
+        }
+        
+        
         inline const Common::Vect<unsigned> dim() const noexcept
         {
             return _dim;
