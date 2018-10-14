@@ -1050,7 +1050,7 @@ namespace VidStab
             aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
         }
         
-        if ((0 == idx) || (0 == ((idx + _slowBCnt) % _slowBCnt)))
+        if ((0 == idx) || (0 == ((idx + _slowBCnt) % _slowACnt)))
         {
             aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
@@ -1094,30 +1094,39 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_removeVectLen(Pyramids<_PixT>& aPt,
-                                                        VSFrame&         aFrame)
+    
+    template <typename _PixT> void VSMD::_removeDev(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame)
     {
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
-            unsigned qavg { 0 };
+            _removeVectLen(aPt, aFrame, idx);
+        }
+    }
+    
+    
+    template <typename _PixT> void VSMD::_removeVectLen(Pyramids<_PixT>& aPt,
+                                                        VSFrame&         aFrame,
+                                                        unsigned         idx)
+    {
+        unsigned qavg { 0 };
+        
+        for (auto& cell : _cells)
+        {
+            qavg += cell.direction[idx].vect.qsize();
+        }
+        
+        qavg /= _cells.size();
+        
+        unsigned qavgMax { qavg * 2 };
+        
+        for (auto& cell : _cells)
+        {
+            unsigned q { unsigned(cell.direction[idx].vect.qsize()) };
             
-            for (auto& cell : _cells)
+            if (q > qavgMax)
             {
-                qavg += cell.direction[idx].vect.qsize();
-            }
-            
-            qavg /= _cells.size();
-            
-            unsigned qavgMax { qavg * 2 };
-            
-            for (auto& cell : _cells)
-            {
-                unsigned q { unsigned(cell.direction[idx].vect.qsize()) };
-                
-                if (q > qavgMax)
-                {
-                    cell.direction[idx].valid = false;
-                }
+                cell.direction[idx].valid = false;
             }
         }
     }
@@ -1127,7 +1136,7 @@ namespace VidStab
                                                    VSFrame&         aFrame)
     {
         OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(conf.numThreads,
+        OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.size(); ++idx))
         {
@@ -1197,11 +1206,8 @@ namespace VidStab
         const unsigned       e    { unsigned(_cells.size())          };
         
         
-//        disp = aPt.fm[aPt.PTYPE_SLOW_A][0];
-        
-        
         OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(conf.numThreads,
+        OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
         {
@@ -1230,7 +1236,7 @@ namespace VidStab
             /*
              * Show slow filters
              */
-            for (unsigned idx = aPt.PTYPE_SLOW_B; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
             {
                 VectU pos { i.position                  };
                 VectU dst { pos + i.direction[idx].vect };

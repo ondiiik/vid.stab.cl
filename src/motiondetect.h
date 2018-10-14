@@ -649,7 +649,7 @@ namespace VidStab
             _next(          aPt, aFrame );
             _selectCells(   aPt, aFrame );
             _estimate(      aPt, aFrame );
-            _removeVectLen( aPt, aFrame );
+            _removeDev(     aPt, aFrame );
             _visualize(     aPt, aFrame );
         }
         
@@ -693,6 +693,17 @@ namespace VidStab
                                                     
                                                     
         /**
+         * @brief   Find deviations in detected vectors and remove them
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _removeDev(Pyramids<_PixT>& aPt,
+                                                  VSFrame&         aFrame);
+
+
+        /**
          * @brief   Find directions which deviates in size from the rest and remove them
          *
          * @param   aPt     Pyramid for calculation
@@ -700,7 +711,8 @@ namespace VidStab
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _removeVectLen(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame);
+                                                      VSFrame&         aFrame,
+                                                      unsigned         idx);
                                                       
                                                       
         /**
