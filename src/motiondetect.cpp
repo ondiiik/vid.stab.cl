@@ -106,6 +106,22 @@ namespace
     
     
     /**
+     * @brief   Slow filter A count of frames
+     *
+     * Filter used for filtering slow movements
+     */
+    const unsigned _slowACnt { 30 };
+
+
+    /**
+     * @brief   Slow filter B count of frames
+     *
+     * Filter used for detecting static scenes
+     */
+    const unsigned _slowBCnt { 120 };
+
+
+    /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
@@ -1029,24 +1045,14 @@ namespace VidStab
         aPt.fm[_idxCurrent]( c);
         
         
-        if (0 == (idx % 10))
+        if (0 == (idx % _slowACnt))
         {
-            aPt.fm[aPt.PTYPE_10F] = aPt.fm[_idxCurrent];
+            aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
         }
         
-        if (0 == (idx % 30))
+        if (0 == (idx % _slowBCnt))
         {
-            aPt.fm[aPt.PTYPE_30F] = aPt.fm[_idxCurrent];
-        }
-        
-        if (0 == (idx % 60))
-        {
-            aPt.fm[aPt.PTYPE_60F] = aPt.fm[_idxCurrent];
-        }
-        
-        if (0 == (idx % 120))
-        {
-            aPt.fm[aPt.PTYPE_120F] = aPt.fm[_idxCurrent];
+            aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
     }
     
