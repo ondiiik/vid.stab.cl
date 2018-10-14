@@ -59,6 +59,35 @@ namespace Frame
         }
         
         
+        Pyramid& operator=(const Pyramid& aSrc)
+        {
+            if (_pyramid.size() != aSrc._pyramid.size())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid",
+                                             "Frame pyramid layers count mismatch (%u != %u)!",
+                                             unsigned(_pyramid.size()),
+                                             unsigned(aSrc._pyramid.size()));
+            }
+            
+            if (_pyramid[0]->dim() != aSrc._pyramid[0]->dim())
+            {
+                throw Common::VS_EXCEPTION_M("FrmPiramid",
+                                             "Frame pyramid dimensions mismatch ([%ux%u] != [%ux%u])!",
+                                             unsigned(_pyramid[0]->width()),
+                                             unsigned(_pyramid[0]->height()),
+                                             unsigned(aSrc._pyramid[0]->width()),
+                                             unsigned(aSrc._pyramid[0]->height()));
+            }
+            
+            for (unsigned i = 0; i < _pyramid.size(); ++i)
+            {
+                *(_pyramid[i]) = *(aSrc._pyramid[i]);
+            }
+            
+            return *this;
+        }
+        
+        
         void operator()(const Canvas<pix_t>& aSrc)
         {
             *(_pyramid[0]) = aSrc;

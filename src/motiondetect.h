@@ -836,6 +836,25 @@ namespace VidStab
         
         
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL

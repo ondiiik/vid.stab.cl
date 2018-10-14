@@ -91,7 +91,7 @@ namespace Frame
         {
             if (_autobuf)
             {
-                delete _buf;
+                delete[] _buf;
             }
         }
         

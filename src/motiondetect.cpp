@@ -111,16 +111,16 @@ namespace
      * Filter used for filtering slow movements
      */
     const unsigned _slowACnt { 30 };
-
-
+    
+    
     /**
      * @brief   Slow filter B count of frames
      *
      * Filter used for detecting static scenes
      */
     const unsigned _slowBCnt { 120 };
-
-
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -1045,13 +1045,9 @@ namespace VidStab
         aPt.fm[_idxCurrent]( c);
         
         
-        if (0 == (idx % _slowACnt))
+        if (0 == idx)
         {
             aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
-        }
-        
-        if (0 == (idx % _slowBCnt))
-        {
             aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
     }
@@ -1128,6 +1124,9 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.size(); ++idx))
         {
+            /*
+             * Calculates last frame first
+             */
             auto&                 cell = _cells[idx];
             unsigned              p    { aPt.fm[_idxCurrent].size() - 1       };
             const VectS           rb   { - int(_detectRange >> (p + 1))       };
@@ -1135,23 +1134,52 @@ namespace VidStab
             const VectU           size { cell.size          >>  p             };
             const VectU           pos  { cell.position      >>  p             };
             Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]            };
-            Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p]            };
-            VectIterSSpiral       i    { rb, re                               };
-            unsigned              min  { std::numeric_limits<unsigned>::max() };
             
-            do
             {
-                unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
+                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][p] };
+                VectIterSSpiral       i    { rb, re              };
+                unsigned              min  { std::numeric_limits<unsigned>::max() };
                 
-                if (min > crl)
+                do
                 {
-                    min                    = crl;
-                    cell.direction[0].vect = i();
+                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
+                    
+                    if (min > crl)
+                    {
+                        min                    = crl;
+                        cell.direction[aPt.PTYPE_SW0].vect = i();
+                    }
                 }
+                while (i.next());
+                
+                cell.direction[aPt.PTYPE_SW0].vect *= (1U << p);
+                cell.direction[aPt.PTYPE_SW1].vect  = cell.direction[aPt.PTYPE_SW0].vect;
             }
-            while (i.next());
             
-            cell.direction[0].vect *= (1U << p);
+            
+            /*
+             * Calculates last frame first
+             */
+            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            {
+                Frame::Canvas<_PixT>& prev { aPt.fm[idx][p] };
+                VectIterSSpiral       i    { rb, re         };
+                unsigned              min  { std::numeric_limits<unsigned>::max() };
+                
+                do
+                {
+                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
+                    
+                    if (min > crl)
+                    {
+                        min                      = crl;
+                        cell.direction[idx].vect = i();
+                    }
+                }
+                while (i.next());
+                
+                cell.direction[idx].vect *= (1U << p);
+            }
         }
     }
     
@@ -1162,6 +1190,16 @@ namespace VidStab
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned       e    { unsigned(_cells.size())          };
         
+
+        for (unsigned y = 0; y < disp.height(); ++y)
+        {
+            for (unsigned x = 0; x < disp.width(); ++x)
+            {
+                disp(x,y) = aPt.fm[aPt.PTYPE_SLOW_B][0](x,y);
+            }
+        }
+
+
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(conf.numThreads,
                          omp parallel for shared(md),
@@ -1169,27 +1207,38 @@ namespace VidStab
         {
             auto& i = _cells[idx];
             
-            VectU pos { i.position                };
-            VectU dst { pos + i.direction[0].vect };
-            
-            if (i.contrasQFactor > _selectThreshold)
+//            VectU pos { i.position                            };
+//            VectU dst { pos + i.direction[aPt.PTYPE_SW0].vect };
+//
+//            if (i.contrasQFactor > _selectThreshold)
+//            {
+//                VectU                 rs  { i.size - 16 };
+//                disp.drawBox(pos + 1, rs, _PixT(0));
+//            }
+//
+//            VectU                   rs { 16 };
+//            disp.drawRectangle(pos, rs, _PixT(0));
+//
+//            if (i.direction[aPt.PTYPE_SW0].valid)
+//            {
+//                disp.drawBox(      dst, rs - 2, _PixT(255));
+//                disp.drawRectangle(dst, rs,     _PixT(255));
+//                disp.drawLine(pos, dst, 2,      _PixT(255));
+//            }
+//            else
+//            {
+//                disp.drawLine(pos, dst, 2, _PixT(0));
+//            }
+
+            for (unsigned idx = aPt.PTYPE_SLOW_B; idx < aPt.PTYPE_COUNT; ++idx)
             {
-                VectU                 rs  { i.size - 16 };
-                disp.drawBox(pos + 1, rs, _PixT(0));
-            }
-            
-            VectU                   rs { 16 };
-            disp.drawRectangle(pos, rs, _PixT(0));
-            
-            if (i.direction[0].valid)
-            {
-                disp.drawBox(      dst, rs - 2, _PixT(255));
-                disp.drawRectangle(dst, rs,     _PixT(255));
-                disp.drawLine(pos, dst, 2,      _PixT(255));
-            }
-            else
-            {
-                disp.drawLine(pos, dst, 2, _PixT(0));
+                VectU p { i.position                };
+                VectU d { p + i.direction[idx].vect };
+                VectU r { 32                        };
+                _PixT x { i.direction[idx].valid ? _PixT(200) : _PixT(0) };
+                disp.drawBox(      d, r - 2, x);
+                disp.drawRectangle(d, r,     x);
+                disp.drawLine(p,   d, 2,     x);
             }
         }
     }
