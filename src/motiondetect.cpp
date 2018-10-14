@@ -110,7 +110,7 @@ namespace
      *
      * Filter used for filtering slow movements
      */
-    const unsigned _slowACnt { 30 };
+    const unsigned _slowACnt { 16 };
     
     
     /**
@@ -996,40 +996,40 @@ namespace VidStab
         {
             throw Common::VS_EXCEPTION("No valid pixel model selected!");
         }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        Frame::Frame frm { aFrame, fi };
-        
-        _blur(frm);
-        
-        if (!firstFrame)
-        {
-            _vs_detect(aMotions, frm);
-        }
-        else
-        {
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//        Frame::Frame frm { aFrame, fi };
+//
+//        _blur(frm);
+//
+//        if (!firstFrame)
+//        {
+//            _vs_detect(aMotions, frm);
+//        }
+//        else
+//        {
             LmList lm { *aMotions };
             lm.init(1);
-            firstFrame = false;
-        }
-        
-        if ((conf.virtualTripod < 1) || (frameNum < conf.virtualTripod))
-        {
-            /*
-             * For tripod we keep a certain reference frame
-             */
-            prev = curr;
-        }
-        
-        frameNum++;
+//            firstFrame = false;
+//        }
+//
+//        if ((conf.virtualTripod < 1) || (frameNum < conf.virtualTripod))
+//        {
+//            /*
+//             * For tripod we keep a certain reference frame
+//             */
+//            prev = curr;
+//        }
+//
+//        frameNum++;
     }
     
     
@@ -1308,18 +1308,29 @@ namespace VidStab
              * Show fast filters
              */
             {
-                VectU pos { i.position                            };
+                VectU pos { i.position                           };
                 VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
-                
-                _PixT x { i.direction[aPt.PTYPE_SW].valid ? _PixT(255) : _PixT(0) };
                 
                 if (i.contrasQFactor > _selectThreshold)
                 {
-                    VectU                 rs  { i.size - 16 };
-                    disp.drawBox(pos + 1, rs, x);
+                    VectU rs { i.size - 16 };
+                    
+                    if ((i.direction[aPt.PTYPE_SW].valid)     &&
+                        (i.direction[aPt.PTYPE_SLOW_A].valid) &&
+                        (i.direction[aPt.PTYPE_SLOW_B].valid))
+                    {
+                        disp.drawBox(pos + 1, rs, _PixT(255));
+                    }
+                    else
+                    {
+                        disp.drawBox(pos + 1, rs, _PixT(0));
+                    }
                 }
                 
-                disp.drawLine(pos, dst, 1, _PixT(0));
+                if (i.direction[aPt.PTYPE_SW].valid)
+                {
+                    disp.drawLine(pos, dst, 4, _PixT(255));
+                }
             }
             
             
@@ -1335,9 +1346,9 @@ namespace VidStab
                 
                 if (i.direction[idx].valid)
                 {
-                    disp.drawBox(      dst, rs - 2, _PixT(255));
-                    disp.drawRectangle(dst, rs,     _PixT(255));
-                    disp.drawLine(pos, dst, 1,      _PixT(255));
+                    disp.drawBox(      dst, rs - 2, _PixT(64));
+                    disp.drawRectangle(dst, rs,     _PixT(64));
+                    disp.drawLine(pos, dst, 1,      _PixT(64));
                 }
             }
         }
