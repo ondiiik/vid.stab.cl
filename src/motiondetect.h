@@ -93,6 +93,18 @@ namespace VidStab
         typedef _PixT pix_t;
         
         
+        enum PType
+        {
+            PTYPE_SW0,
+            PTYPE_SW1,
+            PTYPE_10F,
+            PTYPE_30F,
+            PTYPE_60F,
+            PTYPE_120F,
+            PTYPE_COUNT
+        };
+
+
         Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
@@ -110,15 +122,27 @@ namespace VidStab
         }
         
         
-        Frame::Pyramid<_PixT> fm[6];
+        Frame::Pyramid<_PixT> fm[PTYPE_COUNT];
     };
     
     
     /**
-     * @brief   Detection cell
+     * @brief   Direction vector structure
      */
-    struct Cell
+    struct Direction
     {
+        /**
+         * @brief   Default constructor
+         */
+        Direction()
+            :
+            valid { true },
+            vect  {      }
+        {
+        
+        }
+        
+        
         /**
          * @brief   Cell validity flag
          *
@@ -128,6 +152,19 @@ namespace VidStab
          */
         bool valid;
         
+        
+        /**
+         * @brief   Detected cell direction vector
+         */
+        Common::Vect<int> vect;
+    };
+    
+    
+    /**
+     * @brief   Detection cell
+     */
+    struct Cell
+    {
         /**
          * @brief   Position of center of cell
          */
@@ -141,7 +178,7 @@ namespace VidStab
         /**
          * @brief   Detected cell direction
          */
-        Common::Vect<int> direction;
+        Direction direction[Pyramids<int>::PTYPE_COUNT];
         
         /**
          * @brief   Cell quality factor
@@ -668,8 +705,8 @@ namespace VidStab
          */
         template <typename _PixT> void _removeVectLen(Pyramids<_PixT>& aPt,
                                                       VSFrame&         aFrame);
-
-
+                                                      
+                                                      
         /**
          * @brief   Process first estimation of movements
          *

@@ -1020,12 +1020,34 @@ namespace VidStab
     template <typename _PixT> void VSMD::_nextPiramid(Pyramids<_PixT>& aPt,
                                                       VSFrame&         aFrame)
     {
-        _idxPrev    = _idx & 1;
+        unsigned idx { _idx };
+        _idxPrev     = _idx & 1;
         ++_idx;
-        _idxCurrent = _idx & 1;
+        _idxCurrent  = _idx & 1;
         
         Frame::Canvas<_PixT> c { (_PixT*)aFrame.data[0], fi.dim() };
-        aPt.fm[_idxCurrent](c);
+        aPt.fm[_idxCurrent]( c);
+        
+        
+        if (0 == (idx % 10))
+        {
+            aPt.fm[aPt.PTYPE_10F] = aPt.fm[_idxCurrent];
+        }
+        
+        if (0 == (idx % 30))
+        {
+            aPt.fm[aPt.PTYPE_30F] = aPt.fm[_idxCurrent];
+        }
+        
+        if (0 == (idx % 60))
+        {
+            aPt.fm[aPt.PTYPE_60F] = aPt.fm[_idxCurrent];
+        }
+        
+        if (0 == (idx % 120))
+        {
+            aPt.fm[aPt.PTYPE_120F] = aPt.fm[_idxCurrent];
+        }
     }
     
     
@@ -1052,10 +1074,9 @@ namespace VidStab
             {
                 Cell cell
                 {
-                    true,
                     (pos + rect / 2)* mul,
                     rect * mul,
-                    Common::Vect<int>(),
+                    { },
                     q - _selectThreshold
                 };
                 
@@ -1074,7 +1095,7 @@ namespace VidStab
         
         for (auto& cell : _cells)
         {
-            qavg += cell.direction.qsize();
+            qavg += cell.direction[0].vect.qsize();
         }
         
         qavg /= _cells.size();
@@ -1083,11 +1104,11 @@ namespace VidStab
         
         for (auto& cell : _cells)
         {
-            unsigned q { unsigned(cell.direction.qsize()) };
+            unsigned q { unsigned(cell.direction[0].vect.qsize()) };
             
             if (q > qavgMax)
             {
-                cell.valid = false;
+                cell.direction[0].valid = false;
             }
         }
     }
@@ -1118,13 +1139,13 @@ namespace VidStab
                 
                 if (min > crl)
                 {
-                    min            = crl;
-                    cell.direction = i();
+                    min                    = crl;
+                    cell.direction[0].vect = i();
                 }
             }
             while (i.next());
             
-            cell.direction *= (1U << p);
+            cell.direction[0].vect *= (1U << p);
         }
     }
     
@@ -1142,8 +1163,8 @@ namespace VidStab
         {
             auto& i = _cells[idx];
             
-            VectU pos { i.position        };
-            VectU dst { pos + i.direction };
+            VectU pos { i.position                };
+            VectU dst { pos + i.direction[0].vect };
             
             if (i.contrasQFactor > _selectThreshold)
             {
@@ -1154,7 +1175,7 @@ namespace VidStab
             VectU                   rs { 16 };
             disp.drawRectangle(pos, rs, _PixT(0));
             
-            if (i.valid)
+            if (i.direction[0].valid)
             {
                 disp.drawBox(      dst, rs - 2, _PixT(255));
                 disp.drawRectangle(dst, rs,     _PixT(255));
