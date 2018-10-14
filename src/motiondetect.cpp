@@ -1095,8 +1095,8 @@ namespace VidStab
     
     
     
-    template <typename _PixT> void VSMD::_removeDev(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_optimize(Pyramids<_PixT>& aPt,
+                                                   VSFrame&         aFrame)
     {
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
@@ -1141,7 +1141,7 @@ namespace VidStab
                          (unsigned idx = 0; idx < _cells.size(); ++idx))
         {
             /*
-             * Calculates last frame first
+             * Calculates fast filter
              */
             auto&                 cell = _cells[idx];
             unsigned              p    { aPt.fm[_idxCurrent].size() - 1       };
@@ -1162,7 +1162,7 @@ namespace VidStab
                     
                     if (min > crl)
                     {
-                        min                    = crl;
+                        min                               = crl;
                         cell.direction[aPt.PTYPE_SW].vect = i();
                     }
                 }
@@ -1173,7 +1173,7 @@ namespace VidStab
             
             
             /*
-             * Calculates last frame first
+             * Calculates slow filter
              */
             for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
             {
@@ -1194,6 +1194,95 @@ namespace VidStab
                 while (i.next());
                 
                 cell.direction[idx].vect *= (1U << p);
+            }
+        }
+    }
+    
+    
+    template <typename _PixT> void VSMD::_finalize(Pyramids<_PixT>& aPt,
+                                                   VSFrame&         aFrame)
+    {
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(_threadsCnt,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < _cells.size(); ++idx))
+        {
+            /*
+             * Calculates fast filter
+             */
+            auto&       cell = _cells[idx];
+            const VectS rb   { -2 };
+            const VectS re   {  2 };
+            
+            for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
+            {
+                auto& dir = cell.direction[aPt.PTYPE_SW];
+                
+                if (!dir.valid)
+                {
+                    continue;
+                }
+                
+                const VectU           size { cell.size        >> p  };
+                const VectU           pos  { cell.position    >> p  };
+                const VectS           dv   { dir.vect / (1U   << p) };
+                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][p] };
+                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][   p] };
+                VectIterSSpiral       i    { rb + dv, re + dv       };
+                unsigned              min  { std::numeric_limits<unsigned>::max() };
+                
+                do
+                {
+                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
+                    
+                    if (min > crl)
+                    {
+                        min      = crl;
+                        dir.vect = i();
+                    }
+                }
+                while (i.next());
+                
+                dir.vect *= (1U << p);
+            }
+            
+            
+            /*
+             * Calculates slow filter
+             */
+            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            {
+                for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
+                {
+                    auto& dir = cell.direction[idx];
+                    
+                    if (!dir.valid)
+                    {
+                        continue;
+                    }
+                    
+                    const VectU           size { cell.size        >> p  };
+                    const VectU           pos  { cell.position    >> p  };
+                    const VectS           dv   { dir.vect / (1U   << p) };
+                    Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][p] };
+                    Frame::Canvas<_PixT>& prev { aPt.fm[idx][        p] };
+                    VectIterSSpiral       i    { rb + dv, re + dv       };
+                    unsigned              min  { std::numeric_limits<unsigned>::max() };
+                    
+                    do
+                    {
+                        unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
+                        
+                        if (min > crl)
+                        {
+                            min      = crl;
+                            dir.vect = i();
+                        }
+                    }
+                    while (i.next());
+                    
+                    dir.vect *= (1U << p);
+                }
             }
         }
     }
@@ -1221,15 +1310,15 @@ namespace VidStab
                 VectU pos { i.position                            };
                 VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
                 
-                unsigned x { i.direction[aPt.PTYPE_SW].valid ? 255U : 0U };
+                _PixT x { i.direction[aPt.PTYPE_SW].valid ? _PixT(255) : _PixT(0) };
                 
                 if (i.contrasQFactor > _selectThreshold)
                 {
                     VectU                 rs  { i.size - 16 };
-                    disp.drawBox(pos + 1, rs, _PixT(x));
+                    disp.drawBox(pos + 1, rs, x);
                 }
                 
-                disp.drawLine(pos, dst, 2, _PixT(x / 2));
+                disp.drawLine(pos, dst, 4, x);
             }
             
             
@@ -1242,7 +1331,7 @@ namespace VidStab
                 VectU dst { pos + i.direction[idx].vect };
                 VectU                   rs { 16 };
                 disp.drawRectangle(pos, rs, _PixT(0));
-                
+
                 _PixT x { i.direction[idx].valid ? _PixT(255) : _PixT(0) };
                 disp.drawBox(      dst, rs - 2, x);
                 disp.drawRectangle(dst, rs,     x);

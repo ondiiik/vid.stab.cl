@@ -649,7 +649,8 @@ namespace VidStab
             _next(          aPt, aFrame );
             _selectCells(   aPt, aFrame );
             _estimate(      aPt, aFrame );
-            _removeDev(     aPt, aFrame );
+            _optimize(      aPt, aFrame );
+            _finalize(      aPt, aFrame );
             _visualize(     aPt, aFrame );
         }
         
@@ -693,14 +694,14 @@ namespace VidStab
                                                     
                                                     
         /**
-         * @brief   Find deviations in detected vectors and remove them
+         * @brief   Optimize according to initial estimation
          *
          * @param   aPt     Pyramid for calculation
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _removeDev(Pyramids<_PixT>& aPt,
-                                                  VSFrame&         aFrame);
+        template <typename _PixT> void _optimize(Pyramids<_PixT>& aPt,
+                                                 VSFrame&         aFrame);
 
 
         /**
@@ -725,6 +726,20 @@ namespace VidStab
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _estimate(Pyramids<_PixT>& aPt,
+                                                 VSFrame&         aFrame);
+
+
+        /**
+         * @brief   Complete estimation of movements
+         *
+         * Uses the rest canvases in pyramid to create precise movement
+         * estimation
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _finalize(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame);
                                                  
                                                  
