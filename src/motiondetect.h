@@ -588,8 +588,20 @@ namespace VidStab
          * @brief   Alias for unsigned integer iterator
          */
         typedef Common::VectIt<int> VectIterS;
-
-
+        
+        
+        /**
+         * @brief   Alias for unsigned integer iterator
+         */
+        typedef Common::VectItSpiral<int> VectIterSSpiral;
+        
+        
+        /**
+         * @brief   Alias for unsigned integer iterator
+         */
+        typedef Common::VectItSpiral<unsigned> VectIterUSpiral;
+        
+        
         /**
          * @brief   Process frame
          * @param   aPt     Pyramid type

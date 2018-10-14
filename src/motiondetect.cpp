@@ -51,6 +51,7 @@
 #include "motiondetect.h"
 #include "frame_canvas.h"
 #include "common_exception.h"
+#include "common_dbg.h"
 
 #include "dbg_profiler.h"
 
@@ -64,20 +65,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstdio>
-#include <iostream> //DEBUG
-#define DBG_PRINT_VAR1(_txt_, _var_) \
-    do \
-    { \
-        std::cout << "[DBG] " << __FUNCTION__ << ":" << __LINE__ << ' ' << _txt_ << #_var_ " = " << _var_ << std::endl; \
-    } \
-    while (false)
-
-#define DBG_PRINT_VAR2(_txt_, _var1_, _var2_) \
-    do \
-    { \
-        std::cout << "[DBG] " << __FUNCTION__ << ":" << __LINE__ << ' ' << _txt_ << #_var1_ " = " << _var1_  << ", " #_var2_ " = " << _var2_ << std::endl; \
-    } \
-    while (false)
+#include <limits>
 
 
 
@@ -1085,24 +1073,28 @@ namespace VidStab
         {
             for (unsigned p { aPt.fm[_idxCurrent].size() - 1 }; p < 0x7FFFU; ++p)
             {
-                const VectS rb   { - int(_detectRange >> (p + 1)) };
-                const VectS re   {   int(_detectRange >> (p + 1)) };
-                const VectU size { cell.size          >>  p       };
-                const VectU pos  { cell.position      >>  p       };
-                VectIterS   i    { rb, re                         };
-                unsigned    min  { UINT_MAX                       };
-                
-                Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][p];
-                Frame::Canvas<_PixT>& prevCanvas = aPt.fm[_idxPrev][   p];
+                const VectS           rb   { - int(_detectRange >> (p + 1))       };
+                const VectS           re   {   int(_detectRange >> (p + 1))       };
+                const VectU           size { cell.size          >>  p             };
+                const VectU           pos  { cell.position      >>  p             };
+                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]            };
+                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p]            };
+                VectIterSSpiral       i    { rb, re                               };
+                unsigned              min  { std::numeric_limits<unsigned>::max() };
                 
                 do
                 {
-                    unsigned crl = _corelate(currCanvas, prevCanvas, pos, pos + i(), size);
+                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size) };
                     
                     if (min > crl)
                     {
                         min            = crl;
                         cell.direction = i();
+                        
+                        if (std::numeric_limits<unsigned>::min() == crl)
+                        {
+                            break;
+                        }
                     }
                 }
                 while (i.next());
@@ -1111,68 +1103,6 @@ namespace VidStab
                 break;
             }
         }
-        
-        
-//        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
-//        {
-//            Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][i];
-//            Frame::Canvas<_PixT>& prevCanvas = aPt.fm[_idxPrev][   i];
-//
-//            Common::Vect<unsigned> currShift;
-//            Common::Vect<unsigned> prevShift { 32, 32             };
-//            Common::Vect<unsigned> rect      { _detectBoxSize * 1 };
-//
-//            Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
-//
-//
-//
-//
-//
-//            std::vector<unsigned>  corelates(currCanvas.dim().dim(), 0);
-//            unsigned               min(UINT_MAX);
-//            Common::Vect<unsigned> minp;
-//
-//            for (currShift.y = 0; currShift.y < currCanvas.height(); ++currShift.y)
-//            {
-//                for (currShift.x = 0; currShift.x < currCanvas.width(); ++currShift.x)
-//                {
-//                    unsigned crl = _corelate(currCanvas, prevCanvas, currShift, prevShift, rect);
-//
-//                    if (min > crl)
-//                    {
-//                        min = crl;
-//                        minp = currShift;
-//                    }
-//
-//                    corelates[currShift.dim()] = crl;
-//                }
-//            }
-//
-//
-//            for (currShift.y = 0; currShift.y < currCanvas.height(); ++currShift.y)
-//            {
-//                for (currShift.x = 0; currShift.x < currCanvas.width(); ++currShift.x)
-//                {
-//                    disp[currShift] = currCanvas[currShift];
-//
-//                    if (currShift.isCloseSq(prevShift, 4))
-//                    {
-//                        disp[currShift] = _PixT(127);
-//                    }
-//
-//                    if (currShift.isCloseSq(minp, 4))
-//                    {
-//                        disp[currShift] = _PixT(255);
-//                    }
-//
-//                    disp.drawLine(minp, prevShift, 2, _PixT(0));
-//
-////                    disp[cv] = _PixT((corelates[cv.dim()] * 255) / max);
-//                }
-//            }
-//
-//            break;
-//        }
     }
     
     
@@ -1215,7 +1145,7 @@ namespace VidStab
         VectS          v    { 0, int(dist)       };
         unsigned       acc  { 0                  };
         VectU          rect { aRect - dist       };
-        VectIterU       i    { rect               };
+        VectIterU      i    { rect               };
         
         do
         {
@@ -1235,17 +1165,19 @@ namespace VidStab
                                                        const VectS                 aPrevShift,
                                                        const VectU                 aRect) const
     {
-        VectIterU i  { aRect };
-        unsigned acc { 0     };
+        VectIterU i   { aRect };
+        unsigned  acc { 0     };
         
         do
         {
-            acc += aCurrCanvas[aCurrShift + i()].abs();
-            acc -= aPrevCanvas[aPrevShift + i()].abs();
+            int v1 { aCurrCanvas[aCurrShift + i()].abs() };
+            int v2 { aPrevCanvas[aPrevShift + i()].abs() };
+            
+            acc += abs(v1 - v2);
         }
         while (i.next());
         
-        return abs(acc);
+        return acc;
     }
     
     

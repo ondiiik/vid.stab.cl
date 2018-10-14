@@ -297,6 +297,16 @@ namespace Common
         }
         
         
+        VectIt(_Tp aEnd) noexcept
+            :
+            _vect  {  },
+        _begin {      },
+        _end   { aEnd }
+        {
+        
+        }
+        
+        
         VectIt(const Vect<_Tp>& aBegin,
                const Vect<_Tp>& aEnd) noexcept
             :
@@ -361,5 +371,166 @@ namespace Common
         Vect<_Tp>       _vect;
         const Vect<_Tp> _begin;
         const Vect<_Tp> _end;
+    };
+    
+    
+    template <typename _Tp> class VectItSpiral
+    {
+    public:
+        VectItSpiral(const Vect<_Tp>& aEnd) noexcept
+            :
+            _vect  { aEnd / 2 },
+        _begin {              },
+        _end   { aEnd         },
+        _dir   { _LEFT        },
+        _limit { _Tp(1)       },
+        _step  { _Tp(0)       }
+        {
+        
+        }
+        
+        
+        VectItSpiral(_Tp aEnd) noexcept
+            :
+            _vect  { aEnd / 2 },
+        _begin {              },
+        _end   { aEnd         },
+        _dir   { _LEFT        },
+        _limit { _Tp(1)       },
+        _step  { _Tp(0)       }
+        {
+        
+        }
+        
+        
+        VectItSpiral(const Vect<_Tp>& aBegin,
+                     const Vect<_Tp>& aEnd) noexcept
+            :
+            _vect  { (aBegin + aEnd) / 2 },
+        _begin { aBegin                  },
+        _end   { aEnd                    },
+        _dir   { _LEFT                   },
+        _limit { _Tp(1)                  },
+        _step  { _Tp(0)                  }
+        {
+        
+        }
+        
+        
+        VectItSpiral(_Tp aBegin,
+                     _Tp aEnd) noexcept
+            :
+            _vect  { (aBegin + aEnd) / 2 },
+        _begin { aBegin                  },
+        _end   { aEnd                    },
+        _dir   { _LEFT                   },
+        _limit { _Tp(1)                  },
+        _step  { _Tp(0)                  }
+        {
+        
+        }
+        
+        
+        inline bool next() noexcept
+        {
+            ++_step;
+            
+            switch (_dir)
+            {
+                case _LEFT:
+                    ++_vect.x;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _DOWN;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _DOWN:
+                    ++_vect.y;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _RIGHT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+                    
+                    
+                case _RIGHT:
+                    --_vect.x;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _UP;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _UP:
+                    --_vect.y;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _LEFT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+            }
+            
+            if (_vect == _end)
+            {
+                _vect = _begin;
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+        
+        
+        inline operator Vect<_Tp>& () noexcept
+        {
+            return vect();
+        }
+        
+        
+        inline Vect<_Tp>& operator()() noexcept
+        {
+            return vect();
+        }
+        
+        
+        inline Vect<_Tp>& vect() noexcept
+        {
+            return _vect;
+        }
+        
+        
+    private:
+        enum _Direction
+        {
+            _LEFT,
+            _DOWN,
+            _RIGHT,
+            _UP
+        };
+        
+        Vect<_Tp>       _vect;
+        const Vect<_Tp> _begin;
+        const Vect<_Tp> _end;
+        _Direction      _dir;
+        _Tp             _limit;
+        _Tp             _step;
     };
 }
