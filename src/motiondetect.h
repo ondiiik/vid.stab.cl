@@ -99,6 +99,8 @@ namespace VidStab
             PTYPE_SW,
             PTYPE_SLOW_A,
             PTYPE_SLOW_B,
+            PTYPE_STATIC_A,
+            PTYPE_STATIC_B,
             PTYPE_COUNT
         };
 
@@ -108,6 +110,8 @@ namespace VidStab
             :
             fm
         {
+            { aDim, aMin },
+            { aDim, aMin },
             { aDim, aMin },
             { aDim, aMin },
             { aDim, aMin },

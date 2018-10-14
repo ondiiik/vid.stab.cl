@@ -84,25 +84,25 @@ namespace
     /**
      * @brief   Minimal count of detection boxes in shortest direction
      */
-    const unsigned _detectBoxes { 16 };
+    const unsigned _cellsCnt { 16 };
     
     
     /**
      * @brief   Detection box size (for smallest pyramid layer)
      */
-    const unsigned _detectBoxSize { 8 };
+    const unsigned _cellSize { 8 };
     
     
     /**
      * @brief   Minimal pyramid size
      */
-    const unsigned _piramidMinSize { _detectBoxes * _detectBoxSize };
+    const unsigned _piramidMinSize { _cellsCnt * _cellSize };
     
     
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _selectThreshold { 4 * 128 };
+    const unsigned _contrastThreshold { 4 * 128 };
     
     
     /**
@@ -110,7 +110,7 @@ namespace
      *
      * Filter used for filtering slow movements
      */
-    const unsigned _slowACnt { 16 };
+    const unsigned _slowACnt { 15 };
     
     
     /**
@@ -119,6 +119,22 @@ namespace
      * Filter used for filtering slow movements (shifted)
      */
     const unsigned _slowBCnt { _slowACnt / 2 };
+    
+    
+    /**
+     * @brief   Slow filter A count of frames
+     *
+     * Filter used for filtering slow movements
+     */
+    const unsigned _staticACnt { 60 };
+    
+    
+    /**
+     * @brief   Slow filter B count of frames
+     *
+     * Filter used for filtering slow movements (shifted)
+     */
+    const unsigned _staticBCnt { _staticACnt / 2 };
     
     
     /**
@@ -1016,8 +1032,8 @@ namespace VidStab
 //        }
 //        else
 //        {
-            LmList lm { *aMotions };
-            lm.init(1);
+        LmList lm { *aMotions };
+        lm.init(1);
 //            firstFrame = false;
 //        }
 //
@@ -1054,6 +1070,16 @@ namespace VidStab
         {
             aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
+        
+        if (0 == (idx % _staticACnt))
+        {
+            aPt.fm[aPt.PTYPE_STATIC_A] = aPt.fm[_idxCurrent];
+        }
+        
+        if ((0 == idx) || (0 == ((idx + _staticBCnt) % _staticACnt)))
+        {
+            aPt.fm[aPt.PTYPE_STATIC_B] = aPt.fm[_idxCurrent];
+        }
     }
     
     
@@ -1061,29 +1087,30 @@ namespace VidStab
                                                       VSFrame&         aFrame)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
-        const unsigned               mul    { 1U << idx                      };
-        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]       };
-        VectU                        cnt    { canvas.dim() / _detectBoxSize  };
-        VectU                        rect   { _detectBoxSize                 };
+        const unsigned               mul    { 1U << idx };
+        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
+        VectU                        b      { 1 };
+        VectU                        cnt    { (canvas.dim() - (_cellSize / 2)) / _cellSize };
+        VectU                        rect   { _cellSize };
         
         
         _cells.resize(0);
         
-        Common::VectIt<unsigned> i { cnt };
+        Common::VectIt<unsigned> i { b, cnt };
         
         do
         {
-            VectU           pos { i()* _detectBoxSize                };
+            VectU           pos { i()* _cellSize                };
             const unsigned  q   { _getCellQuality(canvas, pos, rect) };
             
-            if (_selectThreshold <= q)
+            if (_contrastThreshold <= q)
             {
                 Cell cell
                 {
                     (pos + rect / 2)* mul,
                     rect * mul,
                     { },
-                    q - _selectThreshold
+                    q - _contrastThreshold
                 };
                 
                 _cells.push_back(cell);
@@ -1142,12 +1169,12 @@ namespace VidStab
              * Calculates fast filter
              */
             auto&                 cell = _cells[idx];
-            unsigned              p    { aPt.fm[_idxCurrent].size() - 1       };
-            const VectS           rb   { - int(_detectRange >> (p + 1))       };
-            const VectS           re   {   int(_detectRange >> (p + 1))       };
-            const VectU           size { cell.size          >>  p             };
-            const VectU           pos  { cell.position      >>  p             };
-            Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]            };
+            unsigned              p    { aPt.fm[_idxCurrent].size() - 1 };
+            const VectS           rb   { - int(_detectRange >> (p + 1)) };
+            const VectS           re   {   int(_detectRange >> (p + 1)) };
+            const VectU           size { cell.size          >>  p       };
+            const VectU           pos  { cell.position      >>  p       };
+            Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]      };
             
             {
                 Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][p] };
@@ -1293,9 +1320,6 @@ namespace VidStab
         const unsigned       e    { unsigned(_cells.size())          };
         
         
-//        disp += aPt.fm[aPt.PTYPE_SLOW_A][0];
-
-
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
@@ -1311,7 +1335,7 @@ namespace VidStab
                 VectU pos { i.position                           };
                 VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
                 
-                if (i.contrasQFactor > _selectThreshold)
+                if (i.contrasQFactor > _contrastThreshold)
                 {
                     VectU rs { i.size - 16 };
                     
@@ -1348,7 +1372,7 @@ namespace VidStab
                 {
                     disp.drawBox(      dst, rs - 2, _PixT(64));
                     disp.drawRectangle(dst, rs,     _PixT(64));
-                    disp.drawLine(pos, dst, 1,      _PixT(64));
+                    disp.drawLine(pos, dst, 2,      _PixT(64));
                 }
             }
         }
@@ -1360,7 +1384,7 @@ namespace VidStab
                                                              const VectU&                aPosition,
                                                              const VectU&                aRect) const
     {
-        const unsigned dist { _detectBoxSize / 2 };
+        const unsigned dist { _cellSize / 2 };
         VectS          h    { int(dist), 0       };
         VectS          v    { 0, int(dist)       };
         VectU          rect { aRect - dist       };
