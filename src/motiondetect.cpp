@@ -1095,15 +1095,13 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        const unsigned               border { _detectRange / (mul* _cellSize * 2) };
-        VectU                        begin  { border };
-        VectU                        end    { (canvas.dim() + _cellSize / 2) / _cellSize - border };
+        VectU                        end    { (canvas.dim() + _cellSize / 2) / _cellSize };
         VectU                        rect   { _cellSize };
         
         
         _cells.resize(0);
         
-        Common::VectIt<unsigned> i { begin, end };
+        Common::VectIt<unsigned> i { end };
         
         do
         {
