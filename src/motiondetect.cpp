@@ -1066,37 +1066,38 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_detect(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_estimate(Pyramids<_PixT>& aPt,
+                                                   VSFrame&         aFrame)
     {
-        for (auto& cell : _cells)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < _cells.size(); ++idx))
         {
-            for (unsigned p { aPt.fm[_idxCurrent].size() - 1 }; p < 0x7FFFU; ++p)
+            auto&                 cell = _cells[idx];
+            unsigned              p    { aPt.fm[_idxCurrent].size() - 1       };
+            const VectS           rb   { - int(_detectRange >> (p + 1))       };
+            const VectS           re   {   int(_detectRange >> (p + 1))       };
+            const VectU           size { cell.size          >>  p             };
+            const VectU           pos  { cell.position      >>  p             };
+            Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]            };
+            Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p]            };
+            VectIterSSpiral       i    { rb, re                               };
+            unsigned              min  { std::numeric_limits<unsigned>::max() };
+            
+            do
             {
-                const VectS           rb   { - int(_detectRange >> (p + 1))       };
-                const VectS           re   {   int(_detectRange >> (p + 1))       };
-                const VectU           size { cell.size          >>  p             };
-                const VectU           pos  { cell.position      >>  p             };
-                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]            };
-                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p]            };
-                VectIterSSpiral       i    { rb, re                               };
-                unsigned              min  { std::numeric_limits<unsigned>::max() };
+                unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
                 
-                do
+                if (min > crl)
                 {
-                    unsigned crl { _corelate(curr, prev, pos, pos + i(), size, min) };
-                    
-                    if (min > crl)
-                    {
-                        min            = crl;
-                        cell.direction = i();
-                    }
+                    min            = crl;
+                    cell.direction = i();
                 }
-                while (i.next());
-                
-                cell.direction *= (1U << p);
-                break;
             }
+            while (i.next());
+            
+            cell.direction *= (1U << p);
         }
     }
     
@@ -1124,7 +1125,7 @@ namespace VidStab
             }
             
             disp.drawLine(pos, dst, 2, _PixT(255));
-
+            
             VectU                   rs  { 16 };
             disp.drawRectangle(pos, rs,     _PixT(0));
             disp.drawBox(      dst, rs - 2, _PixT(255));
@@ -1141,19 +1142,43 @@ namespace VidStab
         const unsigned dist { _detectBoxSize / 2 };
         VectS          h    { int(dist), 0       };
         VectS          v    { 0, int(dist)       };
-        unsigned       acc  { 0                  };
         VectU          rect { aRect - dist       };
         VectIterU      i    { rect               };
         
+        int            minV { std::numeric_limits<int>::max() };
+        int            maxV { std::numeric_limits<int>::min() };
+        int            minH { std::numeric_limits<int>::max() };
+        int            maxH { std::numeric_limits<int>::min() };
+        
         do
         {
-            acc += aCanvas[aPosition + i()    ].abs() * 2;
-            acc -= aCanvas[aPosition + i() + h].abs();
-            acc -= aCanvas[aPosition + i() + v].abs();
+            int p  {     int(aCanvas[aPosition + i()    ].abs()) };
+            int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
+            int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
+            
+            if (minV > dv)
+            {
+                minV = dv;
+            }
+            
+            if (maxV < dv)
+            {
+                maxV = dv;
+            }
+            
+            if (minH > dh)
+            {
+                minH = dh;
+            }
+            
+            if (maxH < dh)
+            {
+                maxH = dh;
+            }
         }
         while (i.next());
         
-        return abs(acc);
+        return abs(minV * maxV * minH * maxH);
     }
     
     
@@ -1173,7 +1198,7 @@ namespace VidStab
             int v2 { aPrevCanvas[aPrevShift + i()].abs() };
             
             acc += abs(v1 - v2);
-
+            
             if (aTrh < acc)
             {
                 break;

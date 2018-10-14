@@ -612,14 +612,17 @@ namespace VidStab
         {
             _next(     aPt, aFrame);
             _select(   aPt, aFrame);
-            _detect(   aPt, aFrame);
+            _estimate( aPt, aFrame);
             _visualize(aPt, aFrame);
         }
         
         
         /**
          * @brief   Read new frame pyramid including initialization
+         *
+         * @param   aPt     Pyramid for calculation
          * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> inline void _next(Pyramids<_PixT>& aPt,
                                                     VSFrame&         aFrame)
@@ -642,26 +645,48 @@ namespace VidStab
                                                     
                                                     
         /**
-         * @brief   Find best places for detection cells
+         * @brief   Find optimal places (cells) for detection
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _select(Pyramids<_PixT>& aPt,
                                                VSFrame&         aFrame);
                                                
                                                
         /**
-         * @brief   Correlate frames to detect movements
+         * @brief   Process first estimation of movements
+         *
+         * Uses smallest canvas in pyramid to create first estimations
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _detect(Pyramids<_PixT>& aPt,
+        template <typename _PixT> void _estimate(Pyramids<_PixT>& aPt,
                                                VSFrame&         aFrame);
                                                
                                                
         /**
-         * @brief   Visualize detection
+         * @brief   Show results of detection graphically
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _visualize(Pyramids<_PixT>& aPt,
                                                   VSFrame&         aFrame);
                                                   
                                                   
+        /**
+         * @brief   Get quality marker of potential cell
+         *
+         * @param   aCanvas     Canvas to be analyzed
+         * @param   aPosition   Position of cell
+         * @param   aRect       Size of cell
+         * @tparam  \_PixT  Pixel type
+         */
         template <typename _PixT> unsigned _validate(const Frame::Canvas<_PixT>& aCanvas,
                                                      const VectU                 aPosition,
                                                      const VectU                 aRect) const;
