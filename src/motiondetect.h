@@ -122,7 +122,7 @@ namespace VidStab
         /**
          * @brief   Position of center of cell
          */
-        Common::Vect<unsigned> position;
+        Common::Vect<int> position;
         
         /**
          * @brief   Cell size
@@ -581,9 +581,15 @@ namespace VidStab
         /**
          * @brief   Alias for unsigned integer iterator
          */
-        typedef Common::VectIt<unsigned> VectIter;
+        typedef Common::VectIt<unsigned> VectIterU;
         
         
+        /**
+         * @brief   Alias for unsigned integer iterator
+         */
+        typedef Common::VectIt<int> VectIterS;
+
+
         /**
          * @brief   Process frame
          * @param   aPt     Pyramid type
@@ -662,8 +668,8 @@ namespace VidStab
          */
         template <typename _PixT> unsigned _corelate(const Frame::Canvas<_PixT>&  aCurrC,
                                                      const Frame::Canvas<_PixT>&  aPrevC,
-                                                     const VectU                  aCurrV,
-                                                     const VectU                  aPrevV,
+                                                     const VectS                  aCurrV,
+                                                     const VectS                  aPrevV,
                                                      const VectU                  aRect) const;
                                                      
                                                      
@@ -677,18 +683,6 @@ namespace VidStab
          * @brief   YUV based piramids
          */
         Pyramids<Frame::PixYUV>* _piramidYUV;
-        
-        
-        /**
-         * @brief   Count of threads
-         */
-        unsigned _threadsCnt;
-        
-        
-        /**
-         * @brief   Movement per-CPU cells list
-         */
-        CellsBlock _cells;
         
         
         /**
@@ -709,6 +703,22 @@ namespace VidStab
         unsigned _idxPrev;
         
         
+        /**
+         * @brief   Count of threads
+         */
+        unsigned _threadsCnt;
+        
+        
+        /**
+         * @brief   Movement per-CPU cells list
+         */
+        CellsBlock _cells;
+        
+        
+        /**
+         * @brief   Range where searching for movements makes sense
+         */
+        unsigned _detectRange;
         
         
         

@@ -187,6 +187,38 @@ namespace Common
         }
         
         
+        template <typename _SrcTp> inline Vect& operator>>=(_SrcTp aVal) noexcept
+        {
+            this->x >>= unsigned(aVal);
+            this->y >>= unsigned(aVal);
+            return *this;
+        }
+        
+        
+        template <typename _SrcTp> inline Vect operator>>(_SrcTp aVal) const noexcept
+        {
+            Vect r { *this };
+            r >>= unsigned(aVal);
+            return r;
+        }
+        
+        
+        template <typename _SrcTp> inline Vect& operator<<=(_SrcTp aVal) noexcept
+        {
+            this->x <<= unsigned(aVal);
+            this->y <<= unsigned(aVal);
+            return *this;
+        }
+        
+        
+        template <typename _SrcTp> inline Vect operator<<(_SrcTp aVal) const noexcept
+        {
+            Vect r { *this };
+            r <<= unsigned(aVal);
+            return r;
+        }
+        
+        
         template <typename _SrcTp> inline Vect div(const Vect<_SrcTp>& aSrc) const noexcept
         {
             Vect r { *this };
@@ -257,8 +289,31 @@ namespace Common
     public:
         VectIt(const Vect<_Tp>& aEnd) noexcept
             :
-            _vect {       },
-            _end  { aEnd  }
+            _vect  {  },
+        _begin {      },
+        _end   { aEnd }
+        {
+        
+        }
+        
+        
+        VectIt(const Vect<_Tp>& aBegin,
+               const Vect<_Tp>& aEnd) noexcept
+            :
+            _vect  { aBegin },
+        _begin { aBegin     },
+        _end   { aEnd       }
+        {
+        
+        }
+        
+        
+        VectIt(_Tp aBegin,
+               _Tp aEnd) noexcept
+            :
+            _vect  { aBegin },
+        _begin { aBegin     },
+        _end   { aEnd       }
         {
         
         }
@@ -270,12 +325,12 @@ namespace Common
             
             if (_vect.x >= _end.x)
             {
-                _vect.x = 0;
+                _vect.x = _begin.x;
                 ++_vect.y;
                 
                 if (_vect.y >= _end.y)
                 {
-                    _vect.y = 0;
+                    _vect.y = _begin.y;
                     return false;
                 }
             }
@@ -284,20 +339,27 @@ namespace Common
         }
         
         
-        inline operator Vect<_Tp>&() noexcept
+        inline operator Vect<_Tp>& () noexcept
         {
             return vect();
         }
-
-
+        
+        
+        inline Vect<_Tp>& operator()() noexcept
+        {
+            return vect();
+        }
+        
+        
         inline Vect<_Tp>& vect() noexcept
         {
             return _vect;
         }
-
-
+        
+        
     private:
-        Vect<_Tp>        _vect;
-        const Vect<_Tp>& _end;
+        Vect<_Tp>       _vect;
+        const Vect<_Tp> _begin;
+        const Vect<_Tp> _end;
     };
 }

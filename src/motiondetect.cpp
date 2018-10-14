@@ -64,6 +64,20 @@
 #include <vector>
 #include <algorithm>
 #include <cstdio>
+#include <iostream> //DEBUG
+#define DBG_PRINT_VAR1(_txt_, _var_) \
+    do \
+    { \
+        std::cout << "[DBG] " << __FUNCTION__ << ":" << __LINE__ << ' ' << _txt_ << #_var_ " = " << _var_ << std::endl; \
+    } \
+    while (false)
+
+#define DBG_PRINT_VAR2(_txt_, _var1_, _var2_) \
+    do \
+    { \
+        std::cout << "[DBG] " << __FUNCTION__ << ":" << __LINE__ << ' ' << _txt_ << #_var1_ " = " << _var1_  << ", " #_var2_ " = " << _var2_ << std::endl; \
+    } \
+    while (false)
 
 
 
@@ -589,11 +603,14 @@ namespace VidStab
         
         _piramidRGB    { nullptr                     },
         _piramidYUV    { nullptr                     },
-        _threadsCnt    { OMP_MAX_THREADS             },
-        _cells         ( ),
         _idx           { 0U                          },
         _idxCurrent    { 0U                          },
-        _idxPrev       { 0U                          }
+        _idxPrev       { 0U                          },
+        
+        _threadsCnt    { OMP_MAX_THREADS             },
+        
+        _cells         {                             },
+        _detectRange   { unsigned(aFi->width / 6)    }
         
         
         
@@ -1040,7 +1057,7 @@ namespace VidStab
         
         do
         {
-            VectU           pos { i.vect() * _detectBoxSize    };
+            VectU           pos { i()* _detectBoxSize          };
             const unsigned  q   { _validate(canvas, pos, rect) };
             
             if (_selectThreshold <= q)
@@ -1049,7 +1066,7 @@ namespace VidStab
                 {
                     (pos + rect / 2)* mul,
                     rect * mul,
-                    Common::Vect<int>(2, 2),
+                    Common::Vect<int>(),
                     q - _selectThreshold
                 };
                 
@@ -1064,18 +1081,38 @@ namespace VidStab
     template <typename _PixT> void VSMD::_detect(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame)
     {
-        for (auto& i : _cells)
+        for (auto& cell : _cells)
         {
-            VectIter currShift { i.size };
-
-            do
+            for (unsigned p { aPt.fm[_idxCurrent].size() - 1 }; p < 0x7FFFU; ++p)
             {
-
+                const VectS rb   { - int(_detectRange >> (p + 1)) };
+                const VectS re   {   int(_detectRange >> (p + 1)) };
+                const VectU size { cell.size          >>  p       };
+                const VectU pos  { cell.position      >>  p       };
+                VectIterS   i    { rb, re                         };
+                unsigned    min  { UINT_MAX                       };
+                
+                Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][p];
+                Frame::Canvas<_PixT>& prevCanvas = aPt.fm[_idxPrev][   p];
+                
+                do
+                {
+                    unsigned crl = _corelate(currCanvas, prevCanvas, pos, pos + i(), size);
+                    
+                    if (min > crl)
+                    {
+                        min            = crl;
+                        cell.direction = i();
+                    }
+                }
+                while (i.next());
+                
+                cell.direction *= (1U << p);
+                break;
             }
-            while (currShift.next());
         }
-
-
+        
+        
 //        for (unsigned i { aPt.fm[_idxCurrent].size() - 1 }; i < 0x7FFFU; ++i)
 //        {
 //            Frame::Canvas<_PixT>& currCanvas = aPt.fm[_idxCurrent][i];
@@ -1178,13 +1215,13 @@ namespace VidStab
         VectS          v    { 0, int(dist)       };
         unsigned       acc  { 0                  };
         VectU          rect { aRect - dist       };
-        VectIter       i    { rect               };
+        VectIterU       i    { rect               };
         
         do
         {
-            acc += aCanvas[aPosition + i.vect()    ].abs() * 2;
-            acc -= aCanvas[aPosition + i.vect() + h].abs();
-            acc -= aCanvas[aPosition + i.vect() + v].abs();
+            acc += aCanvas[aPosition + i()    ].abs() * 2;
+            acc -= aCanvas[aPosition + i() + h].abs();
+            acc -= aCanvas[aPosition + i() + v].abs();
         }
         while (i.next());
         
@@ -1194,17 +1231,17 @@ namespace VidStab
     
     template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>& aCurrCanvas,
                                                        const Frame::Canvas<_PixT>& aPrevCanvas,
-                                                       const VectU                 aCurrShift,
-                                                       const VectU                 aPrevShift,
+                                                       const VectS                 aCurrShift,
+                                                       const VectS                 aPrevShift,
                                                        const VectU                 aRect) const
     {
-        VectIter i   { aRect };
+        VectIterU i  { aRect };
         unsigned acc { 0     };
         
         do
         {
-            acc += aCurrCanvas[aCurrShift + i].abs();
-            acc -= aPrevCanvas[aPrevShift + i].abs();
+            acc += aCurrCanvas[aCurrShift + i()].abs();
+            acc -= aPrevCanvas[aPrevShift + i()].abs();
         }
         while (i.next());
         
