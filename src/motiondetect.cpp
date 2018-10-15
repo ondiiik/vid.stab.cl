@@ -160,452 +160,7 @@ namespace
             throw Common::VS_EXCEPTION("Detect data C structure is NULL!");
         }
     }
-    
-    
-#if defined(USE_SSE2)
-    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
-#endif
-    
-    
-    enum _KernelId
-    {
-        KRN___BLUR_H,
-        KRN___BLUR_V
-    };
-    
-    
-    class _Spiral
-    {
-    public:
-        _Spiral()
-            :
-            i      {       },
-            _limit { 1     },
-            _step  { 0     },
-            _dir   { _LEFT }
-        {
-        
-        }
-        
-        
-        /**
-         * @brief   Check if spiral index is in range
-         * @param   aMaxShift    Range
-         * @return  Result
-         */
-        inline bool operator<(int aMaxShift)
-        {
-            return (i.y >= -aMaxShift) &&
-                   (i.y <=  aMaxShift) &&
-                   (i.x >= -aMaxShift) &&
-                   (i.x <=  aMaxShift);
-        }
-        
-        
-        /**
-         * @brief   Spiral indexing
-         * @param   aStepSize   Step size
-         */
-        inline _Spiral& operator+=(int aStepSize)
-        {
-            ++_step;
-            
-            switch (_dir)
-            {
-                case _LEFT:
-                    i.x += aStepSize;
-                    
-                    if (_step == _limit)
-                    {
-                        _dir  = _DOWN;
-                        _step = 0;
-                    }
-                    
-                    break;
-                    
-                    
-                case _DOWN:
-                    i.y += aStepSize;
-                    
-                    if (_step == _limit)
-                    {
-                        _dir  = _RIGHT;
-                        _step = 0;
-                        ++_limit;
-                    }
-                    
-                    break;
-                    
-                    
-                case _RIGHT:
-                    i.x -= aStepSize;
-                    
-                    if (_step == _limit)
-                    {
-                        _dir  = _UP;
-                        _step = 0;
-                    }
-                    
-                    break;
-                    
-                    
-                case _UP:
-                    i.y -= aStepSize;
-                    
-                    if (_step == _limit)
-                    {
-                        _dir  = _LEFT;
-                        _step = 0;
-                        ++_limit;
-                    }
-                    
-                    break;
-            }
-            
-            return *this;
-        }
-        
-        
-        Vec i;
-        
-        
-    private:
-        enum _Direction
-        {
-            _LEFT,
-            _DOWN,
-            _RIGHT,
-            _UP
-        };
-        
-        int        _limit;
-        int        _step;
-        _Direction _dir;
-    };
-    
-    
-    
-    
-    const char* _fmt2str(VSPixelFormat aFmt)
-    {
-        switch (aFmt)
-        {
-            case PF_NONE:
-                return "NONE";
-            case PF_GRAY8:
-                return "GRAY8";
-            case PF_YUV420P:
-                return "YUV420P";
-            case PF_YUV422P:
-                return "YUV422P";
-            case PF_YUV444P:
-                return "YUV444P";
-            case PF_YUV410P:
-                return "YUV410P";
-            case PF_YUV411P:
-                return "YUV411P";
-            case PF_YUV440P:
-                return "YUV440P";
-            case PF_YUVA420P:
-                return "YUVA420P";
-            case PF_PACKED:
-                return "PACKED";
-            case PF_RGB24:
-                return "RGB24";
-            case PF_BGR24:
-                return "BGR24";
-            case PF_RGBA:
-                return "RGBA";
-            default:
-                return "unknown";
-        }
-    }
-    
-    
-    /*
-     * Compares contrast_idx structures respect to the contrast
-     * (for sort function)
-     */
-    bool _cmp_Contrast(const VidStab::ContrastIdx& ci1,
-                       const VidStab::ContrastIdx& ci2)
-    {
-        return ci1.contrast < ci2.contrast;
-    }
 }
-
-
-VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName)
-{
-    VSMotionDetectConfig conf;
-    conf.stepSize          = 6;
-    conf.accuracy          = 15;
-    conf.shakiness         = 5;
-    conf.virtualTripod     = 0;
-    conf.contrastThreshold = 0.25;
-    conf.show              = 0;
-    conf.modName           = modName;
-    conf.numThreads        = 0;
-    return conf;
-}
-
-
-void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
-                             const VSMotionDetect* aMd)
-{
-    try
-    {
-        const VSMD& md = VSMD2Inst(aMd);
-        *aConf    = md.conf;
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
-        assert(false);
-    }
-    catch (...)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
-        assert(false);
-    }
-}
-
-
-const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
-{
-    try
-    {
-        const VSMD& md = VSMD2Inst(aMd);
-        return     &md.fiInfoC;
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
-        assert(false);
-    }
-    catch (...)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
-        assert(false);
-    }
-    
-    return nullptr;
-}
-
-
-int vsMotionDetectInit(VSMotionDetect*             aMd,
-                       const VSMotionDetectConfig* aConf,
-                       const VSFrameInfo*          aFi)
-{
-    const char* modName = ((nullptr != aConf) ? aConf->modName : "vid.stab");
-    
-    if (nullptr == aMd)
-    {
-        vs_log_error(modName, "Can not initialize null instance!\n");
-        return VS_ERROR;
-    }
-    
-    try
-    {
-        VSMD* md   = new VSMD(modName, aMd, aConf, aFi);
-        aMd->_inst = md;
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error(modName, "[filter] Failed!\n");
-        vs_log_error(modName, "%s\n", exc.what());
-        return VS_ERROR;
-    }
-    catch (...)
-    {
-        vs_log_error(modName, "[filter] Failed!\n");
-        vs_log_error(modName, "Unknown failure type!\n");
-        return VS_ERROR;
-    }
-    
-    
-    vs_log_info(modName,
-                "[filter] Initialized: [%ix%i]:%s\n",
-                aFi->width,
-                aFi->height,
-                _fmt2str(aFi->pFormat));
-                
-    return VS_OK;
-}
-
-
-void vsMotionDetectionCleanup(VSMotionDetect* aMd)
-{
-    VSMD*  md = &(VSMD2Inst(aMd));
-    delete md;
-    aMd->_inst = nullptr;
-}
-
-
-// returns true if match of local motion is better than threshold
-bool __lm_match_better(const LocalMotion& lm, const double& tresh)
-{
-    return (lm.match <= tresh);
-}
-
-
-short lm_match_better(void* thresh, void* lm)
-{
-    if (((LocalMotion*)lm)->match <= *((double*)thresh))
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-
-int vsMotionDetection(VSMotionDetect* aMd,
-                      LocalMotions*   aMotions,
-                      VSFrame*        aFrame)
-{
-    VSMD& md = VSMD2Inst(aMd);
-    
-    try
-    {
-        md(aMotions, *aFrame);
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error(md.conf.modName, "[filter] Failed!\n");
-        vs_log_error(md.conf.modName, "%s\n", exc.what());
-        return VS_ERROR;
-    }
-    
-    return VS_OK;
-}
-
-
-int vsPrepareFile(const VSMotionDetect* aMd,
-                  FILE*                 f)
-{
-    if (nullptr == f)
-    {
-        return VS_ERROR;
-    }
-    
-    try
-    {
-        const VSMD& md = VSMD2Inst(aMd);
-        
-        fprintf(f, "VID.STAB 1\n");
-        fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
-        fprintf(f, "#      accuracy = %d\n", md.conf.accuracy);
-        fprintf(f, "#     shakiness = %d\n", md.conf.shakiness);
-        fprintf(f, "#      stepsize = %d\n", md.conf.stepSize);
-        fprintf(f, "#   mincontrast = %f\n", md.conf.contrastThreshold);
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "%s\n", exc.what());
-        return VS_ERROR;
-    }
-    catch (...)
-    {
-        vs_log_error("vidstab", "[filter] Failed!\n");
-        vs_log_error("vidstab", "Unknown failure type!\n");
-        return VS_ERROR;
-    }
-    
-    return VS_OK;
-}
-
-
-int vsWriteToFile(const VSMotionDetect* aMd,
-                  FILE*                 f,
-                  const LocalMotions*   lms)
-{
-    if ((nullptr == f) || (nullptr == lms))
-    {
-        return VS_ERROR;
-    }
-    
-    try
-    {
-        const VSMD& md = VSMD2Inst(aMd);
-        
-        if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
-        {
-            return VS_ERROR;
-        }
-        
-        if (vsStoreLocalmotions(f, lms) <= 0)
-        {
-            return VS_ERROR;
-        }
-        
-        if (fprintf(f, ")\n") <= 0)
-        {
-            return VS_ERROR;
-        }
-    }
-    catch (std::exception& exc)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
-        return VS_ERROR;
-    }
-    catch (...)
-    {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
-        return VS_ERROR;
-    }
-    
-    return VS_OK;
-}
-
-
-/**
-   calculates Michelson-contrast in the given small part of the given image
-   to be more compatible with the absolute difference formula this is scaled by 0.1
-
-   \param I pointer to framebuffer
-   \param field Field specifies position(center) and size of subimage
-   \param width width of frame (linesize in pixels)
-   \param height height of frame
-   \param bytesPerPixel calc contrast for only for first channel
-*/
-double contrastSubImg(unsigned char* const I,
-                      const Field*         field,
-                      int                  width,
-                      int                  height,
-                      int                  bytesPerPixel)
-{
-    int            s2   = field->size / 2;
-    unsigned char  mini = 255;
-    unsigned char  maxi = 0;
-    unsigned char* p    = I + ((field->x - s2) + (field->y - s2) * width) * bytesPerPixel;
-    
-    for (int j = 0; j < field->size; ++j)
-    {
-        for (int k = 0; k < field->size; ++k)
-        {
-            mini = (mini < *p) ? mini : *p;
-            maxi = (maxi > *p) ? maxi : *p;
-            p += bytesPerPixel;
-        }
-        
-        p += (width - field->size) * bytesPerPixel;
-    }
-    
-    return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to prevent from division by 0
-}
-
-
-
-
 
 
 namespace VidStab
@@ -649,6 +204,9 @@ namespace VidStab
         _clProgramName {          }
 #endif
     {
+        /*
+         * Check input arguments
+         */
         if (nullptr == aConf)
         {
             throw Common::VS_EXCEPTION("Configuration structure is NULL!");
@@ -659,18 +217,13 @@ namespace VidStab
             throw Common::VS_EXCEPTION("Frame info structure is NULL!");
         }
         
-        _initMsg();
-        _initVsDetect(aConf, aFi);
-        _initOpenCl();
-        
-        
-        
-        
-        
         
         /*
          * Allocates pyramids for faster correlation
          */
+        conf    = *aConf;
+        fiInfoC = *aFi;
+        
         if (fi.pixFormat() > PF_PACKED)
         {
             _piramidRGB = new Pyramids<Frame::PixRGB>(fi.dim(), _piramidMinSize);
@@ -679,6 +232,15 @@ namespace VidStab
         {
             _piramidYUV = new Pyramids<Frame::PixYUV>(fi.dim(), _piramidMinSize);
         }
+        
+        
+        
+        
+        
+        
+        _initMsg();
+        _initVsDetect(aConf, aFi);
+        _initOpenCl();
     }
     
     
@@ -718,291 +280,6 @@ namespace VidStab
     }
     
     
-    void VSMD::_initOpenCl()
-    {
-#if defined(USE_OPENCL)
-        _initOpenCl_selectDevice();
-        _initOpenCl_prepareKernels();
-#endif
-    }
-    
-    
-#if defined(USE_OPENCL)
-    void VSMD::_initOpenCl_selectDevice()
-    {
-        vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
-        
-        
-        bool first { true };
-        
-        for (auto& platform : OpenCl::devices)
-        {
-            for (auto& device : platform)
-            {
-                if (first)
-                {
-                    vs_log_info(_mn.c_str(),
-                                "[OpenCL] --> %s\n",
-                                device.getInfo<CL_DEVICE_NAME>().c_str());
-                    _clDevice = device;
-                    first     = false;
-                }
-                else
-                {
-                    vs_log_info(_mn.c_str(),
-                                "[OpenCL]     %s\n",
-                                device.getInfo<CL_DEVICE_NAME>().c_str());
-                }
-            }
-        }
-        
-        if (first)
-        {
-            throw Common::VS_EXCEPTION("There is no device available!");
-        }
-        
-        _clContext = new cl::Context({_clDevice});
-    }
-    
-    
-    void VSMD::_initOpenCl_prepareKernels()
-    {
-        cl::Program::Sources           opencl___blur_h_src;
-        opencl___blur_h_src.push_back({opencl___blur_h,  opencl___blur_h_len});
-        _clSources.push_back(          opencl___blur_h_src);
-        _clProgramName.push_back(      "blurH");
-        
-        cl::Program::Sources           opencl___blur_v_src;
-        opencl___blur_v_src.push_back({opencl___blur_v,  opencl___blur_v_len});
-        _clSources.push_back(          opencl___blur_v_src);
-        _clProgramName.push_back(      "blurV");
-        
-        
-        for (auto& src : _clSources)
-        {
-            cl::Program* pgm = new cl::Program(*_clContext, src);
-            
-            if (CL_SUCCESS != pgm->build({_clDevice}))
-            {
-                throw Common::VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
-            }
-            
-            _clProgram.push_back(pgm);
-        }
-        
-        vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
-    }
-#endif /* !defined(USE_OPENCL) */
-    
-    
-    void VSMD::_initMsg()
-    {
-        vs_log_info(_mn.c_str(), "[filter] Info:\n");
-        vs_log_info(_mn.c_str(), "[filter] \tbuilt - " __DATE__ "\n");
-        vs_log_info(_mn.c_str(), "[filter] \tflags - "
-#if defined(USE_OPENCL)
-                    "OpenCL "
-#endif
-#if defined(USE_OMP)
-                    "OMP "
-#endif
-#if defined(USE_SSE2)
-                    "SSE2 "
-#endif
-                    
-                    "\n");
-    }
-    
-    
-    void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
-                             const VSFrameInfo*          aFi)
-    {
-        /*
-         * First of all check inputs before we use them
-         */
-        if (nullptr == aConf)
-        {
-            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
-        }
-        
-        if (nullptr == aFi)
-        {
-            throw Common::VS_EXCEPTION("Frame info is NULL!");
-        }
-        
-        conf    = *aConf;
-        fiInfoC = *aFi;
-        
-        
-        /*
-         * Is requested pixel format supported by us?
-         */
-        if ((fi.pixFormat() <= PF_NONE)   ||
-            (fi.pixFormat() == PF_PACKED) ||
-            (fi.pixFormat() >= PF_NUMBER))
-        {
-            throw Common::VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
-        }
-        
-        
-#ifdef USE_OMP
-        if (conf.numThreads == 0)
-        {
-            conf.numThreads = VS_MAX(omp_get_max_threads(), 1);
-        }
-        vs_log_info(conf.modName, "[filter] Multithreading: use %i threads\n", conf.numThreads);
-#endif
-        
-        
-        prev.alloc();
-        currTmp.alloc();
-        currPrep.alloc();
-        
-        frameNum        = 0;
-        
-        conf.shakiness  = VS_MIN(10, VS_MAX(1, conf.shakiness));
-        conf.accuracy   = VS_MIN(15, VS_MAX(1, conf.accuracy));
-        
-        if ((conf.accuracy) < (conf.shakiness / 2))
-        {
-            conf.accuracy = conf.shakiness / 2;
-            vs_log_info(conf.modName,
-                        "[filter] Accuracy should not be lower than shakiness / 2 -- fixed to %i\n",
-                        conf.accuracy);
-        }
-        
-        if ((conf.accuracy > 9) && (conf.stepSize > 6))
-        {
-            conf.stepSize = 6;
-            vs_log_info(conf.modName,
-                        "[filter] For high accuracy use lower stepsize  -- fixed to %i now\n",
-                        conf.stepSize);
-        }
-        
-        int minDimension  = VS_MIN(fi.width(), fi.height());
-        //  shift: shakiness 1: height/40; 10: height/4
-        //  maxShift = VS_MAX(4,(minDimension*conf.shakiness)/40);
-        //  size: shakiness 1: height/40; 10: height/6 (clipped)
-        //  fieldSize = VS_MAX(4,VS_MIN(minDimension/6, (minDimension*conf.shakiness)/40));
-        
-        // fixed size and shift now
-        int maxShift      = VS_MAX(16, minDimension / 7);
-        int fieldSize     = VS_MAX(16, minDimension / 10);
-        int fieldSizeFine = VS_MAX(6,  minDimension / 60);
-        
-#if defined(USE_SSE2)
-        fieldSize     = (fieldSize     / 16 + 1) * 16;
-        fieldSizeFine = (fieldSizeFine / 16 + 1) * 16;
-#endif
-        
-        _initFields(fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
-        _initFields(fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
-    }
-    
-    
-    void VSMD::_initFields(VSMotionDetectFields& fs,
-                           int                   size,
-                           int                   maxShift,
-                           int                   stepSize,
-                           short                 keepBorder,
-                           int                   spacing,
-                           double                contrastThreshold)
-    {
-        fs.fieldSize         = size;
-        fs.maxShift          = maxShift;
-        fs.stepSize          = stepSize;
-        fs.useOffset         = 0;
-        fs.contrastThreshold = contrastThreshold;
-        
-        int rows = VS_MAX(3, (fiInfoC.height - fs.maxShift * 2) / (size + spacing) -1);
-        int cols = VS_MAX(3, (fiInfoC.width  - fs.maxShift * 2) / (size + spacing) -1);
-        
-        // make sure that the remaining rows have the same length
-        fs.fieldNum  = rows * cols;
-        fs.fieldRows = rows;
-        
-        if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
-        {
-            throw Common::VS_EXCEPTION("Allocation failed!");
-        }
-        else
-        {
-            int border = fs.stepSize;
-            // the border is the amount by which the field centers
-            // have to be away from the image boundary
-            // (stepsize is added in case shift is increased through stepsize)
-            if (keepBorder)
-            {
-                border = size / 2 + fs.maxShift + fs.stepSize;
-            }
-            int step_x = (fiInfoC.width  - 2 * border) / VS_MAX(cols - 1, 1);
-            int step_y = (fiInfoC.height - 2 * border) / VS_MAX(rows - 1, 1);
-            
-            for (int j = 0; j < rows; j++)
-            {
-                for (int i = 0; i < cols; i++)
-                {
-                    int idx = j * cols + i;
-                    
-                    fs.fields[idx].x    = border + i * step_x;
-                    fs.fields[idx].y    = border + j * step_y;
-                    fs.fields[idx].size = size;
-                }
-            }
-        }
-        
-        
-        fs.maxFields = (conf.accuracy) * fs.fieldNum / 15;
-        
-        vs_log_info(conf.modName,
-                    "[filter] Fieldsize: %i, Maximal translation: %i pixel\n",
-                    fs.fieldSize,
-                    fs.maxShift);
-                    
-        vs_log_info(conf.modName,
-                    "[filter] Number of used measurement fields: %i out of %i\n",
-                    fs.maxFields,
-                    fs.fieldNum);
-    }
-    
-    
-    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields& fields,
-                                        calcFieldTransFunc    fieldfunc,
-                                        contrastSubImgFunc    contrastfunc)
-    {
-        LocalMotions                   localmotionsC;
-        LmList          localmotions { localmotionsC };
-        localmotions.init(fields.maxFields);
-        
-        
-        std::vector<ContrastIdx> goodflds {};
-        _selectfields(goodflds, fields, contrastfunc);
-        
-        
-        OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(conf.numThreads,
-                         omp parallel for shared(goodflds, md, localmotions),
-                         (int index = 0; index < int(goodflds.size()); ++index))
-        {
-            int i = goodflds[index].index;
-            
-            LocalMotion m = fieldfunc(*this, fields, fields.fields[i], i); // e.g. calcFieldTransPlanar
-            
-            if (m.match >= 0)
-            {
-                m.contrast = goodflds[index].contrast;
-                
-                OMP_CRITICAL(localmotions_append)
-                {
-                    vs_vector_append_dup(&localmotionsC, &m, sizeof(LocalMotion));
-                }
-            }
-        }
-        
-        return localmotionsC;
-    }
-    
-    
     void VSMD::operator ()(LocalMotions* aMotions,
                            VSFrame&      aFrame)
     {
@@ -1018,40 +295,14 @@ namespace VidStab
         {
             throw Common::VS_EXCEPTION("No valid pixel model selected!");
         }
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//        Frame::Frame frm { aFrame, fi };
-//
-//        _blur(frm);
-//
-//        if (!firstFrame)
-//        {
-//            _vs_detect(aMotions, frm);
-//        }
-//        else
-//        {
+        
+        
+        /*
+         * Code will be removed in future. Now is required
+         * to prevent ffmpeg to access NULL pointer
+         */
         LmList lm { *aMotions };
         lm.init(1);
-//            firstFrame = false;
-//        }
-//
-//        if ((conf.virtualTripod < 1) || (frameNum < conf.virtualTripod))
-//        {
-//            /*
-//             * For tripod we keep a certain reference frame
-//             */
-//            prev = curr;
-//        }
-//
-//        frameNum++;
     }
     
     
@@ -1095,31 +346,38 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        VectU                        end    { (canvas.dim() + _cellSize / 2) / _cellSize };
+        VectU                        begin  { 1 };
+        VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         VectU                        rect   { _cellSize };
         
         
         _cells.resize(0);
         
-        Common::VectIt<unsigned> i { end };
+        Common::VectIt<unsigned> i { begin, end };
         
         do
         {
-            VectU           pos { i()* _cellSize };
-            const unsigned  q   { _getCellQuality(canvas, pos, rect) };
+            VectU    pos { i()* _cellSize };
+            unsigned q   { _getCellQuality(canvas, pos, rect) };
             
             if (_contrastThreshold <= q)
             {
-                Cell cell
-                {
-                    (pos + rect / 2)* mul,
-                    rect * mul,
-                    { },
-                    q - _contrastThreshold
-                };
-                
-                _cells.push_back(cell);
+                q -= _contrastThreshold;
             }
+            else
+            {
+                q = 0;
+            }
+            
+            Cell cell
+            {
+                (pos + rect / 2)* mul,
+                rect * mul,
+                { },
+                q - _contrastThreshold
+            };
+            
+            _cells.push_back(cell);
         }
         while (i.next());
     }
@@ -1334,13 +592,35 @@ namespace VidStab
             
             
             /*
+             * Show slow filters
+             */
+            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            {
+                VectU pos { i.position                  };
+                VectU dst { pos + i.direction[idx].vect };
+                VectU                   rs { 16 };
+                disp.drawRectangle(pos, rs, _PixT(0));
+                
+                if (i.direction[idx].valid)
+                {
+                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
+                    unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
+
+                    disp.drawBox(      dst, rs - 2, x);
+                    disp.drawRectangle(dst, rs,     x);
+                    disp.drawLine(pos, dst, w,      x);
+                }
+            }
+            
+            
+            /*
              * Show fast filters
              */
             {
                 VectU pos { i.position                           };
                 VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
                 
-                if (i.contrasQFactor > _contrastThreshold)
+                if (i.qfContrast > _contrastThreshold)
                 {
                     VectU rs { i.size - 16 };
                     
@@ -1359,25 +639,6 @@ namespace VidStab
                 if (i.direction[aPt.PTYPE_SW].valid)
                 {
                     disp.drawLine(pos, dst, 4, _PixT(255));
-                }
-            }
-            
-            
-            /*
-             * Show slow filters
-             */
-            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
-            {
-                VectU pos { i.position                  };
-                VectU dst { pos + i.direction[idx].vect };
-                VectU                   rs { 16 };
-                disp.drawRectangle(pos, rs, _PixT(0));
-                
-                if (i.direction[idx].valid)
-                {
-                    disp.drawBox(      dst, rs - 2, _PixT(64));
-                    disp.drawRectangle(dst, rs,     _PixT(64));
-                    disp.drawLine(pos, dst, 2,      _PixT(64));
                 }
             }
         }
@@ -1458,20 +719,223 @@ namespace VidStab
         
         return acc;
     }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+namespace
+{
+#if defined(USE_SSE2)
+    unsigned char _mask[16] = {0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+#endif
+    
+    
+    enum _KernelId
+    {
+        KRN___BLUR_H,
+        KRN___BLUR_V
+    };
+    
+    
+    class _Spiral
+    {
+    public:
+        _Spiral()
+            :
+            i      {       },
+            _limit { 1     },
+            _step  { 0     },
+            _dir   { _LEFT }
+        {
+        
+        }
+        
+        
+        /**
+         * @brief   Check if spiral index is in range
+         * @param   aMaxShift    Range
+         * @return  Result
+         */
+        inline bool operator<(int aMaxShift)
+        {
+            return (i.y >= -aMaxShift) &&
+                   (i.y <=  aMaxShift) &&
+                   (i.x >= -aMaxShift) &&
+                   (i.x <=  aMaxShift);
+        }
+        
+        
+        /**
+         * @brief   Spiral indexing
+         * @param   aStepSize   Step size
+         */
+        inline _Spiral& operator+=(int aStepSize)
+        {
+            ++_step;
+            
+            switch (_dir)
+            {
+                case _LEFT:
+                    i.x += aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _DOWN;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _DOWN:
+                    i.y += aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _RIGHT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+                    
+                    
+                case _RIGHT:
+                    i.x -= aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _UP;
+                        _step = 0;
+                    }
+                    
+                    break;
+                    
+                    
+                case _UP:
+                    i.y -= aStepSize;
+                    
+                    if (_step == _limit)
+                    {
+                        _dir  = _LEFT;
+                        _step = 0;
+                        ++_limit;
+                    }
+                    
+                    break;
+            }
+            
+            return *this;
+        }
+        
+        
+        Vec i;
+        
+        
+    private:
+        enum _Direction
+        {
+            _LEFT,
+            _DOWN,
+            _RIGHT,
+            _UP
+        };
+        
+        int        _limit;
+        int        _step;
+        _Direction _dir;
+    };
     
     
     
     
+    const char* _fmt2str(VSPixelFormat aFmt)
+    {
+        switch (aFmt)
+        {
+            case PF_NONE:
+                return "NONE";
+            case PF_GRAY8:
+                return "GRAY8";
+            case PF_YUV420P:
+                return "YUV420P";
+            case PF_YUV422P:
+                return "YUV422P";
+            case PF_YUV444P:
+                return "YUV444P";
+            case PF_YUV410P:
+                return "YUV410P";
+            case PF_YUV411P:
+                return "YUV411P";
+            case PF_YUV440P:
+                return "YUV440P";
+            case PF_YUVA420P:
+                return "YUVA420P";
+            case PF_PACKED:
+                return "PACKED";
+            case PF_RGB24:
+                return "RGB24";
+            case PF_BGR24:
+                return "BGR24";
+            case PF_RGBA:
+                return "RGBA";
+            default:
+                return "unknown";
+        }
+    }
     
     
+    /*
+     * Compares contrast_idx structures respect to the contrast
+     * (for sort function)
+     */
+    bool _cmp_Contrast(const VidStab::ContrastIdx& ci1,
+                       const VidStab::ContrastIdx& ci2)
+    {
+        return ci1.contrast < ci2.contrast;
+    }
     
     
-    
-    
-    
-    
-    
-    
+    short lm_match_better(void* thresh, void* lm)
+    {
+        if (((LocalMotion*)lm)->match <= *((double*)thresh))
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+}
+
+
+namespace VidStab
+{
     void VSMD::_blur(const Frame::Frame& aFrame)
     {
         int stepSize;
@@ -1726,7 +1190,6 @@ namespace VidStab
             }
         }
     }
-    
     
     void VSMD::_vs_detect(LocalMotions*       aMotions,
                           const Frame::Frame& aFrame)
@@ -2268,6 +1731,293 @@ namespace VidStab
                               1);
 #endif
     }
+    
+    
+    void VSMD::_initOpenCl()
+    {
+#if defined(USE_OPENCL)
+        _initOpenCl_selectDevice();
+        _initOpenCl_prepareKernels();
+#endif
+    }
+    
+    
+#if defined(USE_OPENCL)
+    void VSMD::_initOpenCl_selectDevice()
+    {
+        vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
+        
+        
+        bool first { true };
+        
+        for (auto& platform : OpenCl::devices)
+        {
+            for (auto& device : platform)
+            {
+                if (first)
+                {
+                    vs_log_info(_mn.c_str(),
+                                "[OpenCL] --> %s\n",
+                                device.getInfo<CL_DEVICE_NAME>().c_str());
+                    _clDevice = device;
+                    first     = false;
+                }
+                else
+                {
+                    vs_log_info(_mn.c_str(),
+                                "[OpenCL]     %s\n",
+                                device.getInfo<CL_DEVICE_NAME>().c_str());
+                }
+            }
+        }
+        
+        if (first)
+        {
+            throw Common::VS_EXCEPTION("There is no device available!");
+        }
+        
+        _clContext = new cl::Context({_clDevice});
+    }
+    
+    
+    void VSMD::_initOpenCl_prepareKernels()
+    {
+        cl::Program::Sources           opencl___blur_h_src;
+        opencl___blur_h_src.push_back({opencl___blur_h,  opencl___blur_h_len});
+        _clSources.push_back(          opencl___blur_h_src);
+        _clProgramName.push_back(      "blurH");
+        
+        cl::Program::Sources           opencl___blur_v_src;
+        opencl___blur_v_src.push_back({opencl___blur_v,  opencl___blur_v_len});
+        _clSources.push_back(          opencl___blur_v_src);
+        _clProgramName.push_back(      "blurV");
+        
+        
+        for (auto& src : _clSources)
+        {
+            cl::Program* pgm = new cl::Program(*_clContext, src);
+            
+            if (CL_SUCCESS != pgm->build({_clDevice}))
+            {
+                throw Common::VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+            }
+            
+            _clProgram.push_back(pgm);
+        }
+        
+        vs_log_info(_mn.c_str(), "[OpenCL] Kernels built successfully\n");
+    }
+#endif /* !defined(USE_OPENCL) */
+    
+    
+    void VSMD::_initMsg()
+    {
+        vs_log_info(_mn.c_str(), "[filter] Info:\n");
+        vs_log_info(_mn.c_str(), "[filter] \tbuilt - " __DATE__ "\n");
+        vs_log_info(_mn.c_str(), "[filter] \tflags - "
+#if defined(USE_OPENCL)
+                    "OpenCL "
+#endif
+#if defined(USE_OMP)
+                    "OMP "
+#endif
+#if defined(USE_SSE2)
+                    "SSE2 "
+#endif
+                    
+                    "\n");
+    }
+    
+    
+    void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
+                             const VSFrameInfo*          aFi)
+    {
+        /*
+         * First of all check inputs before we use them
+         */
+        if (nullptr == aConf)
+        {
+            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
+        }
+        
+        if (nullptr == aFi)
+        {
+            throw Common::VS_EXCEPTION("Frame info is NULL!");
+        }
+        
+        conf    = *aConf;
+        fiInfoC = *aFi;
+        
+        
+        /*
+         * Is requested pixel format supported by us?
+         */
+        if ((fi.pixFormat() <= PF_NONE)   ||
+            (fi.pixFormat() == PF_PACKED) ||
+            (fi.pixFormat() >= PF_NUMBER))
+        {
+            throw Common::VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
+        }
+        
+        
+#ifdef USE_OMP
+        if (conf.numThreads == 0)
+        {
+            conf.numThreads = VS_MAX(omp_get_max_threads(), 1);
+        }
+        vs_log_info(conf.modName, "[filter] Multithreading: use %i threads\n", conf.numThreads);
+#endif
+        
+        
+        prev.alloc();
+        currTmp.alloc();
+        currPrep.alloc();
+        
+        frameNum        = 0;
+        
+        conf.shakiness  = VS_MIN(10, VS_MAX(1, conf.shakiness));
+        conf.accuracy   = VS_MIN(15, VS_MAX(1, conf.accuracy));
+        
+        if ((conf.accuracy) < (conf.shakiness / 2))
+        {
+            conf.accuracy = conf.shakiness / 2;
+            vs_log_info(conf.modName,
+                        "[filter] Accuracy should not be lower than shakiness / 2 -- fixed to %i\n",
+                        conf.accuracy);
+        }
+        
+        if ((conf.accuracy > 9) && (conf.stepSize > 6))
+        {
+            conf.stepSize = 6;
+            vs_log_info(conf.modName,
+                        "[filter] For high accuracy use lower stepsize  -- fixed to %i now\n",
+                        conf.stepSize);
+        }
+        
+        int minDimension  = VS_MIN(fi.width(), fi.height());
+        //  shift: shakiness 1: height/40; 10: height/4
+        //  maxShift = VS_MAX(4,(minDimension*conf.shakiness)/40);
+        //  size: shakiness 1: height/40; 10: height/6 (clipped)
+        //  fieldSize = VS_MAX(4,VS_MIN(minDimension/6, (minDimension*conf.shakiness)/40));
+        
+        // fixed size and shift now
+        int maxShift      = VS_MAX(16, minDimension / 7);
+        int fieldSize     = VS_MAX(16, minDimension / 10);
+        int fieldSizeFine = VS_MAX(6,  minDimension / 60);
+        
+#if defined(USE_SSE2)
+        fieldSize     = (fieldSize     / 16 + 1) * 16;
+        fieldSizeFine = (fieldSizeFine / 16 + 1) * 16;
+#endif
+        
+        _initFields(fieldscoarse, fieldSize,     maxShift,      conf.stepSize, 1, 0,             conf.contrastThreshold);
+        _initFields(fieldsfine,   fieldSizeFine, fieldSizeFine, 2,             1, fieldSizeFine, conf.contrastThreshold / 2);
+    }
+    
+    
+    void VSMD::_initFields(VSMotionDetectFields& fs,
+                           int                   size,
+                           int                   maxShift,
+                           int                   stepSize,
+                           short                 keepBorder,
+                           int                   spacing,
+                           double                contrastThreshold)
+    {
+        fs.fieldSize         = size;
+        fs.maxShift          = maxShift;
+        fs.stepSize          = stepSize;
+        fs.useOffset         = 0;
+        fs.contrastThreshold = contrastThreshold;
+        
+        int rows = VS_MAX(3, (fiInfoC.height - fs.maxShift * 2) / (size + spacing) -1);
+        int cols = VS_MAX(3, (fiInfoC.width  - fs.maxShift * 2) / (size + spacing) -1);
+        
+        // make sure that the remaining rows have the same length
+        fs.fieldNum  = rows * cols;
+        fs.fieldRows = rows;
+        
+        if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
+        {
+            throw Common::VS_EXCEPTION("Allocation failed!");
+        }
+        else
+        {
+            int border = fs.stepSize;
+            // the border is the amount by which the field centers
+            // have to be away from the image boundary
+            // (stepsize is added in case shift is increased through stepsize)
+            if (keepBorder)
+            {
+                border = size / 2 + fs.maxShift + fs.stepSize;
+            }
+            int step_x = (fiInfoC.width  - 2 * border) / VS_MAX(cols - 1, 1);
+            int step_y = (fiInfoC.height - 2 * border) / VS_MAX(rows - 1, 1);
+            
+            for (int j = 0; j < rows; j++)
+            {
+                for (int i = 0; i < cols; i++)
+                {
+                    int idx = j * cols + i;
+                    
+                    fs.fields[idx].x    = border + i * step_x;
+                    fs.fields[idx].y    = border + j * step_y;
+                    fs.fields[idx].size = size;
+                }
+            }
+        }
+        
+        
+        fs.maxFields = (conf.accuracy) * fs.fieldNum / 15;
+        
+        vs_log_info(conf.modName,
+                    "[filter] Fieldsize: %i, Maximal translation: %i pixel\n",
+                    fs.fieldSize,
+                    fs.maxShift);
+                    
+        vs_log_info(conf.modName,
+                    "[filter] Number of used measurement fields: %i out of %i\n",
+                    fs.maxFields,
+                    fs.fieldNum);
+    }
+    
+    
+    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields& fields,
+                                        calcFieldTransFunc    fieldfunc,
+                                        contrastSubImgFunc    contrastfunc)
+    {
+        LocalMotions                   localmotionsC;
+        LmList          localmotions { localmotionsC };
+        localmotions.init(fields.maxFields);
+        
+        
+        std::vector<ContrastIdx> goodflds {};
+        _selectfields(goodflds, fields, contrastfunc);
+        
+        
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(conf.numThreads,
+                         omp parallel for shared(goodflds, md, localmotions),
+                         (int index = 0; index < int(goodflds.size()); ++index))
+        {
+            int i = goodflds[index].index;
+            
+            LocalMotion m = fieldfunc(*this, fields, fields.fields[i], i); // e.g. calcFieldTransPlanar
+            
+            if (m.match >= 0)
+            {
+                m.contrast = goodflds[index].contrast;
+                
+                OMP_CRITICAL(localmotions_append)
+                {
+                    vs_vector_append_dup(&localmotionsC, &m, sizeof(LocalMotion));
+                }
+            }
+        }
+        
+        return localmotionsC;
+    }
+    
+    
 }
 
 
@@ -2465,13 +2215,261 @@ unsigned int Correlate::operator ()(int          aOffsetX,
 #endif
 
 
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   tab-width:  2
- *   c-basic-offset: 2 t
- * End:
- *
- */
+VSMotionDetectConfig vsMotionDetectGetDefaultConfig(const char* modName)
+{
+    VSMotionDetectConfig conf;
+    conf.stepSize          = 6;
+    conf.accuracy          = 15;
+    conf.shakiness         = 5;
+    conf.virtualTripod     = 0;
+    conf.contrastThreshold = 0.25;
+    conf.show              = 0;
+    conf.modName           = modName;
+    conf.numThreads        = 0;
+    return conf;
+}
+
+
+void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
+                             const VSMotionDetect* aMd)
+{
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        *aConf    = md.conf;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        assert(false);
+    }
+    catch (...)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        assert(false);
+    }
+}
+
+
+const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
+{
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        return     &md.fiInfoC;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        assert(false);
+    }
+    catch (...)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        assert(false);
+    }
+    
+    return nullptr;
+}
+
+
+int vsMotionDetectInit(VSMotionDetect*             aMd,
+                       const VSMotionDetectConfig* aConf,
+                       const VSFrameInfo*          aFi)
+{
+    const char* modName = ((nullptr != aConf) ? aConf->modName : "vid.stab");
+    
+    if (nullptr == aMd)
+    {
+        vs_log_error(modName, "Can not initialize null instance!\n");
+        return VS_ERROR;
+    }
+    
+    try
+    {
+        VSMD* md   = new VSMD(modName, aMd, aConf, aFi);
+        aMd->_inst = md;
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error(modName, "[filter] Failed!\n");
+        vs_log_error(modName, "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    
+    vs_log_info(modName,
+                "[filter] Initialized: [%ix%i]:%s\n",
+                aFi->width,
+                aFi->height,
+                _fmt2str(aFi->pFormat));
+                
+    return VS_OK;
+}
+
+
+void vsMotionDetectionCleanup(VSMotionDetect* aMd)
+{
+    VSMD*  md = &(VSMD2Inst(aMd));
+    delete md;
+    aMd->_inst = nullptr;
+}
+
+
+// returns true if match of local motion is better than threshold
+bool __lm_match_better(const LocalMotion& lm, const double& tresh)
+{
+    return (lm.match <= tresh);
+}
+
+
+int vsMotionDetection(VSMotionDetect* aMd,
+                      LocalMotions*   aMotions,
+                      VSFrame*        aFrame)
+{
+    VSMD& md = VSMD2Inst(aMd);
+    
+    try
+    {
+        md(aMotions, *aFrame);
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error(md.conf.modName, "[filter] Failed!\n");
+        vs_log_error(md.conf.modName, "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    
+    return VS_OK;
+}
+
+
+int vsPrepareFile(const VSMotionDetect* aMd,
+                  FILE*                 f)
+{
+    if (nullptr == f)
+    {
+        return VS_ERROR;
+    }
+    
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        
+        fprintf(f, "VID.STAB 1\n");
+        fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
+        fprintf(f, "#      accuracy = %d\n", md.conf.accuracy);
+        fprintf(f, "#     shakiness = %d\n", md.conf.shakiness);
+        fprintf(f, "#      stepsize = %d\n", md.conf.stepSize);
+        fprintf(f, "#   mincontrast = %f\n", md.conf.contrastThreshold);
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error("vidstab", "[filter] Failed!\n");
+        vs_log_error("vidstab", "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    return VS_OK;
+}
+
+
+int vsWriteToFile(const VSMotionDetect* aMd,
+                  FILE*                 f,
+                  const LocalMotions*   lms)
+{
+    if ((nullptr == f) || (nullptr == lms))
+    {
+        return VS_ERROR;
+    }
+    
+    try
+    {
+        const VSMD& md = VSMD2Inst(aMd);
+        
+        if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
+        {
+            return VS_ERROR;
+        }
+        
+        if (vsStoreLocalmotions(f, lms) <= 0)
+        {
+            return VS_ERROR;
+        }
+        
+        if (fprintf(f, ")\n") <= 0)
+        {
+            return VS_ERROR;
+        }
+    }
+    catch (std::exception& exc)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        return VS_ERROR;
+    }
+    catch (...)
+    {
+        vs_log_error("vidstabdetect", "[filter] Failed!\n");
+        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        return VS_ERROR;
+    }
+    
+    return VS_OK;
+}
+
+
+/**
+   calculates Michelson-contrast in the given small part of the given image
+   to be more compatible with the absolute difference formula this is scaled by 0.1
+
+   \param I pointer to framebuffer
+   \param field Field specifies position(center) and size of subimage
+   \param width width of frame (linesize in pixels)
+   \param height height of frame
+   \param bytesPerPixel calc contrast for only for first channel
+*/
+double contrastSubImg(unsigned char* const I,
+                      const Field*         field,
+                      int                  width,
+                      int                  height,
+                      int                  bytesPerPixel)
+{
+    int            s2   = field->size / 2;
+    unsigned char  mini = 255;
+    unsigned char  maxi = 0;
+    unsigned char* p    = I + ((field->x - s2) + (field->y - s2) * width) * bytesPerPixel;
+    
+    for (int j = 0; j < field->size; ++j)
+    {
+        for (int k = 0; k < field->size; ++k)
+        {
+            mini = (mini < *p) ? mini : *p;
+            maxi = (maxi > *p) ? maxi : *p;
+            p += bytesPerPixel;
+        }
+        
+        p += (width - field->size) * bytesPerPixel;
+    }
+    
+    return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to prevent from division by 0
+}
+
+
+

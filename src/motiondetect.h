@@ -183,7 +183,7 @@ namespace VidStab
         /**
          * @brief   Cell quality factor
          */
-        unsigned contrasQFactor;
+        unsigned qfContrast;
     };
     
     
