@@ -351,7 +351,7 @@ namespace VidStab
         VectU                        rect   { _cellSize };
         
         
-        _cells.resize(0);
+        _cells.list.resize(0);
         
         Common::VectIt<unsigned> i { begin, end };
         
@@ -377,7 +377,7 @@ namespace VidStab
                 q - _contrastThreshold
             };
             
-            _cells.push_back(cell);
+            _cells.list.push_back(cell);
         }
         while (i.next());
     }
@@ -399,16 +399,16 @@ namespace VidStab
     {
         unsigned qavg { 0 };
         
-        for (auto& cell : _cells)
+        for (auto& cell : _cells.list)
         {
             qavg += cell.direction[idx].vect.qsize();
         }
         
-        qavg /= _cells.size();
+        qavg /= _cells.list.size();
         
         unsigned qavgMax { qavg * 2 };
         
-        for (auto& cell : _cells)
+        for (auto& cell : _cells.list)
         {
             unsigned q { unsigned(cell.direction[idx].vect.qsize()) };
             
@@ -426,12 +426,12 @@ namespace VidStab
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
-                         (unsigned idx = 0; idx < _cells.size(); ++idx))
+                         (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
             /*
              * Calculates fast filter
              */
-            auto&                 cell = _cells[idx];
+            auto&                 cell = _cells.list[idx];
             unsigned              p    { aPt.fm[_idxCurrent].size() - 1 };
             const VectS           rb   { - int(_detectRange >> (p + 1)) };
             const VectS           re   {   int(_detectRange >> (p + 1)) };
@@ -493,12 +493,12 @@ namespace VidStab
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
-                         (unsigned idx = 0; idx < _cells.size(); ++idx))
+                         (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
             /*
              * Calculates fast filter
              */
-            auto&       cell = _cells[idx];
+            auto&       cell = _cells.list[idx];
             const VectS rb   { -1 };
             const VectS re   {  1 };
             
@@ -580,7 +580,7 @@ namespace VidStab
                                                     VSFrame&         aFrame)
     {
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
-        const unsigned       e    { unsigned(_cells.size())          };
+        const unsigned       e    { unsigned(_cells.list.size())          };
         
         
         OMP_ALIAS(md, this)
@@ -588,7 +588,7 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
         {
-            auto& i = _cells[idx];
+            auto& i = _cells.list[idx];
             
             
             /*

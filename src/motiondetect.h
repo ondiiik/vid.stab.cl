@@ -188,6 +188,15 @@ namespace VidStab
     
     
     /**
+     * @brief   Cells set
+     */
+    struct Cells
+    {
+        std::vector<Cell> list;
+    };
+
+
+    /**
      * @brief   Data structure for motion detection part of deshaking
      */
     class VSMD
@@ -829,7 +838,7 @@ namespace VidStab
         /**
          * @brief   Movement per-CPU cells list
          */
-        std::vector<Cell> _cells;
+        Cells _cells;
         
         
         /**
