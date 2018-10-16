@@ -169,8 +169,8 @@ namespace VidStab
         {
             return aIdx % hcnt;
         }
-
-
+        
+        
         /**
          * @brief   Detected cell direction vectors
          *
@@ -682,8 +682,8 @@ namespace VidStab
          * @param   aPt     Pyramid type
          */
         template <typename _PixT> inline void _init(Pyramids<_PixT>& aPt);
-
-
+        
+        
         /**
          * @brief   Process frame
          * @param   aPt     Pyramid type
@@ -691,8 +691,8 @@ namespace VidStab
          */
         template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
                                                        VSFrame&         aFrame);
-        
-        
+                                                       
+                                                       
         /**
          * @brief   Read new frame pyramid including initialization
          *
@@ -753,20 +753,8 @@ namespace VidStab
          */
         template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt,
                                                 VSFrame&         aFrame);
-                                                
-                                                
-        /**
-         * @brief   Find directions which deviates in size from the rest and remove them
-         *
-         * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
-         * @tparam  \_PixT  Pixel type
-         */
-        template <typename _PixT> void _analyzeHystory(Pyramids<_PixT>& aPt,
-                                                       VSFrame&         aFrame,
-                                                       unsigned         idx);
-                                                       
-                                                       
+                             
+                             
         /**
          * @brief   Process first estimation of movements
          *

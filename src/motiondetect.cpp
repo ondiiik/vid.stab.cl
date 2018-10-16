@@ -480,33 +480,27 @@ namespace VidStab
     {
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
-            _analyzeHystory(aPt, aFrame, idx - aPt.PTYPE_SW);
-        }
-    }
-    
-    
-    template <typename _PixT> void VSMD::_analyzeHystory(Pyramids<_PixT>& aPt,
-                                                         VSFrame&         aFrame,
-                                                         unsigned         idx)
-    {
-        const unsigned t0 { Direction::frame2vidx(_idx)     };
-        const unsigned t1 { Direction::frame2vidx(_idx - 1) };
-        
-        for (auto& cell : _cells.list)
-        {
-            auto& v0 { cell.direction[idx].vect[t0] };
-            auto& v1 { cell.direction[idx].vect[t1] };
+            const unsigned t0 { Direction::frame2vidx(_idx)     };
+            const unsigned t1 { Direction::frame2vidx(_idx - 1) };
             
-            if (v0.qsize() < ((v0 - v1).qsize() * 2))
+            for (auto& cell : _cells.list)
             {
-                cell.direction[idx].valid = false;
+                /*
+                 * Analyzes deviations according to history
+                 * (difference between vectors shall be
+                 * reasonable small)
+                 */
+                auto& v0 { cell.direction[idx].vect[t0] };
+                auto& v1 { cell.direction[idx].vect[t1] };
+                
+                cell.direction[idx].valid = (v0.qsize() > ((v0 - v1).qsize() * 2));
             }
         }
     }
     
     
     template <typename _PixT> void VSMD::_estimate(Pyramids<_PixT>& aPt,
-                                                   VSFrame&         aFrame)
+                                                   VSFrame&          aFrame)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -576,7 +570,7 @@ namespace VidStab
     
     
     template <typename _PixT> void VSMD::_finalize(Pyramids<_PixT>& aPt,
-                                                   VSFrame&         aFrame)
+                                                   VSFrame&          aFrame)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -668,7 +662,7 @@ namespace VidStab
     
     
     template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame)
+                                                    VSFrame&          aFrame)
     {
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned       e    { unsigned(_cells.list.size())     };
@@ -744,9 +738,9 @@ namespace VidStab
     
     template <typename _PixT> unsigned VSMD::_corelate(const Frame::Canvas<_PixT>& aCurrCanvas,
                                                        const Frame::Canvas<_PixT>& aPrevCanvas,
-                                                       const VectS&                aCurrShift,
-                                                       const VectS&                aPrevShift,
-                                                       const VectU&                aRect,
+                                                       const VectS&                 aCurrShift,
+                                                       const VectS&                 aPrevShift,
+                                                       const VectU&                 aRect,
                                                        unsigned                    aTrh) const
     {
         VectIterU i   { aRect };
@@ -2519,6 +2513,7 @@ double contrastSubImg(unsigned char* const I,
     
     return (maxi - mini) / (maxi + mini + 0.1); // +0.1 to prevent from division by 0
 }
+
 
 
 
