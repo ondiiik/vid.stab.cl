@@ -340,8 +340,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_selectCells(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
+                                                 VSFrame&         aFrame)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx };
@@ -358,7 +358,7 @@ namespace VidStab
         do
         {
             VectU    pos { i()* _cellSize };
-            unsigned q   { _getCellQuality(canvas, pos, rect) };
+            unsigned q   { _selectContrast(canvas, pos, rect) };
             
             if (_contrastThreshold <= q)
             {
@@ -383,17 +383,65 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_optimize(Pyramids<_PixT>& aPt,
-                                                   VSFrame&         aFrame)
+
+    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>& aCanvas,
+                                                             const VectU&                aPosition,
+                                                             const VectU&                aRect) const
+    {
+        const unsigned dist { _cellSize / 2 };
+        VectS          h    { int(dist), 0       };
+        VectS          v    { 0, int(dist)       };
+        VectU          rect { aRect - dist       };
+        VectIterU      i    { rect               };
+
+        int            minV { std::numeric_limits<int>::max() };
+        int            maxV { std::numeric_limits<int>::min() };
+        int            minH { std::numeric_limits<int>::max() };
+        int            maxH { std::numeric_limits<int>::min() };
+
+        do
+        {
+            int p  {     int(aCanvas[aPosition + i()    ].abs()) };
+            int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
+            int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
+
+            if (minV > dv)
+            {
+                minV = dv;
+            }
+
+            if (maxV < dv)
+            {
+                maxV = dv;
+            }
+
+            if (minH > dh)
+            {
+                minH = dh;
+            }
+
+            if (maxH < dh)
+            {
+                maxH = dh;
+            }
+        }
+        while (i.next());
+
+        return abs(minV * maxV * minH * maxH);
+    }
+
+
+    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt,
+                                                  VSFrame&         aFrame)
     {
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
-            _removeVectLen(aPt, aFrame, idx);
+            _analyzeVectLen(aPt, aFrame, idx - aPt.PTYPE_SW);
         }
     }
     
     
-    template <typename _PixT> void VSMD::_removeVectLen(Pyramids<_PixT>& aPt,
+    template <typename _PixT> void VSMD::_analyzeVectLen(Pyramids<_PixT>& aPt,
                                                         VSFrame&         aFrame,
                                                         unsigned         idx)
     {
@@ -440,9 +488,10 @@ namespace VidStab
             Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]      };
             
             {
-                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][p] };
-                VectIterSSpiral       i    { rb, re              };
+                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][p]                  };
+                VectIterSSpiral       i    { rb, re                               };
                 unsigned              min  { std::numeric_limits<unsigned>::max() };
+                const unsigned        did  { Cell::ptype2dir(aPt.PTYPE_SW)        };
                 
                 do
                 {
@@ -450,13 +499,13 @@ namespace VidStab
                     
                     if (min > crl)
                     {
-                        min                               = crl;
-                        cell.direction[aPt.PTYPE_SW].vect = i();
+                        min                      = crl;
+                        cell.direction[did].vect = i();
                     }
                 }
                 while (i.next());
                 
-                cell.direction[aPt.PTYPE_SW].vect *= (1U << p);
+                cell.direction[did].vect *= (1U << p);
             }
             
             
@@ -468,6 +517,7 @@ namespace VidStab
                 Frame::Canvas<_PixT>& prev { aPt.fm[idx][p] };
                 VectIterSSpiral       i    { rb, re         };
                 unsigned              min  { std::numeric_limits<unsigned>::max() };
+                const unsigned        did  { Cell::ptype2dir(idx)                 };
                 
                 do
                 {
@@ -476,12 +526,12 @@ namespace VidStab
                     if (min > crl)
                     {
                         min                      = crl;
-                        cell.direction[idx].vect = i();
+                        cell.direction[did].vect = i();
                     }
                 }
                 while (i.next());
                 
-                cell.direction[idx].vect *= (1U << p);
+                cell.direction[did].vect *= (1U << p);
             }
         }
     }
@@ -504,7 +554,8 @@ namespace VidStab
             
             for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
             {
-                auto& dir = cell.direction[aPt.PTYPE_SW];
+                const unsigned did  { Cell::ptype2dir(aPt.PTYPE_SW) };
+                auto&          dir = cell.direction[did];
                 
                 if (!dir.valid)
                 {
@@ -542,7 +593,8 @@ namespace VidStab
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    auto& dir = cell.direction[idx];
+                    const unsigned did  { Cell::ptype2dir(idx) };
+                    auto&          dir = cell.direction[did];
                     
                     if (!dir.valid)
                     {
@@ -596,12 +648,13 @@ namespace VidStab
              */
             for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
             {
-                VectU pos { i.position                  };
-                VectU dst { pos + i.direction[idx].vect };
-                VectU                   rs { 16 };
+                const unsigned did { Cell::ptype2dir(idx)        };
+                VectU          pos { i.position                  };
+                VectU          dst { pos + i.direction[did].vect };
+                VectU          rs  { 16                          };
                 disp.drawRectangle(pos, rs, _PixT(0));
                 
-                if (i.direction[idx].valid)
+                if (i.direction[did].valid)
                 {
                     _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
                     unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
@@ -617,16 +670,17 @@ namespace VidStab
              * Show fast filters
              */
             {
-                VectU pos { i.position                           };
-                VectU dst { pos + i.direction[aPt.PTYPE_SW].vect };
+                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
+                VectU          pos { i.position                    };
+                VectU          dst { pos + i.direction[did].vect   };
                 
                 if (i.qfContrast > _contrastThreshold)
                 {
                     VectU rs { i.size - 16 };
                     
-                    if ((i.direction[aPt.PTYPE_SW].valid)     &&
-                        (i.direction[aPt.PTYPE_SLOW_A].valid) &&
-                        (i.direction[aPt.PTYPE_SLOW_B].valid))
+                    if ((i.direction[Cell::ptype2dir(aPt.PTYPE_SW)    ].valid) &&
+                        (i.direction[Cell::ptype2dir(aPt.PTYPE_SLOW_A)].valid) &&
+                        (i.direction[Cell::ptype2dir(aPt.PTYPE_SLOW_B)].valid))
                     {
                         disp.drawBox(pos + 1, rs, _PixT(255));
                     }
@@ -636,60 +690,12 @@ namespace VidStab
                     }
                 }
                 
-                if (i.direction[aPt.PTYPE_SW].valid)
+                if (i.direction[did].valid)
                 {
                     disp.drawLine(pos, dst, 4, _PixT(255));
                 }
             }
         }
-    }
-    
-    
-    
-    template <typename _PixT> unsigned VSMD::_getCellQuality(const Frame::Canvas<_PixT>& aCanvas,
-                                                             const VectU&                aPosition,
-                                                             const VectU&                aRect) const
-    {
-        const unsigned dist { _cellSize / 2 };
-        VectS          h    { int(dist), 0       };
-        VectS          v    { 0, int(dist)       };
-        VectU          rect { aRect - dist       };
-        VectIterU      i    { rect               };
-        
-        int            minV { std::numeric_limits<int>::max() };
-        int            maxV { std::numeric_limits<int>::min() };
-        int            minH { std::numeric_limits<int>::max() };
-        int            maxH { std::numeric_limits<int>::min() };
-        
-        do
-        {
-            int p  {     int(aCanvas[aPosition + i()    ].abs()) };
-            int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
-            int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
-            
-            if (minV > dv)
-            {
-                minV = dv;
-            }
-            
-            if (maxV < dv)
-            {
-                maxV = dv;
-            }
-            
-            if (minH > dh)
-            {
-                minH = dh;
-            }
-            
-            if (maxH < dh)
-            {
-                maxH = dh;
-            }
-        }
-        while (i.next());
-        
-        return abs(minV * maxV * minH * maxH);
     }
     
     

@@ -103,8 +103,8 @@ namespace VidStab
             PTYPE_STATIC_B,
             PTYPE_COUNT
         };
-
-
+        
+        
         Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
@@ -165,6 +165,11 @@ namespace VidStab
      */
     struct Cell
     {
+        static inline unsigned ptype2dir(unsigned aPType)
+        {
+            return aPType - Pyramids<int>::PTYPE_SW;
+        }
+
         /**
          * @brief   Position of center of cell
          */
@@ -178,7 +183,7 @@ namespace VidStab
         /**
          * @brief   Detected cell direction
          */
-        Direction direction[Pyramids<int>::PTYPE_COUNT];
+        Direction direction[Pyramids<int>::PTYPE_COUNT - Pyramids<int>::PTYPE_SW];
         
         /**
          * @brief   Cell quality factor
@@ -194,8 +199,8 @@ namespace VidStab
     {
         std::vector<Cell> list;
     };
-
-
+    
+    
     /**
      * @brief   Data structure for motion detection part of deshaking
      */
@@ -659,12 +664,12 @@ namespace VidStab
         template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
                                                        VSFrame&         aFrame)
         {
-            _next(          aPt, aFrame );
-            _selectCells(   aPt, aFrame );
-            _estimate(      aPt, aFrame );
-            _optimize(      aPt, aFrame );
-            _finalize(      aPt, aFrame );
-            _visualize(     aPt, aFrame );
+            _next(      aPt, aFrame );
+            _select(    aPt, aFrame );
+            _estimate(  aPt, aFrame );
+            _analyze(   aPt, aFrame );
+            _finalize(  aPt, aFrame );
+            _visualize( aPt, aFrame );
         }
         
         
@@ -702,10 +707,23 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _selectCells(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame);
-                                                    
-                                                    
+        template <typename _PixT> void _select(Pyramids<_PixT>& aPt,
+                                               VSFrame&         aFrame);
+                                               
+                                               
+        /**
+         * @brief   Get quality marker of potential cell
+         *
+         * @param   aCanvas     Canvas to be analyzed
+         * @param   aPosition   Position of cell
+         * @param   aRect       Size of cell
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>& aCanvas,
+                                                           const VectU&                aPosition,
+                                                           const VectU&                aRect) const;
+                                                           
+                                                           
         /**
          * @brief   Optimize according to initial estimation
          *
@@ -713,10 +731,10 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _optimize(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame);
-
-
+        template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt,
+                                                VSFrame&         aFrame);
+                                                 
+                                                 
         /**
          * @brief   Find directions which deviates in size from the rest and remove them
          *
@@ -724,7 +742,7 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _removeVectLen(Pyramids<_PixT>& aPt,
+        template <typename _PixT> void _analyzeVectLen(Pyramids<_PixT>& aPt,
                                                       VSFrame&         aFrame,
                                                       unsigned         idx);
                                                       
@@ -740,8 +758,8 @@ namespace VidStab
          */
         template <typename _PixT> void _estimate(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame);
-
-
+                                                 
+                                                 
         /**
          * @brief   Complete estimation of movements
          *
@@ -767,19 +785,6 @@ namespace VidStab
                                                   VSFrame&         aFrame);
                                                   
                                                   
-        /**
-         * @brief   Get quality marker of potential cell
-         *
-         * @param   aCanvas     Canvas to be analyzed
-         * @param   aPosition   Position of cell
-         * @param   aRect       Size of cell
-         * @tparam  \_PixT  Pixel type
-         */
-        template <typename _PixT> unsigned _getCellQuality(const Frame::Canvas<_PixT>& aCanvas,
-                                                           const VectU&                aPosition,
-                                                           const VectU&                aRect) const;
-                                                           
-                                                           
         /**
          * @brief   Calculates correlation of source and destination
          *
@@ -876,25 +881,25 @@ namespace VidStab
         
         
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 #if defined(USE_OPENCL)
         /**
          * @brief   Sources of code we want to run over OpenCL
