@@ -154,9 +154,30 @@ namespace VidStab
         
         
         /**
-         * @brief   Detected cell direction vector
+         * @brief   History count of direction
          */
-        Common::Vect<int> vect;
+        static const unsigned hcnt { 4 };
+        
+        
+        /**
+         * @brief   Convert frame index to vector index
+         * @param   aIdx    Frame index
+         * @return  Vector index
+         * @sa      VidStab::Direction::vect
+         */
+        static inline unsigned frame2vidx(unsigned aIdx)
+        {
+            return aIdx % hcnt;
+        }
+
+
+        /**
+         * @brief   Detected cell direction vectors
+         *
+         * Vectors are in array to cover also history of cell movement
+         * for better detection algorithm.
+         */
+        Common::Vect<int> vect[hcnt];
     };
     
     
@@ -169,7 +190,7 @@ namespace VidStab
         {
             return aPType - Pyramids<int>::PTYPE_SW;
         }
-
+        
         /**
          * @brief   Position of center of cell
          */
@@ -657,20 +678,19 @@ namespace VidStab
         
         
         /**
+         * @brief   Initialize detection cells
+         * @param   aPt     Pyramid type
+         */
+        template <typename _PixT> inline void _init(Pyramids<_PixT>& aPt);
+
+
+        /**
          * @brief   Process frame
          * @param   aPt     Pyramid type
          * @param   aFrame  Frame to be processed
          */
         template <typename _PixT> inline void _process(Pyramids<_PixT>& aPt,
-                                                       VSFrame&         aFrame)
-        {
-            _next(      aPt, aFrame );
-            _select(    aPt, aFrame );
-            _estimate(  aPt, aFrame );
-            _analyze(   aPt, aFrame );
-            _finalize(  aPt, aFrame );
-            _visualize( aPt, aFrame );
-        }
+                                                       VSFrame&         aFrame);
         
         
         /**
@@ -733,8 +753,8 @@ namespace VidStab
          */
         template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt,
                                                 VSFrame&         aFrame);
-                                                 
-                                                 
+                                                
+                                                
         /**
          * @brief   Find directions which deviates in size from the rest and remove them
          *
@@ -742,11 +762,11 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _analyzeVectLen(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame,
-                                                      unsigned         idx);
-                                                      
-                                                      
+        template <typename _PixT> void _analyzeHystory(Pyramids<_PixT>& aPt,
+                                                       VSFrame&         aFrame,
+                                                       unsigned         idx);
+                                                       
+                                                       
         /**
          * @brief   Process first estimation of movements
          *

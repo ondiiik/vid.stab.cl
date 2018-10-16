@@ -227,11 +227,19 @@ namespace VidStab
         if (fi.pixFormat() > PF_PACKED)
         {
             _piramidRGB = new Pyramids<Frame::PixRGB>(fi.dim(), _piramidMinSize);
+            _init(*_piramidRGB);
         }
         else
         {
             _piramidYUV = new Pyramids<Frame::PixYUV>(fi.dim(), _piramidMinSize);
+            _init(*_piramidYUV);
         }
+        
+        
+        
+        
+        
+        
         
         
         
@@ -306,6 +314,50 @@ namespace VidStab
     }
     
     
+    template <typename _PixT> inline void VSMD::_init(Pyramids<_PixT>& aPt)
+    {
+        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
+        const unsigned               mul    { 1U << idx };
+        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
+        VectU                        begin  { 1 };
+        VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
+        VectU                        rect   { _cellSize };
+        
+        
+        _cells.list.resize(0);
+        
+        Common::VectIt<unsigned> i { begin, end };
+        
+        do
+        {
+            VectU pos { i()* _cellSize };
+            
+            Cell cell
+            {
+                (pos + rect / 2)* mul,
+                rect * mul,
+                { },
+                0
+            };
+            
+            _cells.list.push_back(cell);
+        }
+        while (i.next());
+    }
+    
+    
+    template <typename _PixT> void VSMD::_process(Pyramids<_PixT>& aPt,
+                                                  VSFrame&         aFrame)
+    {
+        _next(      aPt, aFrame );
+        _select(    aPt, aFrame );
+        _estimate(  aPt, aFrame );
+        _analyze(   aPt, aFrame );
+        _finalize(  aPt, aFrame );
+        _visualize( aPt, aFrame );
+    }
+    
+    
     template <typename _PixT> void VSMD::_nextPiramid(Pyramids<_PixT>& aPt,
                                                       VSFrame&         aFrame)
     {
@@ -344,16 +396,15 @@ namespace VidStab
                                                  VSFrame&         aFrame)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
-        const unsigned               mul    { 1U << idx };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
         VectU                        begin  { 1 };
         VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         VectU                        rect   { _cellSize };
+        const unsigned               t      { Direction::frame2vidx(_idx) };
         
-        
-        _cells.list.resize(0);
         
         Common::VectIt<unsigned> i { begin, end };
+        auto                     c { _cells.list.begin() };
         
         do
         {
@@ -362,28 +413,21 @@ namespace VidStab
             
             if (_contrastThreshold <= q)
             {
-                q -= _contrastThreshold;
+                c->qfContrast = q - _contrastThreshold;
             }
             else
             {
-                q = 0;
+                c->qfContrast = 0;
             }
             
-            Cell cell
-            {
-                (pos + rect / 2)* mul,
-                rect * mul,
-                { },
-                q - _contrastThreshold
-            };
-            
-            _cells.list.push_back(cell);
+            c->direction[t].valid = true;
+            ++c;
         }
         while (i.next());
     }
     
     
-
+    
     template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>& aCanvas,
                                                              const VectU&                aPosition,
                                                              const VectU&                aRect) const
@@ -393,74 +437,67 @@ namespace VidStab
         VectS          v    { 0, int(dist)       };
         VectU          rect { aRect - dist       };
         VectIterU      i    { rect               };
-
+        
         int            minV { std::numeric_limits<int>::max() };
         int            maxV { std::numeric_limits<int>::min() };
         int            minH { std::numeric_limits<int>::max() };
         int            maxH { std::numeric_limits<int>::min() };
-
+        
         do
         {
             int p  {     int(aCanvas[aPosition + i()    ].abs()) };
             int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
             int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
-
+            
             if (minV > dv)
             {
                 minV = dv;
             }
-
+            
             if (maxV < dv)
             {
                 maxV = dv;
             }
-
+            
             if (minH > dh)
             {
                 minH = dh;
             }
-
+            
             if (maxH < dh)
             {
                 maxH = dh;
             }
         }
         while (i.next());
-
+        
         return abs(minV * maxV * minH * maxH);
     }
-
-
+    
+    
     template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt,
                                                   VSFrame&         aFrame)
     {
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
-            _analyzeVectLen(aPt, aFrame, idx - aPt.PTYPE_SW);
+            _analyzeHystory(aPt, aFrame, idx - aPt.PTYPE_SW);
         }
     }
     
     
-    template <typename _PixT> void VSMD::_analyzeVectLen(Pyramids<_PixT>& aPt,
-                                                        VSFrame&         aFrame,
-                                                        unsigned         idx)
+    template <typename _PixT> void VSMD::_analyzeHystory(Pyramids<_PixT>& aPt,
+                                                         VSFrame&         aFrame,
+                                                         unsigned         idx)
     {
-        unsigned qavg { 0 };
+        const unsigned t0 { Direction::frame2vidx(_idx)     };
+        const unsigned t1 { Direction::frame2vidx(_idx - 1) };
         
         for (auto& cell : _cells.list)
         {
-            qavg += cell.direction[idx].vect.qsize();
-        }
-        
-        qavg /= _cells.list.size();
-        
-        unsigned qavgMax { qavg * 2 };
-        
-        for (auto& cell : _cells.list)
-        {
-            unsigned q { unsigned(cell.direction[idx].vect.qsize()) };
+            auto& v0 { cell.direction[idx].vect[t0] };
+            auto& v1 { cell.direction[idx].vect[t1] };
             
-            if (q > qavgMax)
+            if (v0.qsize() < ((v0 - v1).qsize() * 2))
             {
                 cell.direction[idx].valid = false;
             }
@@ -486,6 +523,7 @@ namespace VidStab
             const VectU           size { cell.size          >>  p       };
             const VectU           pos  { cell.position      >>  p       };
             Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p]      };
+            const unsigned        t    { Direction::frame2vidx(_idx)    };
             
             {
                 Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][p]                  };
@@ -499,13 +537,13 @@ namespace VidStab
                     
                     if (min > crl)
                     {
-                        min                      = crl;
-                        cell.direction[did].vect = i();
+                        min                         = crl;
+                        cell.direction[did].vect[t] = i();
                     }
                 }
                 while (i.next());
                 
-                cell.direction[did].vect *= (1U << p);
+                cell.direction[did].vect[t] *= (1U << p);
             }
             
             
@@ -525,13 +563,13 @@ namespace VidStab
                     
                     if (min > crl)
                     {
-                        min                      = crl;
-                        cell.direction[did].vect = i();
+                        min                         = crl;
+                        cell.direction[did].vect[t] = i();
                     }
                 }
                 while (i.next());
                 
-                cell.direction[did].vect *= (1U << p);
+                cell.direction[did].vect[t] *= (1U << p);
             }
         }
     }
@@ -548,9 +586,10 @@ namespace VidStab
             /*
              * Calculates fast filter
              */
-            auto&       cell = _cells.list[idx];
-            const VectS rb   { -1 };
-            const VectS re   {  1 };
+            auto&          cell = _cells.list[idx];
+            const VectS    rb   { -1 };
+            const VectS    re   {  1 };
+            const unsigned t    { Direction::frame2vidx(_idx) };
             
             for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
             {
@@ -562,12 +601,12 @@ namespace VidStab
                     continue;
                 }
                 
-                const VectU           size { cell.size        >> p  };
-                const VectU           pos  { cell.position    >> p  };
-                const VectS           dv   { dir.vect / (1U   << p) };
-                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][p] };
-                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][   p] };
-                VectIterS             i    { rb + dv, re + dv       };
+                const VectU           size { cell.size           >> p  };
+                const VectU           pos  { cell.position       >> p  };
+                const VectS           dv   { dir.vect[t] / (1U   << p) };
+                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p] };
+                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p] };
+                VectIterS             i    { rb + dv, re + dv          };
                 unsigned              min  { std::numeric_limits<unsigned>::max() };
                 
                 do
@@ -576,13 +615,13 @@ namespace VidStab
                     
                     if (min > crl)
                     {
-                        min      = crl;
-                        dir.vect = i();
+                        min         = crl;
+                        dir.vect[t] = i();
                     }
                 }
                 while (i.next());
                 
-                dir.vect *= (1U << p);
+                dir.vect[t] *= (1U << p);
             }
             
             
@@ -601,12 +640,12 @@ namespace VidStab
                         continue;
                     }
                     
-                    const VectU           size { cell.size        >> p  };
-                    const VectU           pos  { cell.position    >> p  };
-                    const VectS           dv   { dir.vect / (1U   << p) };
-                    Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][p] };
-                    Frame::Canvas<_PixT>& prev { aPt.fm[idx][        p] };
-                    VectIterSSpiral       i    { rb + dv, re + dv       };
+                    const VectU           size { cell.size           >> p  };
+                    const VectU           pos  { cell.position       >> p  };
+                    const VectS           dv   { dir.vect[t] / (1U   << p) };
+                    Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p] };
+                    Frame::Canvas<_PixT>& prev { aPt.fm[idx][           p] };
+                    VectIterSSpiral       i    { rb + dv, re + dv          };
                     unsigned              min  { std::numeric_limits<unsigned>::max() };
                     
                     do
@@ -615,13 +654,13 @@ namespace VidStab
                         
                         if (min > crl)
                         {
-                            min      = crl;
-                            dir.vect = i();
+                            min         = crl;
+                            dir.vect[t] = i();
                         }
                     }
                     while (i.next());
                     
-                    dir.vect *= (1U << p);
+                    dir.vect[t] *= (1U << p);
                 }
             }
         }
@@ -632,7 +671,9 @@ namespace VidStab
                                                     VSFrame&         aFrame)
     {
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
-        const unsigned       e    { unsigned(_cells.list.size())          };
+        const unsigned       e    { unsigned(_cells.list.size())     };
+        const unsigned       t0   { Direction::frame2vidx(_idx)      };
+        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
         
         
         OMP_ALIAS(md, this)
@@ -648,17 +689,17 @@ namespace VidStab
              */
             for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
             {
-                const unsigned did { Cell::ptype2dir(idx)        };
-                VectU          pos { i.position                  };
-                VectU          dst { pos + i.direction[did].vect };
-                VectU          rs  { 16                          };
+                const unsigned did { Cell::ptype2dir(idx)           };
+                VectU          pos { i.position                     };
+                VectU          dst { pos + i.direction[did].vect[t0] };
+                VectU          rs  { 16                             };
                 disp.drawRectangle(pos, rs, _PixT(0));
                 
                 if (i.direction[did].valid)
                 {
                     _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
                     unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
-
+                    
                     disp.drawBox(      dst, rs - 2, x);
                     disp.drawRectangle(dst, rs,     x);
                     disp.drawLine(pos, dst, w,      x);
@@ -670,9 +711,9 @@ namespace VidStab
              * Show fast filters
              */
             {
-                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
-                VectU          pos { i.position                    };
-                VectU          dst { pos + i.direction[did].vect   };
+                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)  };
+                VectU          pos { i.position                     };
+                VectU          dst { pos + i.direction[did].vect[t0] };
                 
                 if (i.qfContrast > _contrastThreshold)
                 {
@@ -692,7 +733,9 @@ namespace VidStab
                 
                 if (i.direction[did].valid)
                 {
-                    disp.drawLine(pos, dst, 4, _PixT(255));
+                    VectU dsth { dst + i.direction[did].vect[t1] };
+                    disp.drawLine(pos, dsth, 4, _PixT(0));
+                    disp.drawLine(pos, dst,  4, _PixT(255));
                 }
             }
         }
