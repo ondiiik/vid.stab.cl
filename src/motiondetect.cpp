@@ -475,30 +475,6 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt,
-                                                  VSFrame&         aFrame)
-    {
-        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
-        {
-            const unsigned t0 { Direction::frame2vidx(_idx)     };
-            const unsigned t1 { Direction::frame2vidx(_idx - 1) };
-            
-            for (auto& cell : _cells.list)
-            {
-                /*
-                 * Analyzes deviations according to history
-                 * (difference between vectors shall be
-                 * reasonable small)
-                 */
-                auto& v0 { cell.direction[idx].vect[t0] };
-                auto& v1 { cell.direction[idx].vect[t1] };
-                
-                cell.direction[idx].valid = (v0.qsize() > ((v0 - v1).qsize() * 2));
-            }
-        }
-    }
-    
-    
     template <typename _PixT> void VSMD::_estimate(Pyramids<_PixT>& aPt,
                                                    VSFrame&          aFrame)
     {
@@ -564,6 +540,41 @@ namespace VidStab
                 while (i.next());
                 
                 cell.direction[did].vect[t] *= (1U << p);
+            }
+        }
+    }
+    
+    
+    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt,
+                                                  VSFrame&         aFrame)
+    {
+        /*
+         * Analyze all time layers
+         */
+        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+        {
+            /*
+             * Get time index of current and previous frame
+             */
+            const unsigned t0  { Direction::frame2vidx(_idx)     };
+            const unsigned t1  { Direction::frame2vidx(_idx - 1) };
+            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)   };
+            
+            for (auto& cell : _cells.list)
+            {
+                /*
+                 * Analyzes deviations according to history
+                 * (difference between vectors shall be
+                 * reasonable small)
+                 */
+                auto& dir = cell.direction[did];
+                auto& v0  { dir.vect[t0] };
+                auto& v1  { dir.vect[t1] };
+                
+                if (v0.qsize() < ((v0 - v1).qsize() * 4))
+                {
+                    dir.valid = false;
+                }
             }
         }
     }
