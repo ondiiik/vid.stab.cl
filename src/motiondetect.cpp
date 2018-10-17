@@ -713,7 +713,7 @@ namespace VidStab
     
     
     template <typename _PixT> void VSMD::_finalize(Pyramids<_PixT>& aPt,
-                                                   VSFrame&          aFrame)
+                                                   VSFrame&         aFrame)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -724,14 +724,14 @@ namespace VidStab
              * Calculates fast filter
              */
             auto&          cell = _cells.list[idx];
-            const VectS    rb   { -1 };
-            const VectS    re   {  1 };
             const unsigned t    { Direction::frame2vidx(_idx) };
             
             for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
             {
                 const unsigned did  { Cell::ptype2dir(aPt.PTYPE_SW) };
                 auto&          dir = cell.direction[did];
+                const VectS    rb   { -2 };
+                const VectS    re   {  2 };
                 
                 if (!dir.valid)
                 {
@@ -771,6 +771,8 @@ namespace VidStab
                 {
                     const unsigned did  { Cell::ptype2dir(idx) };
                     auto&          dir = cell.direction[did];
+                    const VectS    rb   { -2 };
+                    const VectS    re   {  2 };
                     
                     if (!dir.valid)
                     {

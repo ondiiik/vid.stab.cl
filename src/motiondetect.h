@@ -137,6 +137,7 @@ namespace VidStab
         Direction()
             :
             valid { false },
+            range { 1     },
             vect  {       }
         {
         
