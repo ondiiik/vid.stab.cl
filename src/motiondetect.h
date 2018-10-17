@@ -205,7 +205,7 @@ namespace VidStab
          * @brief   Cell index in cells list
          */
         Common::Vect<unsigned> idx;
-
+        
         /**
          * @brief   Detected cell direction
          */
@@ -782,6 +782,18 @@ namespace VidStab
                                                 VSFrame&         aFrame);
                                                 
                                                 
+        /**
+         * @brief
+         * @param aPos  Position of cell
+         * @param aDid  Filter ID
+         * @param aTi   Time index
+         * @return      Average surrounding vector
+         */
+        VectS _analyze_avg(VectU    aPos,
+                           unsigned aDid,
+                           unsigned aTi);
+        
+        
         /**
          * @brief   Process first estimation of movements
          *

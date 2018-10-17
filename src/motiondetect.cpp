@@ -596,83 +596,91 @@ namespace VidStab
                  * Analyzes also neighbors. Vector should not deviate too
                  * much from them.
                  */
-                auto  pos { cell.idx };
-                VectS acc {          };
-                int   div { 0        };
+                auto avg = _analyze_avg(cell.idx, did, t0);
                 
-                ++pos.x;
-                
-                if (pos.x < _cells.dim.x)
-                {
-                    acc = _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                ++pos.y;
-                
-                if ((pos.x < _cells.dim.x) && (pos.y < _cells.dim.y))
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                --pos.x;
-                
-                if (pos.y < _cells.dim.y)
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                --pos.x;
-                
-                if ((pos.x < 65536U) && (pos.y < _cells.dim.y))
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                --pos.y;
-                
-                if (pos.x < 65536U)
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                --pos.y;
-                
-                if ((pos.x < 65536U) && (pos.y < 65536U))
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                ++pos.x;
-                
-                if (pos.y < 65536U)
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                ++pos.x;
-                
-                if ((pos.x < _cells.dim.x) && (pos.y < 65536U))
-                {
-                    acc += _cells[pos].direction[did].vect[t0];
-                    ++div;
-                }
-                
-                acc /= div;
-                
-                if (v0.qsize() < ((v0 - acc).qsize() * 4))
+                if (v0.qsize() < ((v0 - avg).qsize() * 4))
                 {
                     dir.valid = false;
                     continue;
                 }
             }
         }
+    }
+    
+    
+    VSMD::VectS VSMD::_analyze_avg(VectU    aPos,
+                                   unsigned aDid,
+                                   unsigned aTi)
+    {
+        VectS acc {   };
+        int   div { 0 };
+        
+        ++aPos.x;
+        
+        if (aPos.x < _cells.dim.x)
+        {
+            acc = _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        ++aPos.y;
+        
+        if ((aPos.x < _cells.dim.x) && (aPos.y < _cells.dim.y))
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        --aPos.x;
+        
+        if (aPos.y < _cells.dim.y)
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        --aPos.x;
+        
+        if ((aPos.x < 65536U) && (aPos.y < _cells.dim.y))
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        --aPos.y;
+        
+        if (aPos.x < 65536U)
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        --aPos.y;
+        
+        if ((aPos.x < 65536U) && (aPos.y < 65536U))
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        ++aPos.x;
+        
+        if (aPos.y < 65536U)
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        ++aPos.x;
+        
+        if ((aPos.x < _cells.dim.x) && (aPos.y < 65536U))
+        {
+            acc += _cells[aPos].direction[aDid].vect[aTi];
+            ++div;
+        }
+        
+        acc /= div;
+        return acc;
     }
     
     
@@ -808,8 +816,8 @@ namespace VidStab
 //                    disp.drawLine(pos, dst, w,      x);
 //                }
 //            }
-            
-            
+
+
             /*
              * Show fast filters
              */
