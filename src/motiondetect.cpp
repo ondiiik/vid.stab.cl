@@ -611,7 +611,7 @@ namespace VidStab
                     if (qfEstimated > qfMeasured)
                     {
                         dir.valid    = false;
-                        dir.vect[t0] = (va + v1) / 2;
+//                        dir.vect[t0] = (va + v1) / 2;
                     }
                 }
                 
