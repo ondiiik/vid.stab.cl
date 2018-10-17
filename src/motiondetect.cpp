@@ -325,6 +325,8 @@ namespace VidStab
         
         
         _cells.list.resize(0);
+        _cells.dim = end - begin;
+        
         
         Common::VectIt<unsigned> i { begin, end };
         
@@ -336,6 +338,7 @@ namespace VidStab
             {
                 (pos + rect / 2)* mul,
                 rect * mul,
+                i() - begin,
                 { },
                 0
             };
@@ -563,17 +566,110 @@ namespace VidStab
             for (auto& cell : _cells.list)
             {
                 /*
-                 * Analyzes deviations according to history
-                 * (difference between vectors shall be
-                 * reasonable small)
+                 * Throw away low contrast estimation.
                  */
                 auto& dir = cell.direction[did];
+                
+                if (cell.qfContrast == 0)
+                {
+                    dir.valid = false;
+                    continue;
+                }
+                
+                
+                /*
+                 * Analyzes deviations according to history
+                 * Difference between vectors shall be
+                 * reasonable small.
+                 */
                 auto& v0  { dir.vect[t0] };
                 auto& v1  { dir.vect[t1] };
                 
                 if (v0.qsize() < ((v0 - v1).qsize() * 4))
                 {
                     dir.valid = false;
+                    continue;
+                }
+                
+                
+                /*
+                 * Analyzes also neighbors. Vector should not deviate too
+                 * much from them.
+                 */
+                auto  pos { cell.idx };
+                VectS acc {          };
+                int   div { 0        };
+                
+                ++pos.x;
+                
+                if (pos.x < _cells.dim.x)
+                {
+                    acc = _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                ++pos.y;
+                
+                if ((pos.x < _cells.dim.x) && (pos.y < _cells.dim.y))
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                --pos.x;
+                
+                if (pos.y < _cells.dim.y)
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                --pos.x;
+                
+                if ((pos.x < 65536U) && (pos.y < _cells.dim.y))
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                --pos.y;
+                
+                if (pos.x < 65536U)
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                --pos.y;
+                
+                if ((pos.x < 65536U) && (pos.y < 65536U))
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                ++pos.x;
+                
+                if (pos.y < 65536U)
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                ++pos.x;
+                
+                if ((pos.x < _cells.dim.x) && (pos.y < 65536U))
+                {
+                    acc += _cells[pos].direction[did].vect[t0];
+                    ++div;
+                }
+                
+                acc /= div;
+                
+                if (v0.qsize() < ((v0 - acc).qsize() * 4))
+                {
+                    dir.valid = false;
+                    continue;
                 }
             }
         }
@@ -679,6 +775,8 @@ namespace VidStab
         const unsigned       e    { unsigned(_cells.list.size())     };
         const unsigned       t0   { Direction::frame2vidx(_idx)      };
         const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
+        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
+        const unsigned       t3   { Direction::frame2vidx(_idx - 2)  };
         
         
         OMP_ALIAS(md, this)
@@ -692,24 +790,24 @@ namespace VidStab
             /*
              * Show slow filters
              */
-            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
-            {
-                const unsigned did { Cell::ptype2dir(idx)           };
-                VectU          pos { i.position                     };
-                VectU          dst { pos + i.direction[did].vect[t0] };
-                VectU          rs  { 16                             };
-                disp.drawRectangle(pos, rs, _PixT(0));
-                
-                if (i.direction[did].valid)
-                {
-                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
-                    unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
-                    
-                    disp.drawBox(      dst, rs - 2, x);
-                    disp.drawRectangle(dst, rs,     x);
-                    disp.drawLine(pos, dst, w,      x);
-                }
-            }
+//            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+//            {
+//                const unsigned did { Cell::ptype2dir(idx)           };
+//                VectU          pos { i.position                     };
+//                VectU          dst { pos + i.direction[did].vect[t0] };
+//                VectU          rs  { 16                             };
+//                disp.drawRectangle(pos, rs, _PixT(0));
+//
+//                if (i.direction[did].valid)
+//                {
+//                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
+//                    unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
+//
+//                    disp.drawBox(      dst, rs - 2, x);
+//                    disp.drawRectangle(dst, rs,     x);
+//                    disp.drawLine(pos, dst, w,      x);
+//                }
+//            }
             
             
             /*
@@ -738,9 +836,13 @@ namespace VidStab
                 
                 if (i.direction[did].valid)
                 {
-                    VectU dsth { dst + i.direction[did].vect[t1] };
-                    disp.drawLine(pos, dsth, 4, _PixT(0));
-                    disp.drawLine(pos, dst,  4, _PixT(255));
+                    VectU dst1 { dst  + i.direction[did].vect[t1] };
+                    VectU dst2 { dst1 + i.direction[did].vect[t2] };
+                    VectU dst3 { dst2 + i.direction[did].vect[t3] };
+                    disp.drawLine(dst2, dst3, 1, _PixT(0));
+                    disp.drawLine(dst1, dst2, 2, _PixT(0));
+                    disp.drawLine(dst,  dst1, 3, _PixT(0));
+                    disp.drawLine(pos,  dst,  4, _PixT(255));
                 }
             }
         }

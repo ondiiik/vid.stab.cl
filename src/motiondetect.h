@@ -202,6 +202,11 @@ namespace VidStab
         Common::Vect<unsigned> size;
         
         /**
+         * @brief   Cell index in cells list
+         */
+        Common::Vect<unsigned> idx;
+
+        /**
          * @brief   Detected cell direction
          */
         Direction direction[Pyramids<int>::PTYPE_COUNT - Pyramids<int>::PTYPE_SW];
@@ -218,6 +223,28 @@ namespace VidStab
      */
     struct Cells
     {
+        inline Cell& operator[](const Common::Vect<unsigned>& aVec)
+        {
+            return list[aVec.y * dim.x + aVec.x];
+        }
+        
+        
+        inline Cell& operator()(unsigned aX,
+                                unsigned aY)
+        {
+            return list[aY * dim.x + aX];
+        }
+        
+        
+        /**
+         * @brief   Cells array dimmension
+         */
+        Common::Vect<unsigned> dim;
+        
+        
+        /**
+         * @brief   Cells array
+         */
         std::vector<Cell> list;
     };
     
@@ -753,8 +780,8 @@ namespace VidStab
          */
         template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt,
                                                 VSFrame&         aFrame);
-                             
-                             
+                                                
+                                                
         /**
          * @brief   Process first estimation of movements
          *
