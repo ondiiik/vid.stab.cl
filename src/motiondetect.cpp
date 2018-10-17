@@ -102,7 +102,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 64 };
+    const unsigned _contrastThreshold { 32 };
     
     
     /**
@@ -585,6 +585,7 @@ namespace VidStab
                  * invalid if deviation is too high.
                  */
                 auto& dir  = cell.direction[did];
+                dir.range  = 1;
                 auto& v0   { dir.vect[t0] };
                 auto  v0qs { v0.qsize()   };
                 
@@ -610,8 +611,16 @@ namespace VidStab
                      */
                     if (qfEstimated > qfMeasured)
                     {
-                        dir.valid    = false;
-//                        dir.vect[t0] = (va + v1) / 2;
+                        unsigned q    { qfEstimated    / qfMeasured };
+                        unsigned v0th { unsigned(v0qs) / 4          };
+                        
+                        if (q > v0th)
+                        {
+                            q = v0th;
+                        }
+                        
+                        dir.range = q;
+                        dir.valid = false;
                     }
                 }
                 
@@ -867,9 +876,9 @@ namespace VidStab
                     VectU dst1 { dst  + i.direction[did].vect[t1] };
                     VectU dst2 { dst1 + i.direction[did].vect[t2] };
                     VectU dst3 { dst2 + i.direction[did].vect[t3] };
-                    disp.drawLine(dst2, dst3, 1, _PixT(0));
-                    disp.drawLine(dst1, dst2, 2, _PixT(0));
-                    disp.drawLine(dst,  dst1, 3, _PixT(0));
+                    disp.drawLine(dst2, dst3, 1, _PixT(150));
+                    disp.drawLine(dst1, dst2, 2, _PixT(190));
+                    disp.drawLine(dst,  dst1, 3, _PixT(220));
                     disp.drawLine(pos,  dst,  4, _PixT(255));
                 }
                 else

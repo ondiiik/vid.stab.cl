@@ -154,6 +154,12 @@ namespace VidStab
         
         
         /**
+         * @brief   Suggested finalize search range
+         */
+        int range;
+
+
+        /**
          * @brief   History count of direction
          */
         static const unsigned hcnt { 4 };
