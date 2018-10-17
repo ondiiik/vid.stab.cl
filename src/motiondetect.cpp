@@ -144,6 +144,18 @@ namespace
     
     
     /**
+     * @brief   Deviation measure factor
+     */
+    const unsigned _devFactor { 4 };
+    
+    
+    /**
+     * @brief   Minimal quadratic size for analysis
+     */
+    const unsigned _minQSize { 4 };
+    
+    
+    /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
@@ -566,42 +578,32 @@ namespace VidStab
             for (auto& cell : _cells.list)
             {
                 /*
-                 * Throw away low contrast estimation.
+                 * Analyzes deviations according to contrast, history
+                 * and surroundings. Deviated vectors are estimated
+                 * from history and surroundings, but marked as
+                 * invalid.
                  */
-                auto& dir = cell.direction[did];
+                auto& dir  = cell.direction[did];
+                auto& v0   { dir.vect[t0] };
+                auto  v0qs { v0.qsize()   };
                 
-                if (cell.qfContrast == 0)
+                if (int(_minQSize) < v0qs)
                 {
-                    dir.valid = false;
-                    continue;
-                }
-                
-                
-                /*
-                 * Analyzes deviations according to history
-                 * Difference between vectors shall be
-                 * reasonable small.
-                 */
-                auto& v0  { dir.vect[t0] };
-                auto& v1  { dir.vect[t1] };
-                
-                if (v0.qsize() < ((v0 - v1).qsize() * 4))
-                {
-                    dir.valid = false;
-                    continue;
-                }
-                
-                
-                /*
-                 * Analyzes also neighbors. Vector should not deviate too
-                 * much from them.
-                 */
-                auto avg = _analyze_avg(cell.idx, did, t0);
-                
-                if (v0.qsize() < ((v0 - avg).qsize() * 4))
-                {
-                    dir.valid = false;
-                    continue;
+                    auto& v1   { dir.vect[t1] };
+                    auto  va   = _analyze_avg(cell.idx, did, t0);
+                    auto  dt   { v0 - v1      };
+                    auto  ds   { v0 - va      };
+                    
+                    if ((v0qs < int(dt.qsize() * _devFactor)) ||
+                        (v0qs < int(ds.qsize() * _devFactor)))
+                    {
+                        dir.valid    = false;
+                        dir.vect[t0] = (va + v1) / 2;
+                    }
+                    else if (0 == cell.qfContrast)
+                    {
+                        dir.valid = false;
+                    }
                 }
             }
         }
