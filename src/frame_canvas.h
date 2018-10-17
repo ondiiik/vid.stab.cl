@@ -223,9 +223,9 @@ namespace Frame
                 {
                     Common::Vect<unsigned> pos { i + aPos - sz2};
                     
-                    unsigned  c = (*this)[pos].abs() * 7;
+                    unsigned  c = (*this)[pos].abs() * 3;
                     c          += aColor.abs();
-                    c          /= 8;
+                    c          /= 4;
                     
                     (*this)[pos] = c;
                 }

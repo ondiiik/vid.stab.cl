@@ -102,7 +102,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 4 * 128 };
+    const unsigned _contrastThreshold { 64 };
     
     
     /**
@@ -152,7 +152,7 @@ namespace
     /**
      * @brief   Minimal quadratic size for analysis
      */
-    const unsigned _minQSize { 4 };
+    const unsigned _minQSize { 1 };
     
     
     /**
@@ -410,12 +410,12 @@ namespace VidStab
     template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame)
     {
-        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
-        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        VectU                        begin  { 1 };
+        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
+        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]                   };
+        VectU                        begin  { 1                                          };
         VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
-        VectU                        rect   { _cellSize };
-        const unsigned               t      { Direction::frame2vidx(_idx) };
+        VectU                        rect   { _cellSize                                  };
+        const unsigned               t      { Direction::frame2vidx(_idx)                };
         
         
         Common::VectIt<unsigned> i { begin, end };
@@ -578,10 +578,11 @@ namespace VidStab
             for (auto& cell : _cells.list)
             {
                 /*
-                 * Analyzes deviations according to contrast, history
-                 * and surroundings. Deviated vectors are estimated
-                 * from history and surroundings, but marked as
-                 * invalid.
+                 * Value is calculated by Calman filter. Analyzes
+                 * deviations according to contrast, history and
+                 * surroundings. Deviated vectors are estimated
+                 * from history and surroundings. Cell is marked
+                 * invalid if deviation is too high.
                  */
                 auto& dir  = cell.direction[did];
                 auto& v0   { dir.vect[t0] };
@@ -589,21 +590,37 @@ namespace VidStab
                 
                 if (int(_minQSize) < v0qs)
                 {
-                    auto& v1   { dir.vect[t1] };
-                    auto  va   = _analyze_avg(cell.idx, did, t0);
-                    auto  dt   { v0 - v1      };
-                    auto  ds   { v0 - va      };
+                    auto& v1          { dir.vect[t1]                              };
+                    auto  va          = _analyze_avg(cell.idx, did, t0);
+                    auto  dt          { v0 - v1                                   };
+                    auto  ds          { v0 - va                                   };
+                    auto  estimated   { (va + v1) / 2                             };
+                    auto& measured    = dir.vect[t0];
+                    auto  qfMeasured  { unsigned(4 * v0qs)                        };
+                    auto  qfEstimated { (dt.qsize() + 4 * ds.qsize())* _devFactor };
                     
-                    if ((v0qs < int(dt.qsize() * _devFactor)) ||
-                        (v0qs < int(ds.qsize() * _devFactor)))
+                    dir.vect[t0] =
+                        (measured * qfMeasured + estimated * qfEstimated)
+                        /
+                        (qfMeasured + qfEstimated);
+                        
+                    /*
+                     * We uses Calman filter but we would like to remove cells
+                     * with big deviation.
+                     */
+                    if (qfEstimated > qfMeasured)
                     {
                         dir.valid    = false;
                         dir.vect[t0] = (va + v1) / 2;
                     }
-                    else if (0 == cell.qfContrast)
-                    {
-                        dir.valid = false;
-                    }
+                }
+                
+                /*
+                 * Also low contrast area would be invalidated
+                 */
+                if (0 == cell.qfContrast)
+                {
+                    dir.valid = false;
                 }
             }
         }
@@ -828,24 +845,25 @@ namespace VidStab
                 VectU          pos { i.position                     };
                 VectU          dst { pos + i.direction[did].vect[t0] };
                 
-                if (i.qfContrast > _contrastThreshold)
+                if (i.direction[did].valid)
                 {
-                    VectU rs { i.size - 16 };
-                    
-                    if ((i.direction[Cell::ptype2dir(aPt.PTYPE_SW)    ].valid) &&
-                        (i.direction[Cell::ptype2dir(aPt.PTYPE_SLOW_A)].valid) &&
-                        (i.direction[Cell::ptype2dir(aPt.PTYPE_SLOW_B)].valid))
+                    if (i.qfContrast > _contrastThreshold)
                     {
-                        disp.drawBox(pos + 1, rs, _PixT(255));
+                        VectU rs1 { i.size - 4 };
+                        VectU rs2 { i.size - 8 };
+                        
+                        disp.drawBox(pos + 1, rs1, _PixT(0));
+                        disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
                     else
                     {
-                        disp.drawBox(pos + 1, rs, _PixT(0));
+                        VectU rs1 { i.size - 20 };
+                        VectU rs2 { i.size - 24 };
+                        
+                        disp.drawBox(pos + 1, rs1, _PixT(0));
+                        disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
-                }
-                
-                if (i.direction[did].valid)
-                {
+                    
                     VectU dst1 { dst  + i.direction[did].vect[t1] };
                     VectU dst2 { dst1 + i.direction[did].vect[t2] };
                     VectU dst3 { dst2 + i.direction[did].vect[t3] };
@@ -853,6 +871,10 @@ namespace VidStab
                     disp.drawLine(dst1, dst2, 2, _PixT(0));
                     disp.drawLine(dst,  dst1, 3, _PixT(0));
                     disp.drawLine(pos,  dst,  4, _PixT(255));
+                }
+                else
+                {
+                    disp.drawLine(pos,  dst,  2, _PixT(0));
                 }
             }
         }
