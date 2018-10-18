@@ -224,7 +224,7 @@ namespace VidStab
          * @brief   Cell contrast quality factor
          */
         unsigned cntrQf;
-
+        
         /**
          * @brief   Cell contrast range
          */
@@ -833,8 +833,8 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _estimate(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame);
+        template <typename _PixT> void _estimate(const Pyramids<_PixT>& aPt,
+                                                 VSFrame&               aFrame);
                                                  
                                                  
         /**
@@ -863,7 +863,25 @@ namespace VidStab
                                                   
                                                   
         /**
-         * @brief   Calculates correlation of source and destination
+         * @brief Correlate to detect best matching movement
+         *
+         * @param aCell     Cell to be correlated
+         * @param aPt       Pyramids set
+         * @param aPType    Pyramid type index
+         * @param aLayer    Pyramid layer index
+         * @param aRb       Range begin for iterator
+         * @param aRe       Range end for iterator
+         */
+        template <typename _PixT> void _correlate(Cell&                  aCell,
+                                                  const Pyramids<_PixT>& aPt,
+                                                  unsigned               aPType,
+                                                  unsigned               aLayer,
+                                                  const VectS&           aRb,
+                                                  const VectS&           aRe);
+                                                  
+                                                  
+        /**
+         * @brief Calculates correlation of source and destination
          *
          * @param aCurrC    Current canvas
          * @param aPrevC    Previous canvas
@@ -873,14 +891,14 @@ namespace VidStab
          *
          * @return  Correlation result
          */
-        template <typename _PixT> unsigned _corelate(const Frame::Canvas<_PixT>&  aCurrC,
-                                                     const Frame::Canvas<_PixT>&  aPrevC,
-                                                     const VectS&                 aCurrV,
-                                                     const VectS&                 aPrevV,
-                                                     const VectU&                 aRect,
-                                                     unsigned                     aTrh) const;
-                                                     
-                                                     
+        template <typename _PixT> unsigned _correlateShot(const Frame::Canvas<_PixT>&  aCurrC,
+                                                          const Frame::Canvas<_PixT>&  aPrevC,
+                                                          const VectS&                 aCurrV,
+                                                          const VectS&                 aPrevV,
+                                                          const VectU&                 aRect,
+                                                          unsigned                     aTrh) const;
+                                                          
+                                                          
         /**
          * @brief   RGB based piramids
          */
