@@ -685,8 +685,6 @@ namespace VidStab
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
             auto&          cell = _cells.list[idx];
-            const VectS    rb   { -2 };
-            const VectS    re   {  2 };
             
             for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
@@ -694,12 +692,16 @@ namespace VidStab
                 {
                     const unsigned did { Cell::ptype2dir(idx) };
                     auto&          dir = cell.direction[did];
+                    const unsigned t   { Direction::frame2vidx(_idx)               };
+                    
+                    const VectS    rb  { (dir.vect[t] >> p) - 1 };
+                    const VectS    re  { (dir.vect[t] >> p) + 1 };
                     
                     if (!dir.valid)
                     {
                         continue;
                     }
-
+                    
                     _correlate(cell, aPt, idx, p, rb, re);
                 }
             }
