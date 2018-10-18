@@ -778,13 +778,16 @@ namespace VidStab
                         disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
                     
+                    VectU rs   { 12                               };
                     VectU dst1 { dst  - i.direction[did].vect[t1] };
                     VectU dst2 { dst1 - i.direction[did].vect[t2] };
                     VectU dst3 { dst2 - i.direction[did].vect[t3] };
-                    disp.drawLine(dst2, dst3, 1, _PixT(150));
-                    disp.drawLine(dst1, dst2, 2, _PixT(190));
-                    disp.drawLine(dst,  dst1, 3, _PixT(220));
-                    disp.drawLine(pos,  dst,  4, _PixT(255));
+                    disp.drawLine(dst2, dst3, 1,  _PixT(150));
+                    disp.drawLine(dst1, dst2, 2,  _PixT(175));
+                    disp.drawLine(dst,  dst1, 3,  _PixT(200));
+                    disp.drawLine(pos,  dst,  4,  _PixT(255));
+                    disp.drawRectangle( dst,  rs, _PixT(255));
+                    disp.drawRectangle( pos,  rs, _PixT(0));
                 }
                 else
                 {
