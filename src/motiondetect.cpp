@@ -733,24 +733,25 @@ namespace VidStab
              */
 //            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
 //            {
-//                const unsigned did { Cell::ptype2dir(idx)           };
-//                VectU          pos { i.position                     };
-//                VectU          dst { pos + i.direction[did].vect[t0] };
-//                VectU          rs  { 16                             };
-//                disp.drawRectangle(pos, rs, _PixT(0));
+//                const unsigned did { Cell::ptype2dir(idx) };
 //
 //                if (i.direction[did].valid)
 //                {
-//                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(64) : _PixT(128)};
-//                    unsigned w { idx < aPt.PTYPE_STATIC_A ? 2U        : 1U};
+//                    VectU pos { i.position                      };
+//                    VectU dst { pos + i.direction[did].vect[t0] };
+//                    VectU rs  { 16                              };
+//
+//                    disp.drawRectangle(pos, rs, _PixT(128));
+//
+//                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(100) : _PixT(128)};
 //
 //                    disp.drawBox(      dst, rs - 2, x);
 //                    disp.drawRectangle(dst, rs,     x);
-//                    disp.drawLine(pos, dst, w,      x);
+//                    disp.drawLine(pos, dst, 1,      x);
 //                }
 //            }
-
-
+            
+            
             /*
              * Show fast filters
              */
