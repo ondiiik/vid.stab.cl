@@ -17,15 +17,18 @@ namespace Common
      */
     template <typename _Tp> struct Vect
     {
+        typedef _Tp type_name;
+
+
         Vect() noexcept
             :
             x
         {
-            _Tp(0)
+            type_name(0)
         },
         y
         {
-            _Tp(0)
+            type_name(0)
         }
         {
         
@@ -37,11 +40,11 @@ namespace Common
             :
             x
         {
-            _Tp(aX)
+            type_name(aX)
         },
         y
         {
-            _Tp(aY)
+            type_name(aY)
         }
         {
         
@@ -52,11 +55,11 @@ namespace Common
             :
             x
         {
-            _Tp(aN)
+            type_name(aN)
         },
         y
         {
-            _Tp(aN)
+            type_name(aN)
         }
         {
         
@@ -67,11 +70,11 @@ namespace Common
             :
             x
         {
-            _Tp(aSrc.x)
+            type_name(aSrc.x)
         },
         y
         {
-            _Tp(aSrc.y)
+            type_name(aSrc.y)
         }
         {
         
@@ -92,8 +95,8 @@ namespace Common
         
         template <typename _SrcTp> inline Vect& operator-=(const Vect<_SrcTp>& aSrc) noexcept
         {
-            this->x -= _Tp(aSrc.x);
-            this->y -= _Tp(aSrc.y);
+            this->x -= type_name(aSrc.x);
+            this->y -= type_name(aSrc.y);
             return *this;
         }
         
@@ -109,8 +112,8 @@ namespace Common
         
         template <typename _SrcTp> inline Vect& operator-=(_SrcTp aVal) noexcept
         {
-            this->x -= _Tp(aVal);
-            this->y -= _Tp(aVal);
+            this->x -= type_name(aVal);
+            this->y -= type_name(aVal);
             return *this;
         }
         
@@ -118,15 +121,15 @@ namespace Common
         template <typename _SrcTp> inline Vect operator-(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r -= _Tp(aVal);
+            r -= type_name(aVal);
             return r;
         }
         
         
         template <typename _SrcTp> inline Vect& operator+=(const Vect<_SrcTp>& aSrc) noexcept
         {
-            this->x += _Tp(aSrc.x);
-            this->y += _Tp(aSrc.y);
+            this->x += type_name(aSrc.x);
+            this->y += type_name(aSrc.y);
             return *this;
         }
         
@@ -141,8 +144,8 @@ namespace Common
         
         template <typename _SrcTp> inline Vect& operator+=(_SrcTp aVal) noexcept
         {
-            this->x += _Tp(aVal);
-            this->y += _Tp(aVal);
+            this->x += type_name(aVal);
+            this->y += type_name(aVal);
             return *this;
         }
         
@@ -150,15 +153,15 @@ namespace Common
         template <typename _SrcTp> inline Vect operator+(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r += _Tp(aVal);
+            r += type_name(aVal);
             return r;
         }
         
         
         template <typename _SrcTp> inline Vect& operator/=(_SrcTp aVal) noexcept
         {
-            this->x /= _Tp(aVal);
-            this->y /= _Tp(aVal);
+            this->x /= aVal;
+            this->y /= aVal;
             return *this;
         }
         
@@ -166,23 +169,23 @@ namespace Common
         template <typename _SrcTp> inline Vect operator/(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r /= _Tp(aVal);
+            r /= aVal;
             return r;
         }
         
         
         template <typename _SrcTp> inline Vect& operator*=(_SrcTp aVal) noexcept
         {
-            this->x *= _Tp(aVal);
-            this->y *= _Tp(aVal);
-            return *this;
+            this->x *= aVal;
+            this->y *= aVal;
+            return  *this;
         }
         
         
         template <typename _SrcTp> inline Vect operator*(_SrcTp aVal) const noexcept
         {
             Vect r { *this };
-            r *= _Tp(aVal);
+            r *= aVal;
             return r;
         }
         
@@ -222,8 +225,8 @@ namespace Common
         template <typename _SrcTp> inline Vect div(const Vect<_SrcTp>& aSrc) const noexcept
         {
             Vect r { *this };
-            r.x /= _Tp(aSrc.x);
-            r.y /= _Tp(aSrc.y);
+            r.x /= aSrc.x;
+            r.y /= aSrc.y;
             return r;
         }
         
@@ -231,8 +234,8 @@ namespace Common
         template <typename _SrcTp> inline Vect mul(const Vect<_SrcTp>& aSrc) const noexcept
         {
             Vect r { *this };
-            r.x *= _Tp(aSrc.x);
-            r.y *= _Tp(aSrc.y);
+            r.x *= aSrc.x;
+            r.y *= aSrc.y;
             return r;
         }
         
@@ -250,8 +253,8 @@ namespace Common
          */
         inline bool isCloseSq(const Vect& aVec, _Tp aRange) const noexcept
         {
-            return (_Tp(fabs(aVec.x - x)) < aRange) &&
-                   (_Tp(fabs(aVec.y - y)) < aRange);
+            return (type_name(fabs(aVec.x - x)) < aRange) &&
+                   (type_name(fabs(aVec.y - y)) < aRange);
         }
         
         
@@ -263,7 +266,7 @@ namespace Common
         
         inline _Tp size() const noexcept
         {
-            return _Tp(sqrt(qsize()));
+            return type_name(sqrt(qsize()));
         }
         
         
@@ -279,15 +282,18 @@ namespace Common
         }
         
         
-        _Tp x;
-        _Tp y;
+        type_name x;
+        type_name y;
     };
     
     
     template <typename _Tp> class VectIt
     {
     public:
-        VectIt(const Vect<_Tp>& aEnd) noexcept
+        typedef _Tp type_name;
+
+
+        VectIt(const Vect<type_name>& aEnd) noexcept
             :
             _vect  {  },
         _begin {      },
@@ -297,7 +303,7 @@ namespace Common
         }
         
         
-        VectIt(_Tp aEnd) noexcept
+        VectIt(type_name aEnd) noexcept
             :
             _vect  {  },
         _begin {      },
@@ -307,8 +313,8 @@ namespace Common
         }
         
         
-        VectIt(const Vect<_Tp>& aBegin,
-               const Vect<_Tp>& aEnd) noexcept
+        VectIt(const Vect<type_name>& aBegin,
+               const Vect<type_name>& aEnd) noexcept
             :
             _vect  { aBegin },
         _begin { aBegin     },
@@ -318,8 +324,8 @@ namespace Common
         }
         
         
-        VectIt(_Tp aBegin,
-               _Tp aEnd) noexcept
+        VectIt(type_name aBegin,
+               type_name aEnd) noexcept
             :
             _vect  { aBegin },
         _begin { aBegin     },
@@ -349,83 +355,86 @@ namespace Common
         }
         
         
-        inline operator Vect<_Tp>& () noexcept
+        inline operator Vect<type_name>& () noexcept
         {
             return vect();
         }
         
         
-        inline Vect<_Tp>& operator()() noexcept
+        inline Vect<type_name>& operator()() noexcept
         {
             return vect();
         }
         
         
-        inline Vect<_Tp>& vect() noexcept
+        inline Vect<type_name>& vect() noexcept
         {
             return _vect;
         }
         
         
     private:
-        Vect<_Tp>       _vect;
-        const Vect<_Tp> _begin;
-        const Vect<_Tp> _end;
+        Vect<type_name>       _vect;
+        const Vect<type_name> _begin;
+        const Vect<type_name> _end;
     };
     
     
     template <typename _Tp> class VectItSpiral
     {
     public:
-        VectItSpiral(const Vect<_Tp>& aEnd) noexcept
+        typedef _Tp type_name;
+
+
+        VectItSpiral(const Vect<type_name>& aEnd) noexcept
             :
             _vect  { aEnd / 2 },
         _begin {              },
         _end   { aEnd         },
         _dir   { _LEFT        },
-        _limit { _Tp(1)       },
-        _step  { _Tp(0)       }
+        _limit { type_name(1)       },
+        _step  { type_name(0)       }
         {
         
         }
         
         
-        VectItSpiral(_Tp aEnd) noexcept
+        VectItSpiral(type_name aEnd) noexcept
             :
             _vect  { aEnd / 2 },
         _begin {              },
         _end   { aEnd         },
         _dir   { _LEFT        },
-        _limit { _Tp(1)       },
-        _step  { _Tp(0)       }
+        _limit { type_name(1) },
+        _step  { type_name(0) }
         {
         
         }
         
         
-        VectItSpiral(const Vect<_Tp>& aBegin,
-                     const Vect<_Tp>& aEnd) noexcept
+        VectItSpiral(const Vect<type_name>& aBegin,
+                     const Vect<type_name>& aEnd) noexcept
             :
             _vect  { (aBegin + aEnd) / 2 },
         _begin { aBegin                  },
         _end   { aEnd                    },
         _dir   { _LEFT                   },
-        _limit { _Tp(1)                  },
-        _step  { _Tp(0)                  }
+        _limit { type_name(1)            },
+        _step  { type_name(0)            }
         {
         
         }
         
         
-        VectItSpiral(_Tp aBegin,
-                     _Tp aEnd) noexcept
+        VectItSpiral(type_name aBegin,
+                     type_name aEnd) noexcept
             :
             _vect  { (aBegin + aEnd) / 2 },
         _begin { aBegin                  },
         _end   { aEnd                    },
         _dir   { _LEFT                   },
-        _limit { _Tp(1)                  },
-        _step  { _Tp(0)                  }
+        _limit { type_name(1)            },
+        _step  { type_name(0)            }
         {
         
         }
@@ -499,19 +508,19 @@ namespace Common
         }
         
         
-        inline operator Vect<_Tp>& () noexcept
+        inline operator Vect<type_name>& () noexcept
         {
             return vect();
         }
         
         
-        inline Vect<_Tp>& operator()() noexcept
+        inline Vect<type_name>& operator()() noexcept
         {
             return vect();
         }
         
         
-        inline Vect<_Tp>& vect() noexcept
+        inline Vect<type_name>& vect() noexcept
         {
             return _vect;
         }
@@ -526,11 +535,11 @@ namespace Common
             _UP
         };
         
-        Vect<_Tp>       _vect;
-        const Vect<_Tp> _begin;
-        const Vect<_Tp> _end;
-        _Direction      _dir;
-        _Tp             _limit;
-        _Tp             _step;
+        Vect<type_name>       _vect;
+        const Vect<type_name> _begin;
+        const Vect<type_name> _end;
+        _Direction            _dir;
+        type_name             _limit;
+        type_name             _step;
     };
 }

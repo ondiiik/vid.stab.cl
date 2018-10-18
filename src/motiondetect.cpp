@@ -611,8 +611,8 @@ namespace VidStab
                      */
                     if (qfEstimated > qfMeasured)
                     {
-                        unsigned q    { qfEstimated    / qfMeasured };
-                        unsigned v0th { unsigned(v0qs) / 4          };
+                        unsigned q    { qfEstimated / qfMeasured };
+                        unsigned v0th { 4                        };
                         
                         if (q > v0th)
                         {
@@ -854,7 +854,7 @@ namespace VidStab
             {
                 const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)  };
                 VectU          pos { i.position                     };
-                VectU          dst { pos + i.direction[did].vect[t0] };
+                VectU          dst { pos - i.direction[did].vect[t0] };
                 
                 if (i.direction[did].valid)
                 {
@@ -875,9 +875,9 @@ namespace VidStab
                         disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
                     
-                    VectU dst1 { dst  + i.direction[did].vect[t1] };
-                    VectU dst2 { dst1 + i.direction[did].vect[t2] };
-                    VectU dst3 { dst2 + i.direction[did].vect[t3] };
+                    VectU dst1 { dst  - i.direction[did].vect[t1] };
+                    VectU dst2 { dst1 - i.direction[did].vect[t2] };
+                    VectU dst3 { dst2 - i.direction[did].vect[t3] };
                     disp.drawLine(dst2, dst3, 1, _PixT(150));
                     disp.drawLine(dst1, dst2, 2, _PixT(190));
                     disp.drawLine(dst,  dst1, 3, _PixT(220));
