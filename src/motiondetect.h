@@ -37,6 +37,8 @@
 #include <list>
 
 #include "frame_pyramid.h"
+#include "common_range.h"
+#include "common_vect.h"
 #include "vs_vector.h"
 
 
@@ -158,8 +160,8 @@ namespace VidStab
          * @brief   Suggested finalize search range
          */
         int range;
-
-
+        
+        
         /**
          * @brief   History count of direction
          */
@@ -219,9 +221,14 @@ namespace VidStab
         Direction direction[Pyramids<int>::PTYPE_COUNT - Pyramids<int>::PTYPE_SW];
         
         /**
-         * @brief   Cell quality factor
+         * @brief   Cell contrast quality factor
          */
-        unsigned qfContrast;
+        unsigned cntrQf;
+
+        /**
+         * @brief   Cell contrast range
+         */
+        Common::Range<unsigned> cntrRng;
     };
     
     
@@ -676,6 +683,18 @@ namespace VidStab
         
         
         /**
+         * @brief   Alias for unsigned range
+         */
+        typedef Common::Range<unsigned> RangeU;
+        
+        
+        /**
+         * @brief   Alias for signed range
+         */
+        typedef Common::Range<int> RangeS;
+        
+        
+        /**
          * @brief   Alias for unsigned integer vector
          */
         typedef Common::Vect<unsigned> VectU;
@@ -768,12 +787,16 @@ namespace VidStab
         /**
          * @brief   Get quality marker of potential cell
          *
-         * @param   aCanvas     Canvas to be analyzed
-         * @param   aPosition   Position of cell
-         * @param   aRect       Size of cell
-         * @tparam  \_PixT  Pixel type
+         * @param[out]  aR          Range of pixel values
+         * @param[in]   aCanvas     Canvas to be analyzed
+         * @param[in]   aPosition   Position of cell
+         * @param[in]   aRect       Size of cell
+         * @tparam      \_PixT      Pixel type
+         *
+         * @return  Contras quality marker
          */
-        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>& aCanvas,
+        template <typename _PixT> unsigned _selectContrast(RangeU&                     aR,
+                                                           const Frame::Canvas<_PixT>& aCanvas,
                                                            const VectU&                aPosition,
                                                            const VectU&                aRect) const;
                                                            
@@ -799,8 +822,8 @@ namespace VidStab
         VectS _analyze_avg(VectU    aPos,
                            unsigned aDid,
                            unsigned aTi);
-        
-        
+                           
+                           
         /**
          * @brief   Process first estimation of movements
          *

@@ -65,7 +65,6 @@
 #include <vector>
 #include <algorithm>
 #include <cstdio>
-#include <limits>
 
 
 
@@ -102,7 +101,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 32 };
+    const unsigned _contrastThreshold { 512 };
     
     
     /**
@@ -423,16 +422,16 @@ namespace VidStab
         
         do
         {
-            VectU    pos { i()* _cellSize };
-            unsigned q   { _selectContrast(canvas, pos, rect) };
+            VectU    pos { i()* _cellSize                                 };
+            unsigned q   { _selectContrast(c->cntrRng, canvas, pos, rect) };
             
             if (_contrastThreshold <= q)
             {
-                c->qfContrast = q - _contrastThreshold;
+                c->cntrQf = q - _contrastThreshold;
             }
             else
             {
-                c->qfContrast = 0;
+                c->cntrQf = 0;
             }
             
             c->direction[t].valid = true;
@@ -443,24 +442,38 @@ namespace VidStab
     
     
     
-    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>& aCanvas,
+    template <typename _PixT> unsigned VSMD::_selectContrast(RangeU&                     aR,
+                                                             const Frame::Canvas<_PixT>& aCanvas,
                                                              const VectU&                aPosition,
                                                              const VectU&                aRect) const
     {
         const unsigned dist { _cellSize / 2 };
-        VectS          h    { int(dist), 0       };
-        VectS          v    { 0, int(dist)       };
-        VectU          rect { aRect - dist       };
-        VectIterU      i    { rect               };
+        VectS          h    { int(dist), 0  };
+        VectS          v    { 0, int(dist)  };
+        VectU          rect { aRect - dist  };
+        VectIterU      i    { rect          };
         
-        int            minV { std::numeric_limits<int>::max() };
-        int            maxV { std::numeric_limits<int>::min() };
-        int            minH { std::numeric_limits<int>::max() };
-        int            maxH { std::numeric_limits<int>::min() };
+        aR.min = aR.maxVal();
+        aR.max = aR.minVal();
+        int minV { std::numeric_limits<int>::max() };
+        int maxV { std::numeric_limits<int>::min() };
+        int minH { std::numeric_limits<int>::max() };
+        int maxH { std::numeric_limits<int>::min() };
         
         do
         {
-            int p  {     int(aCanvas[aPosition + i()    ].abs()) };
+            int p  { int(aCanvas[aPosition + i()].abs()) };
+            
+            if (aR.min > unsigned(p))
+            {
+                aR.min = unsigned(p);
+            }
+            
+            if (aR.max < unsigned(p))
+            {
+                aR.max = unsigned(p);
+            }
+            
             int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
             int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
             
@@ -627,7 +640,7 @@ namespace VidStab
                 /*
                  * Also low contrast area would be invalidated
                  */
-                if (0 == cell.qfContrast)
+                if (0 == cell.cntrQf)
                 {
                     dir.valid = false;
                 }
@@ -858,7 +871,7 @@ namespace VidStab
                 
                 if (i.direction[did].valid)
                 {
-                    if (i.qfContrast > _contrastThreshold)
+                    if (i.cntrQf > _contrastThreshold)
                     {
                         VectU rs1 { i.size - 4 };
                         VectU rs2 { i.size - 8 };

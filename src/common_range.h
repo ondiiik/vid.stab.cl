@@ -8,6 +8,7 @@
 
 
 #include "common_cutils.h"
+#include <limits>
 
 
 namespace Common
@@ -18,6 +19,21 @@ namespace Common
     template <typename _Tp> struct Range
     {
         typedef _Tp type_name;
+        
+        
+        Range() noexcept
+            :
+            min
+        {
+            std::numeric_limits<type_name>::min()
+        },
+        max
+        {
+            std::numeric_limits<type_name>::max()
+        }
+        {
+        
+        }
         
         
         template <typename _SrcTp> Range(_SrcTp aMin,
@@ -36,6 +52,31 @@ namespace Common
             {
                 swap(min, max);
             }
+        }
+        
+        
+        inline type_name size() const
+        {
+            return max - min;
+        }
+        
+        
+        static inline type_name minVal()
+        {
+            return std::numeric_limits<type_name>::min();
+        }
+        
+        
+        static inline type_name maxVal()
+        {
+            return std::numeric_limits<type_name>::max();
+        }
+        
+        
+        inline void setMax()
+        {
+            min = std::numeric_limits<type_name>::min();
+            max = std::numeric_limits<type_name>::max();
         }
         
         
@@ -87,75 +128,76 @@ namespace Common
         }
         
         
-        template <typename _SrcTp> inline Vect& operator-=(_SrcTp aVal) noexcept
+        template <typename _SrcTp> inline Range& operator-=(_SrcTp aVal) noexcept
         {
-            this->min -= type_name(aVal);
-            this->max -= type_name(aVal);
+            min -= type_name(aVal);
+            max -= type_name(aVal);
             
             if (min > max)
             {
                 swap(min, max);
             }
+            
             return *this;
         }
         
         
-        template <typename _SrcTp> inline Vect operator-(_SrcTp aVal) const noexcept
+        template <typename _SrcTp> inline Range operator-(_SrcTp aVal) const noexcept
         {
-            Vect r { *this };
+            Range r { *this };
             r -= type_name(aVal);
             return r;
         }
         
         
-        template <typename _SrcTp> inline Vect& operator+=(_SrcTp aVal) noexcept
+        template <typename _SrcTp> inline Range& operator+=(_SrcTp aVal) noexcept
         {
-            this->min += type_name(aVal);
-            this->max += type_name(aVal);
+            min += type_name(aVal);
+            max += type_name(aVal);
             return *this;
         }
         
         
-        template <typename _SrcTp> inline Vect operator+(_SrcTp aVal) const noexcept
+        template <typename _SrcTp> inline Range operator+(_SrcTp aVal) const noexcept
         {
-            Vect r { *this };
+            Range r { *this };
             r += type_name(aVal);
             return r;
         }
         
         
-        template <typename _SrcTp> inline Vect& operator*=(_SrcTp aVal) noexcept
+        template <typename _SrcTp> inline Range& operator*=(_SrcTp aVal) noexcept
         {
-            this->min *= aVal;
-            this->max *= aVal;
+            min *= aVal;
+            max *= aVal;
             return *this;
         }
         
         
-        template <typename _SrcTp> inline Vect operator*(_SrcTp aVal) const noexcept
+        template <typename _SrcTp> inline Range operator*(_SrcTp aVal) const noexcept
         {
-            Vect r { *this };
+            Range r { *this };
             r *= aVal;
             return r;
         }
         
         
-        template <typename _SrcTp> inline Vect& operator/=(_SrcTp aVal) noexcept
+        template <typename _SrcTp> inline Range& operator/=(_SrcTp aVal) noexcept
         {
-            this->min /= aVal;
-            this->max /= aVal;
+            min /= aVal;
+            max /= aVal;
             return *this;
         }
-
-
-        template <typename _SrcTp> inline Vect operator/(_SrcTp aVal) const noexcept
+        
+        
+        template <typename _SrcTp> inline Range operator/(_SrcTp aVal) const noexcept
         {
-            Vect r { *this };
+            Range r { *this };
             r /= aVal;
             return r;
         }
-
-
+        
+        
         _Tp min;
         _Tp max;
     };
