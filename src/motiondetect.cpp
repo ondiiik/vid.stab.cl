@@ -511,20 +511,12 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            /*
-             * Calculates fast filter
-             */
             auto&       cell = _cells.list[idx];
             unsigned    p    { aPt.fm[_idxCurrent].size() - 1 };
             const VectS rb   { - int(_detectRange >> (p + 1)) };
             const VectS re   {   int(_detectRange >> (p + 1)) };
             
-            _correlate(cell, aPt, _idxPrev, p, rb, re);
-            
-            /*
-             * Calculates slow filters
-             */
-            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
                 _correlate(cell, aPt, idx, p, rb, re);
             }
@@ -692,86 +684,23 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            /*
-             * Calculates fast filter
-             */
             auto&          cell = _cells.list[idx];
-            const unsigned t    { Direction::frame2vidx(_idx) };
+            const VectS    rb   { -2 };
+            const VectS    re   {  2 };
             
-            for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
-            {
-                const unsigned did  { Cell::ptype2dir(aPt.PTYPE_SW) };
-                auto&          dir = cell.direction[did];
-                const VectS    rb   { -2 };
-                const VectS    re   {  2 };
-                
-                if (!dir.valid)
-                {
-                    continue;
-                }
-                
-                const VectU           size { cell.size           >> p  };
-                const VectU           pos  { cell.position       >> p  };
-                const VectS           dv   { dir.vect[t] / (1U   << p) };
-                Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p] };
-                Frame::Canvas<_PixT>& prev { aPt.fm[_idxPrev][      p] };
-                VectIterS             i    { rb + dv, re + dv          };
-                unsigned              min  { std::numeric_limits<unsigned>::max() };
-                
-                do
-                {
-                    unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
-                    
-                    if (min > crl)
-                    {
-                        min         = crl;
-                        dir.vect[t] = i();
-                    }
-                }
-                while (i.next());
-                
-                dir.vect[t] *= (1U << p);
-            }
-            
-            
-            /*
-             * Calculates slow filter
-             */
-            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    const unsigned did  { Cell::ptype2dir(idx) };
+                    const unsigned did { Cell::ptype2dir(idx) };
                     auto&          dir = cell.direction[did];
-                    const VectS    rb   { -2 };
-                    const VectS    re   {  2 };
                     
                     if (!dir.valid)
                     {
                         continue;
                     }
-                    
-                    const VectU           size { cell.size           >> p  };
-                    const VectU           pos  { cell.position       >> p  };
-                    const VectS           dv   { dir.vect[t] / (1U   << p) };
-                    Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   p] };
-                    Frame::Canvas<_PixT>& prev { aPt.fm[idx][           p] };
-                    VectIterSSpiral       i    { rb + dv, re + dv          };
-                    unsigned              min  { std::numeric_limits<unsigned>::max() };
-                    
-                    do
-                    {
-                        unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
-                        
-                        if (min > crl)
-                        {
-                            min         = crl;
-                            dir.vect[t] = i();
-                        }
-                    }
-                    while (i.next());
-                    
-                    dir.vect[t] *= (1U << p);
+
+                    _correlate(cell, aPt, idx, p, rb, re);
                 }
             }
         }
@@ -868,20 +797,24 @@ namespace VidStab
                                                     const Pyramids<_PixT>& aPt,
                                                     unsigned               aPType,
                                                     unsigned               aLayer,
-                                                    const VectS&           rb,
-                                                    const VectS&           re)
+                                                    const VectS&           aRb,
+                                                    const VectS&           aRe)
     {
-        const VectU                 size { cell.size          >>  aLayer        };
-        const VectU                 pos  { cell.position      >>  aLayer        };
-        const Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][   aLayer]       };
-        const unsigned              t    { Direction::frame2vidx(_idx)          };
-        const Frame::Canvas<_PixT>& prev { aPt.fm[aPType][        aLayer]       };
-        VectIterSSpiral             i    { rb, re                               };
-        unsigned                    min  { std::numeric_limits<unsigned>::max() };
-        const unsigned              did  { aPt.PTYPE_SW < aPType   ?
+        const VectU                 size { cell.size          >>   aLayer            };
+        const VectU                 pos  { cell.position      >>   aLayer            };
+        const Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][    aLayer]           };
+        const unsigned              t    { Direction::frame2vidx(_idx)               };
+        const unsigned              idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
+        const Frame::Canvas<_PixT>& prev { aPt.fm[idx][            aLayer]           };
+        VectIterSSpiral             i    { aRb, aRe                                  };
+        unsigned                    min  { std::numeric_limits<unsigned>::max()      };
+        const unsigned              did
+        {
+            aPt.PTYPE_SW < aPType   ?
             Cell::ptype2dir(aPType) :
-            Cell::ptype2dir(aPt.PTYPE_SW)        };
-            
+            Cell::ptype2dir(aPt.PTYPE_SW)
+        };
+        
         do
         {
             unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
