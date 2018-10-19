@@ -165,7 +165,7 @@ namespace VidStab
         /**
          * @brief   History count of direction
          */
-        static const unsigned hcnt { 4 };
+        static const unsigned hcnt { 8 };
         
         
         /**

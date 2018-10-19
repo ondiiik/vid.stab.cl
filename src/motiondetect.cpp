@@ -717,7 +717,6 @@ namespace VidStab
         const unsigned       t0   { Direction::frame2vidx(_idx)      };
         const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
         const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
-        const unsigned       t3   { Direction::frame2vidx(_idx - 2)  };
         
         
         OMP_ALIAS(md, this)
@@ -750,18 +749,55 @@ namespace VidStab
 //                    disp.drawLine(pos, dst, 1,      x);
 //                }
 //            }
+
+
+            /*
+             * Show fast filters - invalid
+             */
+            {
+                const unsigned   did  { Cell::ptype2dir(aPt.PTYPE_SW)  };
+                if (!i.direction[did].valid)
+                {
+                    VectU pos   { i.position                       };
+                    VectU dst   { pos - i.direction[did].vect[t0]  };
+                    VectU rs    { 12                               };
+                    VectU dst1  { dst  - i.direction[did].vect[t1] };
+                    VectU dst2  { dst1 - i.direction[did].vect[t2] };
+                    VectU dst3a { dst2                             };
+                    
+                    for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+                    {
+                        const unsigned ta    { Direction::frame2vidx(_idx - idx) };
+                        VectU          dst3b { dst3a - i.direction[did].vect[ta] };
+                        disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
+                        dst3a                       = dst3b;
+                    }
+                    
+                    disp.drawLine(dst1, dst2, 1, _PixT(80));
+                    disp.drawLine(dst,  dst1, 1, _PixT(50));
+                    disp.drawLine(pos,  dst,  2, _PixT(0));
+                }
+            }
+        }
+        
+        
+        OMP_PARALLEL_FOR(_threadsCnt,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < e; ++idx))
+        {
+            auto& i = _cells.list[idx];
             
             
             /*
-             * Show fast filters
+             * Show fast filters - valid
              */
             {
-                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)  };
-                VectU          pos { i.position                     };
-                VectU          dst { pos - i.direction[did].vect[t0] };
-                
+                const unsigned  did { Cell::ptype2dir(aPt.PTYPE_SW)  };
                 if (i.direction[did].valid)
                 {
+                    VectU          pos { i.position                      };
+                    VectU          dst { pos - i.direction[did].vect[t0] };
+                    
                     if (i.cntrQf > _contrastThreshold)
                     {
                         VectU rs1 { i.size - 4 };
@@ -779,20 +815,25 @@ namespace VidStab
                         disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
                     
-                    VectU rs   { 12                               };
-                    VectU dst1 { dst  - i.direction[did].vect[t1] };
-                    VectU dst2 { dst1 - i.direction[did].vect[t2] };
-                    VectU dst3 { dst2 - i.direction[did].vect[t3] };
-                    disp.drawLine(dst2, dst3, 1,  _PixT(150));
-                    disp.drawLine(dst1, dst2, 2,  _PixT(175));
-                    disp.drawLine(dst,  dst1, 3,  _PixT(200));
-                    disp.drawLine(pos,  dst,  4,  _PixT(255));
+                    VectU rs    { 12                               };
+                    VectU dst1  { dst  - i.direction[did].vect[t1] };
+                    VectU dst2  { dst1 - i.direction[did].vect[t2] };
+                    VectU dst3a { dst2                             };
+                    
+                    for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+                    {
+                        const unsigned ta    { Direction::frame2vidx(_idx - idx) };
+                        VectU          dst3b { dst3a - i.direction[did].vect[ta] };
+                        disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
+                        dst3a                       = dst3b;
+                    }
+                    
+                    disp.drawLine(dst1, dst2, 2, _PixT(175));
+                    disp.drawLine(dst,  dst1, 3, _PixT(200));
+                    disp.drawLine(pos,  dst,  4, _PixT(255));
+                    
                     disp.drawRectangle( dst,  rs, _PixT(255));
                     disp.drawRectangle( pos,  rs, _PixT(0));
-                }
-                else
-                {
-                    disp.drawLine(pos,  dst,  2, _PixT(0));
                 }
             }
         }
