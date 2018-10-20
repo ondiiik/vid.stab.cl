@@ -101,7 +101,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 8 };
+    const unsigned _contrastThreshold { 16 };
     
     
     /**
@@ -189,8 +189,8 @@ namespace
     inline bool deviates(const Common::Vect<int>& aV1,
                          const Common::Vect<int>& aV2)
     {
-        auto   dev { aV1    - aV2 };
-        return dev.qsize() > (aV2.qsize() * 4);
+        auto   dev { aV1   -  aV2 };
+        return dev.qsize() > (aV2.qsize() * 8);
     }
 }
 
@@ -558,15 +558,15 @@ namespace VidStab
                                                   VSFrame&         aFrame)
     {
         /*
-         * Analyze all time layers
+         * Process all filters
          */
         for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
         {
             /*
-             * Get time index of current and previous frame
+             * Process all cells in current filter
              */
-            const unsigned t0  { Direction::frame2vidx(_idx)     };
-            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)   };
+            const unsigned t0  { Direction::frame2vidx(_idx)   };
+            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
             
             for (auto& cell : _cells.list)
             {
@@ -575,28 +575,71 @@ namespace VidStab
                 auto& dirCurr      = velCurr.meas;
                 auto  dirCurrQSize { dirCurr.qsize() };
                 
+                /*
+                 * Analyze only not so short vectors, otherwise error
+                 * in analyzes can be too high.
+                 */
                 if (int(_minQSize) < dirCurrQSize)
                 {
+                    /*
+                     * We are analyzing deviation between measured vector
+                     * and average from neighbors.
+                     */
                     VectS    dirAvg;
                     unsigned cnt { _analyze_avg(dirAvg, cell.idx, did, t0) };
                     
                     /*
-                     * We have to check that there is enough neighbors,
-                     * otherwise we can not make assumption about direction.
+                     * We can work correctly only when there is enough
+                     * neighbors around, otherwise we can not make assumption
+                     * about direction.
                      */
                     if (1 < cnt)
                     {
+                        /*
+                         * There is average surroundings vector calculated,
+                         * so we should calculate deviation measured
+                         * and estimated direction.
+                         */
                         dir.velo[t0].esti = dirAvg;
                         
-                        if (deviates(dirCurr, dirAvg))
+                        if (!deviates(dirCurr, dirAvg))
                         {
+                            /*
+                             * There is no big deviation, so we can trust
+                             * measured value.
+                             */
+                            dir.velo[t0].val = dirCurr;
+                        }
+                        else
+                        {
+                            /*
+                             * Deviation is too big, so there is higher
+                             * probability that average will be better
+                             * result.
+                             */
+                            dir.velo[t0].val = dirAvg;
                             dir.set(Direction::DIR___ESTI_DEV);
                         }
                     }
                     else
                     {
+                        /*
+                         * We don't have enough neighbors around, so we
+                         * have to use history for estimation. For now we
+                         * only copy last value.
+                         */
+                        const unsigned t1 { Direction::frame2vidx(_idx - 1) };
+                        dir.velo[t0].val = dir.velo[t1].val;
                         dir.set(Direction::DIR___SURROUNDINGS);
                     }
+                }
+                else
+                {
+                    /*
+                     * Measured vector is too short, so we will use it
+                     * as result.
+                     */
+                    dir.velo[t0].val = dirCurr;
                 }
             }
         }
@@ -826,24 +869,24 @@ namespace VidStab
             }
             
             
-            VectU dst1  { dst  - i.direction[did].velo[t1].esti };
-            VectU dst2  { dst1 - i.direction[did].velo[t2].esti };
-            VectU dst3a { dst2                                  };
-            
-            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-            {
-                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
-                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
-                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
-                dst3a                       = dst3b;
-            }
-            
-            disp.drawLine(dst1, dst2, 2,  _PixT(80), alpha);
-            disp.drawLine(dst,  dst1, 3,  _PixT(50), alpha);
-            disp.drawLine(pos,  dst,  4,  _PixT(0),  alpha);
-            
-            disp.drawRectangle( pos,  rs, _PixT(0),  alpha);
-            disp.drawRectangle( dst,  rs, _PixT(0),  alpha);
+//            VectU dst1  { dst  - i.direction[did].velo[t1].esti };
+//            VectU dst2  { dst1 - i.direction[did].velo[t2].esti };
+//            VectU dst3a { dst2                                  };
+//
+//            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+//            {
+//                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
+//                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
+//                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
+//                dst3a                       = dst3b;
+//            }
+//
+//            disp.drawLine(dst1, dst2, 2,  _PixT(80), alpha);
+//            disp.drawLine(dst,  dst1, 3,  _PixT(50), alpha);
+//            disp.drawLine(pos,  dst,  4,  _PixT(0),  alpha);
+//
+//            disp.drawRectangle( pos,  rs, _PixT(0),  alpha);
+//            disp.drawRectangle( dst,  rs, _PixT(0),  alpha);
         }
         
         
@@ -861,20 +904,20 @@ namespace VidStab
              * Show fast filters - valid
              */
             {
-                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
+                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
                 auto&          dir   = i.direction[did];
-                unsigned       alpha { dir.isValid() ? 255U : _alpha         };
-                VectU          pos   { i.position                            };
-                VectU          dst   { pos - i.direction[did].velo[t0].meas  };
-                VectU          rs    { 12                                    };
-                VectU          dst1  { dst  - i.direction[did].velo[t1].meas };
-                VectU          dst2  { dst1 - i.direction[did].velo[t2].meas };
-                VectU          dst3a { dst2                                  };
+                unsigned       alpha { dir.isValid() ? 255U : _alpha        };
+                VectU          pos   { i.position                           };
+                VectU          dst   { pos - i.direction[did].velo[t0].val  };
+                VectU          rs    { 12                                   };
+                VectU          dst1  { dst  - i.direction[did].velo[t1].val };
+                VectU          dst2  { dst1 - i.direction[did].velo[t2].val };
+                VectU          dst3a { dst2                                 };
                 
                 for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
                 {
-                    const unsigned ta    { Direction::frame2vidx(_idx - idx) };
-                    VectU          dst3b { dst3a - i.direction[did].velo[ta].meas };
+                    const unsigned ta    { Direction::frame2vidx(_idx - idx)     };
+                    VectU          dst3b { dst3a - i.direction[did].velo[ta].val };
                     disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
                     dst3a                       = dst3b;
                 }

@@ -151,6 +151,11 @@ namespace VidStab
          */
         Common::Vect<int> esti;
         
+        /**
+         * @brief   Filtered value
+         */
+        Common::Vect<int> val;
+
     };
     
     
