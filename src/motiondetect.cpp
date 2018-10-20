@@ -101,7 +101,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 16 };
+    const unsigned _contrastThreshold { 8 };
     
     
     /**
@@ -157,10 +157,10 @@ namespace
     /**
      * @brief   Default alpha for invalid cells
      */
-    const unsigned _alpha { 92U };
-
-
-
+    const unsigned _alpha { 32U };
+    
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -190,7 +190,7 @@ namespace
                          const Common::Vect<int>& aV2)
     {
         auto   dev { aV1    - aV2 };
-        return dev.qsize() > (aV2.qsize() * 2);
+        return dev.qsize() > (aV2.qsize() * 4);
     }
 }
 
@@ -586,7 +586,7 @@ namespace VidStab
                      */
                     if (1 < cnt)
                     {
-                        dir.velo[t0].esti  = dirAvg;
+                        dir.velo[t0].esti = dirAvg;
                         
                         if (deviates(dirCurr, dirAvg))
                         {
@@ -603,11 +603,10 @@ namespace VidStab
     }
     
     
-    unsigned VSMD::_analyze_avg(VectS&       aDst,
-                                VectU&       aPos,
-                                unsigned     aDid,
-                                unsigned     aTi,
-                                const VectS* aDir)
+    unsigned VSMD::_analyze_avg(VectS&   aDst,
+                                VectU&   aPos,
+                                unsigned aDid,
+                                unsigned aTi)
     {
         VectU pos { aPos };
         VectS acc {      };
@@ -720,12 +719,6 @@ namespace VidStab
         if (0 != div)
         {
             acc /= div;
-            
-            if (nullptr == aDir)
-            {
-                div = _analyze_avg(acc, aPos, aDid, aTi, &acc);
-            }
-            
             aDst = acc;
         }
         
@@ -768,10 +761,10 @@ namespace VidStab
         const unsigned       e    { unsigned(_cells.list.size())     };
         const unsigned       t0   { Direction::frame2vidx(_idx)      };
         VectU                rs   { 16                               };
-//        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
-//        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
-
-
+        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
+        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
+        
+        
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
@@ -833,24 +826,24 @@ namespace VidStab
             }
             
             
-//            VectU          dst1  { dst  - i.direction[did].velo[t1].esti };
-//            VectU          dst2  { dst1 - i.direction[did].velo[t2].esti };
-//            VectU          dst3a { dst2                                  };
-//
-//            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-//            {
-//                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
-//                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
-//                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
-//                dst3a                       = dst3b;
-//            }
-//
-//            disp.drawLine(dst1, dst2, 2,  _PixT(80));
-//            disp.drawLine(dst,  dst1, 3,  _PixT(50));
-            disp.drawLine(pos,  dst,  4,  _PixT(0), alpha);
-
-            disp.drawRectangle( pos,  rs, _PixT(0), alpha);
-            disp.drawRectangle( dst,  rs, _PixT(0), alpha);
+            VectU dst1  { dst  - i.direction[did].velo[t1].esti };
+            VectU dst2  { dst1 - i.direction[did].velo[t2].esti };
+            VectU dst3a { dst2                                  };
+            
+            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+            {
+                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
+                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
+                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
+                dst3a                       = dst3b;
+            }
+            
+            disp.drawLine(dst1, dst2, 2,  _PixT(80), alpha);
+            disp.drawLine(dst,  dst1, 3,  _PixT(50), alpha);
+            disp.drawLine(pos,  dst,  4,  _PixT(0),  alpha);
+            
+            disp.drawRectangle( pos,  rs, _PixT(0),  alpha);
+            disp.drawRectangle( dst,  rs, _PixT(0),  alpha);
         }
         
         
@@ -868,27 +861,26 @@ namespace VidStab
              * Show fast filters - valid
              */
             {
-                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
+                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
                 auto&          dir   = i.direction[did];
-                unsigned       alpha { dir.isValid() ? 255U : _alpha        };
-                VectU          pos   { i.position                           };
-                VectU          dst   { pos - i.direction[did].velo[t0].meas };
+                unsigned       alpha { dir.isValid() ? 255U : _alpha         };
+                VectU          pos   { i.position                            };
+                VectU          dst   { pos - i.direction[did].velo[t0].meas  };
+                VectU          rs    { 12                                    };
+                VectU          dst1  { dst  - i.direction[did].velo[t1].meas };
+                VectU          dst2  { dst1 - i.direction[did].velo[t2].meas };
+                VectU          dst3a { dst2                                  };
                 
-                VectU rs    { 12                                    };
-//                VectU dst1  { dst  - i.direction[did].velo[t1].meas };
-//                VectU dst2  { dst1 - i.direction[did].velo[t2].meas };
-//                VectU dst3a { dst2                                  };
-//
-//                for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-//                {
-//                    const unsigned ta    { Direction::frame2vidx(_idx - idx) };
-//                    VectU          dst3b { dst3a - i.direction[did].velo[ta].meas };
-//                    disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
-//                    dst3a                       = dst3b;
-//                }
-//
-//                disp.drawLine(dst1, dst2, 2, _PixT(175));
-//                disp.drawLine(dst,  dst1, 3, _PixT(200));
+                for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+                {
+                    const unsigned ta    { Direction::frame2vidx(_idx - idx) };
+                    VectU          dst3b { dst3a - i.direction[did].velo[ta].meas };
+                    disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
+                    dst3a                       = dst3b;
+                }
+                
+                disp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
+                disp.drawLine(dst,  dst1, 3,  _PixT(200), alpha);
                 disp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
                 
                 disp.drawBox(       pos,  rs, _PixT(255), alpha);
