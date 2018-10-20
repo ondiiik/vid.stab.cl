@@ -207,12 +207,11 @@ namespace Frame
         
         /**
          * @brief   Draws a box at the given position x,y (center) in the given color
-         *
-         *(the same for all channels)
          */
-        void drawBox(const Common::Vect<unsigned>&   aPos,
-                     const Common::Vect<unsigned>&   aSize,
-                     pix_t                           aColor)
+        void drawBox(const Common::Vect<unsigned>& aPos,
+                     const Common::Vect<unsigned>& aSize,
+                     pix_t                         aColor,
+                     unsigned                      aAlpha)
         {
             const Common::Vect<unsigned> sz2 = aSize / 2;
             Common::Vect<unsigned>       i;
@@ -223,11 +222,32 @@ namespace Frame
                 {
                     Common::Vect<unsigned> pos { i + aPos - sz2};
                     
-                    unsigned  c = (*this)[pos].abs() * 3;
-                    c          += aColor.abs();
-                    c          /= 4;
+                    unsigned  c = (*this)[pos].abs() * (255 - aAlpha);
+                    c          += aColor.abs()       *        aAlpha;
+                    c          /= 255;
                     
                     (*this)[pos] = c;
+                }
+            }
+        }
+        
+        
+        /**
+         * @brief   Draws a box at the given position x,y (center) in the given color
+         */
+        void drawBox(const Common::Vect<unsigned>& aPos,
+                     const Common::Vect<unsigned>& aSize,
+                     pix_t                         aColor)
+        {
+            const Common::Vect<unsigned> sz2 = aSize / 2;
+            Common::Vect<unsigned>       i;
+            
+            for (i.y = 0; i.y < aSize.y; ++i.y)
+            {
+                for (i.x = 0; i.x < aSize.x; ++i.x)
+                {
+                    Common::Vect<unsigned> pos  { i + aPos - sz2};
+                    (*this)[               pos] = aColor;
                 }
             }
         }
@@ -246,7 +266,7 @@ namespace Frame
         {
             Vec div { aPix2 - aPix1  };
             int th  { aThickness / 2 };
-
+            
             
             if (div.y == 0) // horizontal line
             {
@@ -307,11 +327,115 @@ namespace Frame
                 for (unsigned k = 0; k <= horlen; k++)
                 {
                     auto xx { x + k };
-
+                    
                     for (int r { -th }; r <= th; ++r)
                     {
                         (*this)(xx + r, y    ) = aColor;
                         (*this)(xx,     y + r) = aColor;
+                    }
+                }
+            }
+        }
+        
+        
+        /**
+         * @brief   draws a line from a to b
+         *
+         * with given thickness(not filled) at the given position x,y (center)
+         * in the given color at the first channel
+         */
+        void drawLine(const Common::Vect<unsigned>& aPix1,
+                      const Common::Vect<unsigned>& aPix2,
+                      int                           aThickness,
+                      pix_t                         aColor,
+                      unsigned                      aAlpha)
+        {
+            Vec dif { aPix2 - aPix1  };
+            int th  { aThickness / 2 };
+            
+            
+            if (dif.y == 0) // horizontal line
+            {
+                Vec pix1 { aPix1 };
+                
+                if (dif.x < 0)
+                {
+                    pix1   =  aPix2;
+                    dif.x *= -1;
+                }
+                
+                for (int k { 0 }; k <= dif.x; k++)
+                {
+                    auto x { pix1.x + k };
+                    
+                    for (int r { -th }; r <= th; ++r)
+                    {
+                        unsigned  c            = (*this)(x, pix1.y + r).abs() * (255 - aAlpha);
+                        c                     += aColor.abs()                 *        aAlpha;
+                        c                     /= 255;
+                        (*this)(x, pix1.y + r) = c;
+                    }
+                }
+                
+                return;
+            }
+            
+            if (dif.x == 0) // vertical line
+            {
+                Vec pix1 { aPix1 };
+                
+                if (dif.y < 0)
+                {
+                    pix1   = aPix2;
+                    dif.y *= -1;
+                }
+                
+                for (int k { 0 }; k <= dif.y; ++k)
+                {
+                    auto y { pix1.y + k };
+                    
+                    for (int r { -th }; r <= th; ++r)
+                    {
+                        unsigned  c            = (*this)(pix1.x + r, y).abs() * (255 - aAlpha);
+                        c                     += aColor.abs()                 *        aAlpha;
+                        c                     /= 255;
+                        (*this)(pix1.x + r, y) = c;
+                    }
+                }
+                
+                return;
+            }
+            
+            
+            double   m      = (double)dif.x / (double)dif.y;
+            unsigned horlen = aThickness + fabs(m);
+            
+            for (int c = 0; c <= abs(dif.y); c++)
+            {
+                int      dy { (dif.y < 0) ? -c : c                     };
+                unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
+                unsigned y  { aPix1.y + dy                             };
+                
+                for (unsigned k = 0; k <= horlen; k++)
+                {
+                    auto xx { x + k };
+                    
+                    for (int r { 0 }; r <= th; ++r)
+                    {
+                        if (horlen > 1)
+                        {
+                            unsigned  c        = (*this)(xx, y + r).abs() * (255 - aAlpha);
+                            c                 += aColor.abs()             *        aAlpha;
+                            c                 /= 255;
+                            (*this)(xx, y + r) = c;
+                        }
+                        else
+                        {
+                            unsigned  c       = (*this)(xx + r, y).abs() * (255 - aAlpha);
+                            c                 += aColor.abs()            *        aAlpha;
+                            c                 /= 255;
+                            (*this)(xx + r, y) = c;
+                        }
                     }
                 }
             }
@@ -324,28 +448,73 @@ namespace Frame
         */
         void drawRectangle(const Common::Vect<unsigned>&   aPos,
                            const Common::Vect<unsigned>&   aSize,
-                           pix_t                           color)
+                           pix_t                           aColor)
         {
             const Common::Vect<unsigned> sz2 = aSize / 2;
             
             for (unsigned k = 0; k < aSize.x; ++k)
             {
-                (*this)(aPos.x - sz2.x + k, aPos.y - sz2.y) = color;
+                (*this)(aPos.x - sz2.x + k, aPos.y - sz2.y) = aColor;
             }
             
             for (unsigned k = 0; k <= aSize.x; ++k)
             {
-                (*this)(aPos.x - sz2.x + k, aPos.y + sz2.y) = color;
+                (*this)(aPos.x - sz2.x + k, aPos.y + sz2.y) = aColor;
             }
             
             for (unsigned k = 0; k < aSize.y; ++k)
             {
-                (*this)(aPos.x - sz2.x, aPos.y - sz2.y + k) = color;
+                (*this)(aPos.x - sz2.x, aPos.y - sz2.y + k) = aColor;
             }
             
             for (unsigned k = 0; k < aSize.y; ++k)
             {
-                (*this)(aPos.x + sz2.x, aPos.y - sz2.y + k) = color;
+                (*this)(aPos.x + sz2.x, aPos.y - sz2.y + k) = aColor;
+            }
+        }
+        
+        
+        /**
+         * draws a rectangle (not filled) at the given position x,y (center) in the given color
+         at the first channel
+        */
+        void drawRectangle(const Common::Vect<unsigned>& aPos,
+                           const Common::Vect<unsigned>& aSize,
+                           pix_t                         aColor,
+                           unsigned                      aAlpha)
+        {
+            const Common::Vect<unsigned> sz2 = aSize / 2;
+            
+            for (unsigned k = 0; k < aSize.x; ++k)
+            {
+                unsigned  c = (*this)(aPos.x - sz2.x + k, aPos.y - sz2.y).abs() * (255 - aAlpha);
+                c          += aColor.abs() * aAlpha;
+                c          /= 255;
+                (*this)(aPos.x - sz2.x + k, aPos.y - sz2.y) = c;
+            }
+            
+            for (unsigned k = 0; k <= aSize.x; ++k)
+            {
+                unsigned  c = (*this)(aPos.x - sz2.x + k, aPos.y + sz2.y).abs() * (255 - aAlpha);
+                c          += aColor.abs() * aAlpha;
+                c          /= 255;
+                (*this)(aPos.x - sz2.x + k, aPos.y + sz2.y) = c;
+            }
+            
+            for (unsigned k = 0; k < aSize.y; ++k)
+            {
+                unsigned  c = (*this)(aPos.x - sz2.x, aPos.y - sz2.y + k).abs() * (255 - aAlpha);
+                c          += aColor.abs() * aAlpha;
+                c          /= 255;
+                (*this)(aPos.x - sz2.x, aPos.y - sz2.y + k) = c;
+            }
+            
+            for (unsigned k = 0; k < aSize.y; ++k)
+            {
+                unsigned  c = (*this)(aPos.x + sz2.x, aPos.y - sz2.y + k).abs() * (255 - aAlpha);
+                c          += aColor.abs() * aAlpha;
+                c          /= 255;
+                (*this)(aPos.x + sz2.x, aPos.y - sz2.y + k) = c;
             }
         }
         

@@ -900,16 +900,20 @@ namespace VidStab
                                                 
         /**
          * @brief       Calculates average from surroundings
+         *
          * @param[out]  aDst    Average vector
-         * @param[in]   aPos  Position of cell
-         * @param[in]   aDid  Filter ID
-         * @param[in]   aTi   Time index
+         * @param[in]   aPos    Position of cell
+         * @param[in]   aDid    Filter ID
+         * @param[in]   aTi     Time index
+         * @param[in]   aDir    Estimated direction
+         *
          * @return      Average surrounding vectors
          */
-        unsigned _analyze_avg(VectS&   aDst,
-                              VectU    aPos,
-                              unsigned aDid,
-                              unsigned aTi);
+        unsigned _analyze_avg(VectS&       aDst,
+                              VectU&       aPos,
+                              unsigned     aDid,
+                              unsigned     aTi,
+                              const VectS* aDir = nullptr);
                               
                               
         /**

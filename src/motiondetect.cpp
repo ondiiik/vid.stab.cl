@@ -155,6 +155,13 @@ namespace
     
     
     /**
+     * @brief   Default alpha for invalid cells
+     */
+    const unsigned _alpha { 92U };
+
+
+
+    /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
@@ -170,6 +177,20 @@ namespace
         {
             throw Common::VS_EXCEPTION("Detect data C structure is NULL!");
         }
+    }
+    
+    
+    /**
+     * @brief   Clarify if vectors deviates
+     * @param   aV1 First vector
+     * @param   aV2 Second vector
+     * @return  Result
+     */
+    inline bool deviates(const Common::Vect<int>& aV1,
+                         const Common::Vect<int>& aV2)
+    {
+        auto   dev { aV1    - aV2 };
+        return dev.qsize() > (aV2.qsize() * 2);
     }
 }
 
@@ -545,18 +566,10 @@ namespace VidStab
              * Get time index of current and previous frame
              */
             const unsigned t0  { Direction::frame2vidx(_idx)     };
-//            const unsigned t1  { Direction::frame2vidx(_idx - 1) };
             const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)   };
             
             for (auto& cell : _cells.list)
             {
-                /*
-                 * Value is calculated by Calman filter. Analyzes
-                 * deviations according to contrast, history and
-                 * surroundings. Deviated vectors are estimated
-                 * from history and surroundings. Cell is marked
-                 * invalid if deviation is too high.
-                 */
                 auto& dir          = cell.direction[did];
                 auto& velCurr      = dir.velo[t0];
                 auto& dirCurr      = velCurr.meas;
@@ -564,32 +577,18 @@ namespace VidStab
                 
                 if (int(_minQSize) < dirCurrQSize)
                 {
-//                    auto&    velPrev = dir.velo[t1];
-//                    auto&    dirPrev = velPrev.meas;
                     VectS    dirAvg;
-                    unsigned cnt     { _analyze_avg(dirAvg, cell.idx, did, t0) };
-//                    auto& dirMeas    = velCurr.meas;
-//                    auto  qfMeas     { unsigned(4 * dirCurrQSize) };
-//                    auto  qfEstiSurr { 4U * devSurr.qsize()       };
-//                    auto  qfEsti
-//                    {
-//                        (devTime.qsize() + qfEstiSurr * 2U)
-//                        *
-//                        _devFactor
-//                    };
-
-
+                    unsigned cnt { _analyze_avg(dirAvg, cell.idx, did, t0) };
+                    
                     /*
-                     * We uses Calman filter but we would like to remove cells
-                     * with big deviation.
+                     * We have to check that there is enough neighbors,
+                     * otherwise we can not make assumption about direction.
                      */
                     if (1 < cnt)
                     {
-                        dir.velo[t0].esti = dirAvg;
+                        dir.velo[t0].esti  = dirAvg;
                         
-                        auto devSurr { dirCurr - dirAvg };
-                        
-                        if (devSurr.qsize() > dirAvg.qsize() * 2)
+                        if (deviates(dirCurr, dirAvg))
                         {
                             dir.set(Direction::DIR___ESTI_DEV);
                         }
@@ -598,33 +597,27 @@ namespace VidStab
                     {
                         dir.set(Direction::DIR___SURROUNDINGS);
                     }
-//                        (dirMeas * qfMeas + dirEsti * qfEsti)
-//                        /
-//                        (qfMeas + qfEsti);
-
-//                    if (qfEstiSurr > qfMeas)
-//                    {
-//                        dir.valid = false;
-//                    }
                 }
             }
         }
     }
     
     
-    unsigned VSMD::_analyze_avg(VectS&   aDst,
-                                VectU    aPos,
-                                unsigned aDid,
-                                unsigned aTi)
+    unsigned VSMD::_analyze_avg(VectS&       aDst,
+                                VectU&       aPos,
+                                unsigned     aDid,
+                                unsigned     aTi,
+                                const VectS* aDir)
     {
-        VectS acc {   };
-        int   div { 0 };
+        VectU pos { aPos };
+        VectS acc {      };
+        int   div { 0    };
         
-        ++aPos.x;
+        ++pos.x;
         
-        if (aPos.x < _cells.dim.x)
+        if (pos.x < _cells.dim.x)
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -633,11 +626,11 @@ namespace VidStab
             }
         }
         
-        ++aPos.y;
+        ++pos.y;
         
-        if ((aPos.x < _cells.dim.x) && (aPos.y < _cells.dim.y))
+        if ((pos.x < _cells.dim.x) && (pos.y < _cells.dim.y))
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -646,11 +639,11 @@ namespace VidStab
             }
         }
         
-        --aPos.x;
+        --pos.x;
         
-        if (aPos.y < _cells.dim.y)
+        if (pos.y < _cells.dim.y)
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -659,11 +652,11 @@ namespace VidStab
             }
         }
         
-        --aPos.x;
+        --pos.x;
         
-        if ((aPos.x < 65536U) && (aPos.y < _cells.dim.y))
+        if ((pos.x < 65536U) && (pos.y < _cells.dim.y))
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -672,11 +665,11 @@ namespace VidStab
             }
         }
         
-        --aPos.y;
+        --pos.y;
         
-        if (aPos.x < 65536U)
+        if (pos.x < 65536U)
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -685,11 +678,11 @@ namespace VidStab
             }
         }
         
-        --aPos.y;
+        --pos.y;
         
-        if ((aPos.x < 65536U) && (aPos.y < 65536U))
+        if ((pos.x < 65536U) && (pos.y < 65536U))
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -698,11 +691,11 @@ namespace VidStab
             }
         }
         
-        ++aPos.x;
+        ++pos.x;
         
-        if (aPos.y < 65536U)
+        if (pos.y < 65536U)
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -711,11 +704,11 @@ namespace VidStab
             }
         }
         
-        ++aPos.x;
+        ++pos.x;
         
-        if ((aPos.x < _cells.dim.x) && (aPos.y < 65536U))
+        if ((pos.x < _cells.dim.x) && (pos.y < 65536U))
         {
-            auto& dir = _cells[aPos].direction[aDid];
+            auto& dir = _cells[pos].direction[aDid];
             
             if (dir.isValid())
             {
@@ -724,9 +717,15 @@ namespace VidStab
             }
         }
         
-        if (0   != div)
+        if (0 != div)
         {
             acc /= div;
+            
+            if (nullptr == aDir)
+            {
+                div = _analyze_avg(acc, aPos, aDid, aTi, &acc);
+            }
+            
             aDst = acc;
         }
         
@@ -742,7 +741,7 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            auto&          cell = _cells.list[idx];
+            auto& cell = _cells.list[idx];
             
             for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
@@ -786,6 +785,7 @@ namespace VidStab
              */
             const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
             auto&          dir   = i.direction[did];
+            unsigned       alpha { dir.isValid() ? 255U : _alpha         };
             VectU          pos   { i.position                            };
             VectU          dst   { pos  - i.direction[did].velo[t0].esti };
             
@@ -796,16 +796,16 @@ namespace VidStab
                     VectU rs1 { i.size - 4 };
                     VectU rs2 { i.size - 8 };
                     
-                    disp.drawBox(pos + 1, rs1, _PixT(0));
-                    disp.drawBox(pos + 1, rs2, _PixT(255));
+                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
                 }
                 else
                 {
                     VectU rs1 { i.size - 20 };
                     VectU rs2 { i.size - 24 };
                     
-                    disp.drawBox(pos + 1, rs1, _PixT(0));
-                    disp.drawBox(pos + 1, rs2, _PixT(255));
+                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
                 }
             }
             else
@@ -817,8 +817,8 @@ namespace VidStab
                         VectS r1 { 24,  24 };
                         VectS r2 { 24, -24 };
                         
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0));
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0));
+                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
                     }
                     
                     if (dir.isSet(Direction::DIR___ESTI_DEV))
@@ -826,8 +826,8 @@ namespace VidStab
                         VectS r1 { 32, 0  };
                         VectS r2 { 0,  32 };
                         
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0));
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0));
+                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
                     }
                 }
             }
@@ -847,10 +847,10 @@ namespace VidStab
 //
 //            disp.drawLine(dst1, dst2, 2,  _PixT(80));
 //            disp.drawLine(dst,  dst1, 3,  _PixT(50));
-            disp.drawLine(pos,  dst,  4,  _PixT(0));
-            
-            disp.drawRectangle( pos,  rs, _PixT(0));
-            disp.drawRectangle( dst,  rs, _PixT(0));
+            disp.drawLine(pos,  dst,  4,  _PixT(0), alpha);
+
+            disp.drawRectangle( pos,  rs, _PixT(0), alpha);
+            disp.drawRectangle( dst,  rs, _PixT(0), alpha);
         }
         
         
@@ -868,9 +868,11 @@ namespace VidStab
              * Show fast filters - valid
              */
             {
-                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)        };
-                VectU          pos { i.position                           };
-                VectU          dst { pos - i.direction[did].velo[t0].meas };
+                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
+                auto&          dir   = i.direction[did];
+                unsigned       alpha { dir.isValid() ? 255U : _alpha        };
+                VectU          pos   { i.position                           };
+                VectU          dst   { pos - i.direction[did].velo[t0].meas };
                 
                 VectU rs    { 12                                    };
 //                VectU dst1  { dst  - i.direction[did].velo[t1].meas };
@@ -887,11 +889,11 @@ namespace VidStab
 //
 //                disp.drawLine(dst1, dst2, 2, _PixT(175));
 //                disp.drawLine(dst,  dst1, 3, _PixT(200));
-                disp.drawLine(pos,  dst,  4, _PixT(255));
+                disp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
                 
-                disp.drawBox(       pos,  rs, _PixT(255));
-                disp.drawRectangle( dst,  rs, _PixT(255));
-                disp.drawRectangle( pos,  rs, _PixT(0));
+                disp.drawBox(       pos,  rs, _PixT(255), alpha);
+                disp.drawRectangle( dst,  rs, _PixT(255), alpha);
+                disp.drawRectangle( pos,  rs, _PixT(0),   alpha);
             }
         }
     }
