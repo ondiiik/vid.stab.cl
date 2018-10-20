@@ -157,28 +157,81 @@ namespace VidStab
     /**
      * @brief   Direction vector structure
      */
-    struct Direction
+    class Direction
     {
+    public:
         /**
          * @brief   Default constructor
          */
         Direction()
             :
-            valid { false },
-            velo  {       }
+            velo   {                        },
+            _valid { Direction::DIR___VALID }
         {
         
         }
         
         
         /**
-         * @brief   Cell validity flag
-         *
-         * Some cells can be invalidated in some post-process step.
-         * We uses vector, so is much faster to invalidate item them
-         * instead of removing which is slow in the case of vector.
+         * @brief   Direction is valid
          */
-        bool valid;
+        static const unsigned DIR___VALID { 0b000U };
+        
+        /**
+         * @brief   Direction disabled by low contrast detection
+         */
+        static const unsigned DIR___CONTRAST { 0b001U };
+        
+        /**
+         * @brief   Direction disabled by not enough surroundings points
+         */
+        static const unsigned DIR___SURROUNDINGS { 0b010U };
+        
+        /**
+         * @brief   Direction disabled by big estimation deviation
+         */
+        static const unsigned DIR___ESTI_DEV { 0b100U };
+        
+
+        /**
+         * @brief   Check if flag is set
+         * @param   aFlags  Flag to be checked
+         * @return  Result
+         */
+        inline bool isValid() const
+        {
+            return _valid == DIR___VALID;
+        }
+        
+        
+        /**
+         * @brief   Clear all flags
+         */
+        inline void clr()
+        {
+            _valid = DIR___VALID;
+        }
+        
+        
+        /**
+         * @brief   Set flag
+         * @param   aFlags  Flag to be set
+         */
+        inline void set(unsigned aFlag)
+        {
+            _valid |= aFlag;
+        }
+        
+        
+        /**
+         * @brief   Check if flag is set
+         * @param   aFlags  Flag to be checked
+         * @return  Result
+         */
+        inline bool isSet(unsigned aFlag) const
+        {
+            return 0 != (_valid & aFlag);
+        }
         
         
         /**
@@ -206,6 +259,20 @@ namespace VidStab
          * for better detection algorithm.
          */
         DirVal velo[hcnt];
+        
+        
+    private:
+        /**
+         * @brief   Cell validity flag
+         *
+         * Some cells can be invalidated in some post-process step.
+         * We uses vector, so is much faster to invalidate item them
+         * instead of removing which is slow in the case of vector.
+         *
+         * Validity is set of flags, however only 0 (DIR___VALID) is
+         * represented as valid.
+         */
+        unsigned _valid;
     };
     
     
@@ -832,17 +899,19 @@ namespace VidStab
                                                 
                                                 
         /**
-         * @brief
-         * @param aPos  Position of cell
-         * @param aDid  Filter ID
-         * @param aTi   Time index
-         * @return      Average surrounding vector
+         * @brief       Calculates average from surroundings
+         * @param[out]  aDst    Average vector
+         * @param[in]   aPos  Position of cell
+         * @param[in]   aDid  Filter ID
+         * @param[in]   aTi   Time index
+         * @return      Average surrounding vectors
          */
-        VectS _analyze_avg(VectU    aPos,
-                           unsigned aDid,
-                           unsigned aTi);
-                           
-                           
+        unsigned _analyze_avg(VectS&   aDst,
+                              VectU    aPos,
+                              unsigned aDid,
+                              unsigned aTi);
+                              
+                              
         /**
          * @brief   Process first estimation of movements
          *
