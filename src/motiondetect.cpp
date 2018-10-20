@@ -158,9 +158,9 @@ namespace
      * @brief   Default alpha for invalid cells
      */
     const unsigned _alpha { 92U };
-
-
-
+    
+    
+    
     /**
      * @brief   Convert motion detect instance to C++ representation
      * @param   aMd     Motion detect instance
@@ -621,8 +621,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc = dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -634,8 +639,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -647,8 +657,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -660,8 +675,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -673,8 +693,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -686,8 +711,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -699,8 +729,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -712,8 +747,13 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                acc += dir.velo[aTi].meas;
-                ++div;
+                auto& m = dir.velo[aTi].meas;
+                
+                if (!((nullptr != aDir) && deviates(m, *aDir)))
+                {
+                    acc = m;
+                    ++div;
+                }
             }
         }
         
@@ -848,7 +888,7 @@ namespace VidStab
 //            disp.drawLine(dst1, dst2, 2,  _PixT(80));
 //            disp.drawLine(dst,  dst1, 3,  _PixT(50));
             disp.drawLine(pos,  dst,  4,  _PixT(0), alpha);
-
+            
             disp.drawRectangle( pos,  rs, _PixT(0), alpha);
             disp.drawRectangle( dst,  rs, _PixT(0), alpha);
         }
