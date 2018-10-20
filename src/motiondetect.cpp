@@ -145,7 +145,7 @@ namespace
     /**
      * @brief   Deviation measure factor
      */
-    const unsigned _devFactor { 4 };
+    const unsigned _devFactor { 2 };
     
     
     /**
@@ -366,8 +366,8 @@ namespace VidStab
         _next(      aPt, aFrame );
         _select(    aPt, aFrame );
         _estimate(  aPt, aFrame );
+        _accurate(  aPt, aFrame );
         _analyze(   aPt, aFrame );
-        _finalize(  aPt, aFrame );
         _visualize( aPt, aFrame );
     }
     
@@ -548,53 +548,52 @@ namespace VidStab
                  * from history and surroundings. Cell is marked
                  * invalid if deviation is too high.
                  */
-                auto& dir  = cell.direction[did];
-                dir.range  = 1;
-                auto& v0   { dir.vect[t0] };
-                auto  v0qs { v0.qsize()   };
+                auto& dir          = cell.direction[did];
+                auto& velCurr      = dir.velo[t0];
+                auto& dirCurr      = velCurr.meas;
+                auto  dirCurrQSize { dirCurr.qsize() };
                 
-                if (int(_minQSize) < v0qs)
+                if (int(_minQSize) < dirCurrQSize)
                 {
-                    auto& v1          { dir.vect[t1]                              };
-                    auto  va          = _analyze_avg(cell.idx, did, t0);
-                    auto  dt          { v0 - v1                                   };
-                    auto  ds          { v0 - va                                   };
-                    auto  estimated   { (va + v1) / 2                             };
-                    auto& measured    = dir.vect[t0];
-                    auto  qfMeasured  { unsigned(4 * v0qs)                        };
-                    auto  qfEstimated { (dt.qsize() + 4 * ds.qsize())* _devFactor };
+                    auto& velPrev    = dir.velo[t1];
+                    auto& dirPrev    = velPrev.meas;
+                    auto  dirAvg     = _analyze_avg(cell.idx, did, t0);
+                    auto  devTime    { dirCurr - dirPrev      };
+                    auto  devSurr    { dirCurr - dirAvg       };
+                    auto  dirEsti    { (dirAvg + dirPrev) / 2 };
+//                    auto& dirMeas    = velCurr.meas;
+//                    auto  qfMeas     { unsigned(4 * dirCurrQSize) };
+//                    auto  qfEstiSurr { 4U * devSurr.qsize()       };
+//                    auto  qfEsti
+//                    {
+//                        (devTime.qsize() + qfEstiSurr * 2U)
+//                        *
+//                        _devFactor
+//                    };
                     
-                    dir.vect[t0] =
-                        (measured * qfMeasured + estimated * qfEstimated)
-                        /
-                        (qfMeasured + qfEstimated);
-                        
+                    
                     /*
                      * We uses Calman filter but we would like to remove cells
                      * with big deviation.
                      */
-                    if (qfEstimated > qfMeasured)
-                    {
-                        unsigned q    { qfEstimated / qfMeasured };
-                        unsigned v0th { 4                        };
+                    dir.velo[t0].esti = dirAvg;
+//                        (dirMeas * qfMeas + dirEsti * qfEsti)
+//                        /
+//                        (qfMeas + qfEsti);
                         
-                        if (q > v0th)
-                        {
-                            q = v0th;
-                        }
-                        
-                        dir.range = q;
-                        dir.valid = false;
-                    }
+//                    if (qfEstiSurr > qfMeas)
+//                    {
+//                        dir.valid = false;
+//                    }
                 }
                 
                 /*
                  * Also low contrast area would be invalidated
                  */
-                if (0 == cell.cntrQf)
-                {
-                    dir.valid = false;
-                }
+//                if (0 == cell.cntrQf)
+//                {
+//                    dir.valid = false;
+//                }
             }
         }
     }
@@ -611,7 +610,7 @@ namespace VidStab
         
         if (aPos.x < _cells.dim.x)
         {
-            acc = _cells[aPos].direction[aDid].vect[aTi];
+            acc = _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -619,7 +618,7 @@ namespace VidStab
         
         if ((aPos.x < _cells.dim.x) && (aPos.y < _cells.dim.y))
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -627,7 +626,7 @@ namespace VidStab
         
         if (aPos.y < _cells.dim.y)
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -635,7 +634,7 @@ namespace VidStab
         
         if ((aPos.x < 65536U) && (aPos.y < _cells.dim.y))
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -643,7 +642,7 @@ namespace VidStab
         
         if (aPos.x < 65536U)
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -651,7 +650,7 @@ namespace VidStab
         
         if ((aPos.x < 65536U) && (aPos.y < 65536U))
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -659,7 +658,7 @@ namespace VidStab
         
         if (aPos.y < 65536U)
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -667,7 +666,7 @@ namespace VidStab
         
         if ((aPos.x < _cells.dim.x) && (aPos.y < 65536U))
         {
-            acc += _cells[aPos].direction[aDid].vect[aTi];
+            acc += _cells[aPos].direction[aDid].velo[aTi].meas;
             ++div;
         }
         
@@ -676,7 +675,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_finalize(Pyramids<_PixT>& aPt,
+    template <typename _PixT> void VSMD::_accurate(Pyramids<_PixT>& aPt,
                                                    VSFrame&         aFrame)
     {
         OMP_ALIAS(md, this)
@@ -694,13 +693,8 @@ namespace VidStab
                     auto&          dir = cell.direction[did];
                     const unsigned t   { Direction::frame2vidx(_idx)               };
                     
-                    const VectS    rb  { (dir.vect[t] >> p) - 1 };
-                    const VectS    re  { (dir.vect[t] >> p) + 1 };
-                    
-                    if (!dir.valid)
-                    {
-                        continue;
-                    }
+                    const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
+                    const VectS    re  { (dir.velo[t].meas >> p) + 1 };
                     
                     _correlate(cell, aPt, idx, p, rb, re);
                 }
@@ -715,8 +709,9 @@ namespace VidStab
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned       e    { unsigned(_cells.list.size())     };
         const unsigned       t0   { Direction::frame2vidx(_idx)      };
-        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
-        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
+        VectU                rs   { 16                               };
+//        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
+//        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
         
         
         OMP_ALIAS(md, this)
@@ -728,59 +723,35 @@ namespace VidStab
             
             
             /*
-             * Show slow filters
+             * Show fast filters - estimated
              */
-//            for (unsigned idx = aPt.PTYPE_SLOW_A; idx < aPt.PTYPE_COUNT; ++idx)
+            const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
+            VectU          pos   { i.position                            };
+            VectU          dst   { pos  - i.direction[did].velo[t0].esti };
+//            VectU          dst1  { dst  - i.direction[did].velo[t1].esti };
+//            VectU          dst2  { dst1 - i.direction[did].velo[t2].esti };
+//            VectU          dst3a { dst2                                  };
+//
+//            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
 //            {
-//                const unsigned did { Cell::ptype2dir(idx) };
-//
-//                if (i.direction[did].valid)
-//                {
-//                    VectU pos { i.position                      };
-//                    VectU dst { pos + i.direction[did].vect[t0] };
-//                    VectU rs  { 16                              };
-//
-//                    disp.drawRectangle(pos, rs, _PixT(128));
-//
-//                    _PixT    x { idx < aPt.PTYPE_STATIC_A ? _PixT(100) : _PixT(128)};
-//
-//                    disp.drawBox(      dst, rs - 2, x);
-//                    disp.drawRectangle(dst, rs,     x);
-//                    disp.drawLine(pos, dst, 1,      x);
-//                }
+//                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
+//                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
+//                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
+//                dst3a                       = dst3b;
 //            }
+//
+//            disp.drawLine(dst1, dst2, 1,  _PixT(80));
+//            disp.drawLine(dst,  dst1, 1,  _PixT(50));
+            disp.drawLine(pos,  dst,  4,  _PixT(0));
 
-
-            /*
-             * Show fast filters - invalid
-             */
-            {
-                const unsigned   did  { Cell::ptype2dir(aPt.PTYPE_SW)  };
-                if (!i.direction[did].valid)
-                {
-                    VectU pos   { i.position                       };
-                    VectU dst   { pos - i.direction[did].vect[t0]  };
-                    VectU rs    { 12                               };
-                    VectU dst1  { dst  - i.direction[did].vect[t1] };
-                    VectU dst2  { dst1 - i.direction[did].vect[t2] };
-                    VectU dst3a { dst2                             };
-                    
-                    for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-                    {
-                        const unsigned ta    { Direction::frame2vidx(_idx - idx) };
-                        VectU          dst3b { dst3a - i.direction[did].vect[ta] };
-                        disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
-                        dst3a                       = dst3b;
-                    }
-                    
-                    disp.drawLine(dst1, dst2, 1, _PixT(80));
-                    disp.drawLine(dst,  dst1, 1, _PixT(50));
-                    disp.drawLine(pos,  dst,  2, _PixT(0));
-                }
-            }
+            disp.drawRectangle( pos,  rs, _PixT(0));
+            disp.drawRectangle( dst,  rs, _PixT(0));
         }
         
         
+        /*
+         * Show fast filters - estimated
+         */
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
@@ -792,12 +763,12 @@ namespace VidStab
              * Show fast filters - valid
              */
             {
-                const unsigned  did { Cell::ptype2dir(aPt.PTYPE_SW)  };
+                const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW)        };
+                VectU          pos { i.position                           };
+                VectU          dst { pos - i.direction[did].velo[t0].meas };
+                
                 if (i.direction[did].valid)
                 {
-                    VectU          pos { i.position                      };
-                    VectU          dst { pos - i.direction[did].vect[t0] };
-                    
                     if (i.cntrQf > _contrastThreshold)
                     {
                         VectU rs1 { i.size - 4 };
@@ -814,27 +785,28 @@ namespace VidStab
                         disp.drawBox(pos + 1, rs1, _PixT(0));
                         disp.drawBox(pos + 1, rs2, _PixT(255));
                     }
-                    
-                    VectU rs    { 12                               };
-                    VectU dst1  { dst  - i.direction[did].vect[t1] };
-                    VectU dst2  { dst1 - i.direction[did].vect[t2] };
-                    VectU dst3a { dst2                             };
-                    
-                    for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-                    {
-                        const unsigned ta    { Direction::frame2vidx(_idx - idx) };
-                        VectU          dst3b { dst3a - i.direction[did].vect[ta] };
-                        disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
-                        dst3a                       = dst3b;
-                    }
-                    
-                    disp.drawLine(dst1, dst2, 2, _PixT(175));
-                    disp.drawLine(dst,  dst1, 3, _PixT(200));
-                    disp.drawLine(pos,  dst,  4, _PixT(255));
-                    
-                    disp.drawRectangle( dst,  rs, _PixT(255));
-                    disp.drawRectangle( pos,  rs, _PixT(0));
                 }
+                
+                VectU rs    { 12                                    };
+//                VectU dst1  { dst  - i.direction[did].velo[t1].meas };
+//                VectU dst2  { dst1 - i.direction[did].velo[t2].meas };
+//                VectU dst3a { dst2                                  };
+//
+//                for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
+//                {
+//                    const unsigned ta    { Direction::frame2vidx(_idx - idx) };
+//                    VectU          dst3b { dst3a - i.direction[did].velo[ta].meas };
+//                    disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
+//                    dst3a                       = dst3b;
+//                }
+//
+//                disp.drawLine(dst1, dst2, 1, _PixT(175));
+//                disp.drawLine(dst,  dst1, 1, _PixT(200));
+                disp.drawLine(pos,  dst,  4, _PixT(255));
+                
+                disp.drawBox(       pos,  rs, _PixT(255));
+                disp.drawRectangle( dst,  rs, _PixT(255));
+                disp.drawRectangle( pos,  rs, _PixT(0));
             }
         }
     }
@@ -853,7 +825,8 @@ namespace VidStab
         const unsigned              t    { Direction::frame2vidx(_idx)               };
         const unsigned              idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
         const Frame::Canvas<_PixT>& prev { aPt.fm[idx][            aLayer]           };
-        VectIterSSpiral             i    { aRb, aRe                                  };
+//        VectIterSSpiral             i    { aRb, aRe                                  };
+        VectIterS                   i    { aRb, aRe                                  };
         unsigned                    min  { std::numeric_limits<unsigned>::max()      };
         const unsigned              did
         {
@@ -868,13 +841,13 @@ namespace VidStab
             
             if (min > crl)
             {
-                min                         = crl;
-                cell.direction[did].vect[t] = i();
+                min                              = crl;
+                cell.direction[did].velo[t].meas = i();
             }
         }
         while (i.next());
         
-        cell.direction[did].vect[t] *= (1U << aLayer);
+        cell.direction[did].velo[t].meas *= (1U << aLayer);
     }
     
     

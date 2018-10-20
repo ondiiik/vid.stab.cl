@@ -244,7 +244,9 @@ namespace Frame
                       int                           aThickness,
                       pix_t                         aColor)
         {
-            Vec div { aPix2 - aPix1 };
+            Vec div { aPix2 - aPix1  };
+            int th  { aThickness / 2 };
+
             
             if (div.y == 0) // horizontal line
             {
@@ -256,13 +258,13 @@ namespace Frame
                     div.x *= -1;
                 }
                 
-                int th2 { aThickness / 2 };
-                
-                for (int r { -th2 }; r <= th2; ++r)
+                for (int k { 0 }; k <= div.x; k++)
                 {
-                    for (int k { 0 }; k <= div.x; k++)
+                    auto x { pix1.x + k };
+                    
+                    for (int r { -th }; r <= th; ++r)
                     {
-                        (*this)(pix1.x + k, pix1.y + r) = aColor;
+                        (*this)(x, pix1.y + r) = aColor;
                     }
                 }
                 
@@ -279,13 +281,13 @@ namespace Frame
                     div.y *= -1;
                 }
                 
-                int th2    { aThickness / 2 };
-                
-                for (int r { -th2 }; r <= th2; ++r)
+                for (int k { 0 }; k <= div.y; ++k)
                 {
-                    for (int k { 0 }; k <= div.y; ++k)
+                    auto y { pix1.y + k };
+                    
+                    for (int r { -th }; r <= th; ++r)
                     {
-                        (*this)(pix1.x + r, pix1.y + k) = aColor;
+                        (*this)(pix1.x + r, y) = aColor;
                     }
                 }
                 
@@ -300,10 +302,17 @@ namespace Frame
             {
                 int      dy { (div.y < 0) ? -c : c                     };
                 unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
+                unsigned y  { aPix1.y + dy                             };
                 
                 for (unsigned k = 0; k <= horlen; k++)
                 {
-                    (*this)(x + k, aPix1.y + dy) = aColor;
+                    auto xx { x + k };
+
+                    for (int r { -th }; r <= th; ++r)
+                    {
+                        (*this)(xx + r, y    ) = aColor;
+                        (*this)(xx,     y + r) = aColor;
+                    }
                 }
             }
         }

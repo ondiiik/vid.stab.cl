@@ -129,6 +129,32 @@ namespace VidStab
     
     
     /**
+     * @brief   Direction value
+     */
+    struct DirVal
+    {
+        DirVal()
+            :
+            meas {},
+            esti {}
+        {
+        
+        }
+        
+        /**
+         * @brief   Measured value
+         */
+        Common::Vect<int> meas;
+        
+        /**
+         * @brief   Estimated value
+         */
+        Common::Vect<int> esti;
+        
+    };
+    
+    
+    /**
      * @brief   Direction vector structure
      */
     struct Direction
@@ -139,8 +165,7 @@ namespace VidStab
         Direction()
             :
             valid { false },
-            range { 1     },
-            vect  {       }
+            velo  {       }
         {
         
         }
@@ -154,12 +179,6 @@ namespace VidStab
          * instead of removing which is slow in the case of vector.
          */
         bool valid;
-        
-        
-        /**
-         * @brief   Suggested finalize search range
-         */
-        int range;
         
         
         /**
@@ -181,12 +200,12 @@ namespace VidStab
         
         
         /**
-         * @brief   Detected cell direction vectors
+         * @brief   Measured and estimated cell direction vectors
          *
          * Vectors are in array to cover also history of cell movement
          * for better detection algorithm.
          */
-        Common::Vect<int> vect[hcnt];
+        DirVal velo[hcnt];
     };
     
     
@@ -847,7 +866,7 @@ namespace VidStab
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _finalize(Pyramids<_PixT>& aPt,
+        template <typename _PixT> void _accurate(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame);
                                                  
                                                  
