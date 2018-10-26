@@ -910,13 +910,15 @@ namespace VidStab
          * @param[in]   aPos    Position of cell
          * @param[in]   aDid    Filter ID
          * @param[in]   aTi     Time index
+         * @brief[in]   aSize   Size of area border
          *
          * @return      Average surrounding vectors
          */
-        unsigned _analyze_avg(VectS&       aDst,
-                              VectU&       aPos,
-                              unsigned     aDid,
-                              unsigned     aTi);
+        unsigned _analyze_avg(VectS&   aDst,
+                              VectU&   aPos,
+                              unsigned aDid,
+                              unsigned aTi,
+                              unsigned aSize);
                               
                               
         /**

@@ -541,14 +541,14 @@ namespace VidStab
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            auto&       cell = _cells.list[idx];
-            unsigned    p    { aPt.fm[_idxCurrent].size() - 1 };
-            const VectS rb   { - int(_detectRange >> (p + 1)) };
-            const VectS re   {   int(_detectRange >> (p + 1)) };
+            auto&       cell  = _cells.list[idx];
+            unsigned    layer { aPt.fm[_idxCurrent].size() - 1 };
+            const VectS rb    { - int(_detectRange >> (layer + 1)) };
+            const VectS re    {   int(_detectRange >> (layer + 1)) };
             
             for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
-                _correlate(cell, aPt, idx, p, rb, re);
+                _correlate(cell, aPt, idx, layer, rb, re);
             }
         }
     }
@@ -579,296 +579,219 @@ namespace VidStab
                  * Analyze only not so short vectors, otherwise error
                  * in analyzes can be too high.
                  */
-                if (int(_minQSize) < dirCurrQSize)
-                {
-                    /*
-                     * We are analyzing deviation between measured vector
-                     * and average from neighbors.
-                     */
-                    VectS    dirAvg;
-                    unsigned cnt { _analyze_avg(dirAvg, cell.idx, did, t0) };
-                    
-                    /*
-                     * We can work correctly only when there is enough
-                     * neighbors around, otherwise we can not make assumption
-                     * about direction.
-                     */
-                    if (1 < cnt)
-                    {
-                        /*
-                         * There is average surroundings vector calculated,
-                         * so we should calculate deviation measured
-                         * and estimated direction.
-                         */
-                        dir.velo[t0].esti = dirAvg;
-                        
-                        if (!deviates(dirCurr, dirAvg))
-                        {
-                            /*
-                             * There is no big deviation, so we can trust
-                             * measured value.
-                             */
-                            dir.velo[t0].val = dirCurr;
-                        }
-                        else
-                        {
-                            /*
-                             * Deviation is too big, so there is higher
-                             * probability that average will be better
-                             * result.
-                             */
-                            dir.velo[t0].val = dirAvg;
-                            dir.set(Direction::DIR___ESTI_DEV);
-                        }
-                    }
-                    else
-                    {
-                        /*
-                         * We don't have enough neighbors around, so we
-                         * have to use history for estimation. For now we
-                         * only copy last value.
-                         */
-                        const unsigned t1 { Direction::frame2vidx(_idx - 1) };
-                        dir.velo[t0].val = dir.velo[t1].val;
-                        dir.set(Direction::DIR___SURROUNDINGS);
-                    }
-                }
-                else
+                if (int(_minQSize) > dirCurrQSize)
                 {
                     /*
                      * Measured vector is too short, so we will use it
                      * as result.
                      */
                     dir.velo[t0].val = dirCurr;
+                    continue;
                 }
-            }
-        }
-    }
-    
-    
-    unsigned VSMD::_analyze_avg(VectS&   aDst,
-                                VectU&   aPos,
-                                unsigned aDid,
-                                unsigned aTi)
-    {
-        VectU pos { aPos };
-        VectS acc {      };
-        int   div { 0    };
-        
-        ++pos.x;
-        
-        if (pos.x < _cells.dim.x)
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc = dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        ++pos.y;
-        
-        if ((pos.x < _cells.dim.x) && (pos.y < _cells.dim.y))
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        --pos.x;
-        
-        if (pos.y < _cells.dim.y)
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        --pos.x;
-        
-        if ((pos.x < 65536U) && (pos.y < _cells.dim.y))
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        --pos.y;
-        
-        if (pos.x < 65536U)
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        --pos.y;
-        
-        if ((pos.x < 65536U) && (pos.y < 65536U))
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        ++pos.x;
-        
-        if (pos.y < 65536U)
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        ++pos.x;
-        
-        if ((pos.x < _cells.dim.x) && (pos.y < 65536U))
-        {
-            auto& dir = _cells[pos].direction[aDid];
-            
-            if (dir.isValid())
-            {
-                acc += dir.velo[aTi].meas;
-                ++div;
-            }
-        }
-        
-        if (0 != div)
-        {
-            acc /= div;
-            aDst = acc;
-        }
-        
-        return div;
-    }
-    
-    
-    template <typename _PixT> void VSMD::_accurate(Pyramids<_PixT>& aPt,
-                                                   VSFrame&         aFrame)
-    {
-        OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(_threadsCnt,
-                         omp parallel for shared(md),
-                         (unsigned idx = 0; idx < _cells.list.size(); ++idx))
-        {
-            auto& cell = _cells.list[idx];
-            
-            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
-            {
-                for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
+                
+                
+                /*
+                 * We are analyzing deviation between measured vector
+                 * and average from neighbors.
+                 */
+                VectS    dirAvg;
+                unsigned cnt { _analyze_avg(dirAvg, cell.idx, did, t0, 2) };
+                
+                /*
+                 * We can work correctly only when there is enough
+                 * neighbors around, otherwise we can not make assumption
+                 * about direction.
+                 */
+                if (3 < cnt)
                 {
-                    const unsigned did { Cell::ptype2dir(idx) };
-                    auto&          dir = cell.direction[did];
-                    const unsigned t   { Direction::frame2vidx(_idx)               };
+                    /*
+                     * There is average surroundings vector calculated,
+                     * so we should calculate deviation of measured
+                     * and estimated direction.
+                     */
+                    dir.velo[t0].esti = dirAvg;
                     
-                    const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
-                    const VectS    re  { (dir.velo[t].meas >> p) + 1 };
-                    
-                    _correlate(cell, aPt, idx, p, rb, re);
-                }
-            }
-        }
-    }
-    
-    
-    template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
-                                                    VSFrame&          aFrame)
-    {
-        Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
-        const unsigned       e    { unsigned(_cells.list.size())     };
-        const unsigned       t0   { Direction::frame2vidx(_idx)      };
-        VectU                rs   { 16                               };
-        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
-        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
-        
-        
-        OMP_ALIAS(md, this)
-        OMP_PARALLEL_FOR(_threadsCnt,
-                         omp parallel for shared(md),
-                         (unsigned idx = 0; idx < e; ++idx))
-        {
-            auto& i = _cells.list[idx];
-            
-            
-            /*
-             * Show fast filters - estimated
-             */
-            const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
-            auto&          dir   = i.direction[did];
-            unsigned       alpha { dir.isValid() ? 255U : _alpha         };
-            VectU          pos   { i.position                            };
-            VectU          dst   { pos  - i.direction[did].velo[t0].esti };
-            
-            if (dir.isValid())
-            {
-                if (i.cntrQf > _contrastThreshold)
-                {
-                    VectU rs1 { i.size - 4 };
-                    VectU rs2 { i.size - 8 };
-                    
-                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
-                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
+                    if (deviates(dirCurr, dirAvg))
+                    {
+                        /*
+                         * Deviation is too big, so there is higher
+                         * probability that average will be better
+                         * result.
+                         */
+                        dir.velo[t0].val = dirAvg;
+                        dir.set(Direction::DIR___ESTI_DEV);
+                    }
+                    else
+                    {
+                        /*
+                         * There is no big deviation, so we can trust
+                         * measured value.
+                         */
+                        dir.velo[t0].val = dirCurr;
+                    }
                 }
                 else
                 {
-                    VectU rs1 { i.size - 20 };
-                    VectU rs2 { i.size - 24 };
-                    
-                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
-                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
+                    /*
+                     * We don't have enough neighbors around, so we
+                     * have to use history for estimation. For now we
+                     * only copy last value.
+                     */
+                    const unsigned t1 { Direction::frame2vidx(_idx - 1) };
+                    dir.velo[t0].val  = dir.velo[t1].val;
+                    dir.velo[t0].esti = dir.velo[t1].esti;
+                    dir.set(Direction::DIR___SURROUNDINGS);
                 }
+            }
+        }
+    }
+}
+
+
+unsigned VSMD::_analyze_avg(VectS&   aDst,
+                            VectU&   aPos,
+                            unsigned aDid,
+                            unsigned aTi,
+                            unsigned aSize)
+{
+    VectS acc {   };
+    int   div { 0 };
+    
+    Common::VectIt<unsigned> i { aPos - aSize, aPos + aSize + 1};
+    
+    do
+    {
+        auto& v = i();
+        
+        if ((v   != aPos)         &&
+            (v.x <  _cells.dim.x) &&
+            (v.y <  _cells.dim.y))
+        {
+            auto& dir = _cells[v].direction[aDid];
+            
+            if (dir.isValid())
+            {
+                acc += dir.velo[aTi].meas;
+                ++div;
+            }
+        }
+    }
+    while (i.next());
+    
+    
+    if (0 != div)
+    {
+        acc /= div;
+        aDst = acc;
+    }
+    
+    return div;
+}
+
+
+template <typename _PixT> void VSMD::_accurate(Pyramids<_PixT>& aPt,
+                                               VSFrame&         aFrame)
+{
+    OMP_ALIAS(md, this)
+    OMP_PARALLEL_FOR(_threadsCnt,
+                     omp parallel for shared(md),
+                     (unsigned idx = 0; idx < _cells.list.size(); ++idx))
+    {
+        auto& cell = _cells.list[idx];
+        
+        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+        {
+            for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
+            {
+                const unsigned did { Cell::ptype2dir(idx) };
+                auto&          dir = cell.direction[did];
+                const unsigned t   { Direction::frame2vidx(_idx)               };
+                
+                const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
+                const VectS    re  { (dir.velo[t].meas >> p) + 1 };
+                
+                _correlate(cell, aPt, idx, p, rb, re);
+            }
+        }
+    }
+}
+
+
+template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
+                                                VSFrame&          aFrame)
+{
+    Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
+    const unsigned       e    { unsigned(_cells.list.size())     };
+    const unsigned       t0   { Direction::frame2vidx(_idx)      };
+    VectU                rs   { 16                               };
+    const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
+    const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
+    
+    
+    OMP_ALIAS(md, this)
+    OMP_PARALLEL_FOR(_threadsCnt,
+                     omp parallel for shared(md),
+                     (unsigned idx = 0; idx < e; ++idx))
+    {
+        auto& i = _cells.list[idx];
+        
+        
+        /*
+         * Show fast filters - estimated
+         */
+        const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
+        auto&          dir   = i.direction[did];
+        unsigned       alpha { dir.isValid() ? 255U : _alpha         };
+        VectU          pos   { i.position                            };
+        VectU          dst   { pos  - i.direction[did].velo[t0].esti };
+        
+        
+        disp.drawLine(pos, dst, 4, _PixT(0), alpha);
+        
+        if (dir.isValid())
+        {
+            if (i.cntrQf > _contrastThreshold)
+            {
+                VectU rs1 { i.size - 4 };
+                VectU rs2 { i.size - 8 };
+                
+                disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
             }
             else
             {
-                if (!dir.isSet(Direction::DIR___CONTRAST))
+                VectU rs1 { i.size - 20 };
+                VectU rs2 { i.size - 24 };
+                
+                disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
+            }
+        }
+        else
+        {
+            if (!dir.isSet(Direction::DIR___CONTRAST))
+            {
+                if (dir.isSet(Direction::DIR___SURROUNDINGS))
                 {
-                    if (dir.isSet(Direction::DIR___SURROUNDINGS))
-                    {
-                        VectS r1 { 24,  24 };
-                        VectS r2 { 24, -24 };
-                        
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
-                    }
+                    VectS r1 { 24,  24 };
+                    VectS r2 { 24, -24 };
                     
-                    if (dir.isSet(Direction::DIR___ESTI_DEV))
-                    {
-                        VectS r1 { 32, 0  };
-                        VectS r2 { 0,  32 };
-                        
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
-                    }
+                    disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                    disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
+                }
+                
+                if (dir.isSet(Direction::DIR___ESTI_DEV))
+                {
+                    VectS r1 { 32, 0  };
+                    VectS r2 { 0,  32 };
+                    
+                    disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                    disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
                 }
             }
-            
-            
+        }
+        
+        
 //            VectU dst1  { dst  - i.direction[did].velo[t1].esti };
 //            VectU dst2  { dst1 - i.direction[did].velo[t2].esti };
 //            VectU dst3a { dst2                                  };
@@ -887,118 +810,117 @@ namespace VidStab
 //
 //            disp.drawRectangle( pos,  rs, _PixT(0),  alpha);
 //            disp.drawRectangle( dst,  rs, _PixT(0),  alpha);
-        }
+    }
+    
+    
+    /*
+     * Show fast filters - measured
+     */
+    OMP_PARALLEL_FOR(_threadsCnt,
+                     omp parallel for shared(md),
+                     (unsigned idx = 0; idx < e; ++idx))
+    {
+        auto& i = _cells.list[idx];
         
         
         /*
-         * Show fast filters - measured
+         * Show fast filters - valid
          */
-        OMP_PARALLEL_FOR(_threadsCnt,
-                         omp parallel for shared(md),
-                         (unsigned idx = 0; idx < e; ++idx))
         {
-            auto& i = _cells.list[idx];
+            const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
+            auto&          dir   = i.direction[did];
+            unsigned       alpha { dir.isValid() ? 255U : _alpha        };
+            VectU          pos   { i.position                           };
+            VectU          dst   { pos - i.direction[did].velo[t0].val  };
+            VectU          rs    { 12                                   };
+            VectU          dst1  { dst  - i.direction[did].velo[t1].val };
+            VectU          dst2  { dst1 - i.direction[did].velo[t2].val };
+            VectU          dst3a { dst2                                 };
             
-            
-            /*
-             * Show fast filters - valid
-             */
+            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
             {
-                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
-                auto&          dir   = i.direction[did];
-                unsigned       alpha { dir.isValid() ? 255U : _alpha        };
-                VectU          pos   { i.position                           };
-                VectU          dst   { pos - i.direction[did].velo[t0].val  };
-                VectU          rs    { 12                                   };
-                VectU          dst1  { dst  - i.direction[did].velo[t1].val };
-                VectU          dst2  { dst1 - i.direction[did].velo[t2].val };
-                VectU          dst3a { dst2                                 };
-                
-                for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-                {
-                    const unsigned ta    { Direction::frame2vidx(_idx - idx)     };
-                    VectU          dst3b { dst3a - i.direction[did].velo[ta].val };
-                    disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
-                    dst3a                       = dst3b;
-                }
-                
-                disp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
-                disp.drawLine(dst,  dst1, 3,  _PixT(200), alpha);
-                disp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
-                
-                disp.drawBox(       pos,  rs, _PixT(255), alpha);
-                disp.drawRectangle( dst,  rs, _PixT(255), alpha);
-                disp.drawRectangle( pos,  rs, _PixT(0),   alpha);
+                const unsigned ta    { Direction::frame2vidx(_idx - idx)     };
+                VectU          dst3b { dst3a - i.direction[did].velo[ta].val };
+                disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
+                dst3a                       = dst3b;
             }
+            
+            disp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
+            disp.drawLine(dst,  dst1, 3,  _PixT(200), alpha);
+            disp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
+            
+            disp.drawBox(       pos,  rs, _PixT(255), alpha);
+            disp.drawRectangle( dst,  rs, _PixT(255), alpha);
+            disp.drawRectangle( pos,  rs, _PixT(0),   alpha);
         }
     }
-    
-    
-    template <typename _PixT> void VSMD::_correlate(Cell&                  cell,
-                                                    const Pyramids<_PixT>& aPt,
-                                                    unsigned               aPType,
-                                                    unsigned               aLayer,
-                                                    const VectS&           aRb,
-                                                    const VectS&           aRe)
-    {
-        const VectU                 size { cell.size          >>   aLayer            };
-        const VectU                 pos  { cell.position      >>   aLayer            };
-        const Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][    aLayer]           };
-        const unsigned              t    { Direction::frame2vidx(_idx)               };
-        const unsigned              idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
-        const Frame::Canvas<_PixT>& prev { aPt.fm[idx][            aLayer]           };
+}
+
+
+template <typename _PixT> void VSMD::_correlate(Cell&                  cell,
+                                                const Pyramids<_PixT>& aPt,
+                                                unsigned               aPType,
+                                                unsigned               aLayer,
+                                                const VectS&           aRb,
+                                                const VectS&           aRe)
+{
+    const VectU                 size { cell.size          >>   aLayer            };
+    const VectU                 pos  { cell.position      >>   aLayer            };
+    const Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][    aLayer]           };
+    const unsigned              t    { Direction::frame2vidx(_idx)               };
+    const unsigned              idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
+    const Frame::Canvas<_PixT>& prev { aPt.fm[idx][            aLayer]           };
 //        VectIterSSpiral             i    { aRb, aRe                                  };
-        VectIterS                   i    { aRb, aRe                                  };
-        unsigned                    min  { std::numeric_limits<unsigned>::max()      };
-        const unsigned              did
-        {
-            aPt.PTYPE_SW < aPType   ?
-            Cell::ptype2dir(aPType) :
-            Cell::ptype2dir(aPt.PTYPE_SW)
-        };
-        
-        do
-        {
-            unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
-            
-            if (min > crl)
-            {
-                min                              = crl;
-                cell.direction[did].velo[t].meas = i();
-            }
-        }
-        while (i.next());
-        
-        cell.direction[did].velo[t].meas *= (1U << aLayer);
-    }
-    
-    
-    template <typename _PixT> unsigned VSMD::_correlateShot(const Frame::Canvas<_PixT>& aCurrCanvas,
-                                                            const Frame::Canvas<_PixT>& aPrevCanvas,
-                                                            const VectS&                 aCurrShift,
-                                                            const VectS&                 aPrevShift,
-                                                            const VectU&                 aRect,
-                                                            unsigned                    aTrh) const
+    VectIterS                   i    { aRb, aRe                                  };
+    unsigned                    min  { std::numeric_limits<unsigned>::max()      };
+    const unsigned              did
     {
-        VectIterU i   { aRect };
-        unsigned  acc { 0     };
+        aPt.PTYPE_SW < aPType   ?
+        Cell::ptype2dir(aPType) :
+        Cell::ptype2dir(aPt.PTYPE_SW)
+    };
+    
+    do
+    {
+        unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
         
-        do
+        if (min > crl)
         {
-            int v1 { aCurrCanvas[aCurrShift + i()].abs() };
-            int v2 { aPrevCanvas[aPrevShift + i()].abs() };
-            
-            acc += abs(v1 - v2);
-            
-            if (aTrh < acc)
-            {
-                break;
-            }
+            min                              = crl;
+            cell.direction[did].velo[t].meas = i();
         }
-        while (i.next());
-        
-        return acc;
     }
+    while (i.next());
+    
+    cell.direction[did].velo[t].meas *= (1U << aLayer);
+}
+
+
+template <typename _PixT> unsigned VSMD::_correlateShot(const Frame::Canvas<_PixT>& aCurrCanvas,
+                                                        const Frame::Canvas<_PixT>& aPrevCanvas,
+                                                        const VectS&                 aCurrShift,
+                                                        const VectS&                 aPrevShift,
+                                                        const VectU&                 aRect,
+                                                        unsigned                    aTrh) const
+{
+    VectIterU i   { aRect };
+    unsigned  acc { 0     };
+    
+    do
+    {
+        int v1 { aCurrCanvas[aCurrShift + i()].abs() };
+        int v2 { aPrevCanvas[aPrevShift + i()].abs() };
+        
+        acc += abs(v1 - v2);
+        
+        if (aTrh < acc)
+        {
+            break;
+        }
+    }
+    while (i.next());
+    
+    return acc;
 }
 
 
