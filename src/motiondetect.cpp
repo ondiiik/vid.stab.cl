@@ -145,7 +145,7 @@ namespace
     /**
      * @brief   Deviation measure factor
      */
-    const unsigned _devFactor { 2 };
+    const unsigned _devFactor { 4 };
     
     
     /**
@@ -189,21 +189,9 @@ namespace
     inline bool deviates(const Common::Vect<int>& aV1,
                          const Common::Vect<int>& aV2)
     {
-        Common::VectPolar<int> p1 = aV1;
-        Common::VectPolar<int> p2 = aV1;
-        
-        if (abs(p1.r - p2.r) > (p1.r + p2.r) / 20)
-        {
-            return true;
-        }
-        
-        if (abs(p1.a - p2.a) > ((M_PI * 3) / 180))
-        {
-            return true;
-        }
-        
-        return false;
-//        return dev.qsize() > (aV2.qsize() * 8);
+        Common::Vect<int> dev { aV1 };
+        dev -= aV2;
+        return int(dev.qsize() * _devFactor) > aV2.qsize();
     }
 }
 
