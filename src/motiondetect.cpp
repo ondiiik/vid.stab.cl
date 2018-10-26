@@ -145,7 +145,7 @@ namespace
     /**
      * @brief   Deviation measure factor
      */
-    const unsigned _devFactor { 2 };
+    const unsigned _devFactor { 1 };
     
     
     /**
