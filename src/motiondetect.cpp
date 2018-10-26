@@ -145,7 +145,7 @@ namespace
     /**
      * @brief   Deviation measure factor
      */
-    const unsigned _devFactor { 4 };
+    const unsigned _devFactor { 2 };
     
     
     /**
@@ -215,15 +215,15 @@ namespace VidStab
         
         
         
-        _piramidRGB    { nullptr                  },
-        _piramidYUV    { nullptr                  },
-        _idx           { 0U                       },
-        _idxCurrent    { 0U                       },
-        _idxPrev       { 0U                       },
+        _piramidRGB    { nullptr         },
+        _piramidYUV    { nullptr         },
+        _idx           { 0U              },
+        _idxCurrent    { 0U              },
+        _idxPrev       { 0U              },
         
-        _threadsCnt    { OMP_MAX_THREADS          },
+        _threadsCnt    { OMP_MAX_THREADS },
         
-        _cells         {                          },
+        _cells         {                 },
         _detectRange   { unsigned(aFi->width / _borderDiv) }
         
         
