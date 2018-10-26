@@ -189,8 +189,21 @@ namespace
     inline bool deviates(const Common::Vect<int>& aV1,
                          const Common::Vect<int>& aV2)
     {
-        auto   dev { aV1   -  aV2 };
-        return dev.qsize() > (aV2.qsize() * 8);
+        Common::VectPolar<int> p1 = aV1;
+        Common::VectPolar<int> p2 = aV1;
+        
+        if (abs(p1.r - p2.r) > (p1.r + p2.r) / 20)
+        {
+            return true;
+        }
+        
+        if (abs(p1.a - p2.a) > ((M_PI * 3) / 180))
+        {
+            return true;
+        }
+        
+        return false;
+//        return dev.qsize() > (aV2.qsize() * 8);
     }
 }
 
@@ -570,26 +583,26 @@ namespace VidStab
             
             for (auto& cell : _cells.list)
             {
-                auto& dir          = cell.direction[did];
-                auto& velCurr      = dir.velo[t0];
-                auto& dirCurr      = velCurr.meas;
-                auto  dirCurrQSize { dirCurr.qsize() };
-                
-                /*
-                 * Analyze only not so short vectors, otherwise error
-                 * in analyzes can be too high.
-                 */
-                if (int(_minQSize) > dirCurrQSize)
-                {
-                    /*
-                     * Measured vector is too short, so we will use it
-                     * as result.
-                     */
-                    dir.velo[t0].val = dirCurr;
-                    continue;
-                }
-                
-                
+                auto& dir     = cell.direction[did];
+                auto& velCurr = dir.velo[t0];
+                auto& dirCurr = velCurr.meas;
+//                auto  dirCurrQSize { dirCurr.qsize() };
+//
+//                /*
+//                 * Analyze only not so short vectors, otherwise error
+//                 * in analyzes can be too high.
+//                 */
+//                if (int(_minQSize) > dirCurrQSize)
+//                {
+//                    /*
+//                     * Measured vector is too short, so we will use it
+//                     * as result.
+//                     */
+//                    dir.velo[t0].val = dirCurr;
+//                    continue;
+//                }
+
+
                 /*
                  * We are analyzing deviation between measured vector
                  * and average from neighbors.
@@ -602,7 +615,7 @@ namespace VidStab
                  * neighbors around, otherwise we can not make assumption
                  * about direction.
                  */
-                if (3 < cnt)
+                if (4 < cnt)
                 {
                     /*
                      * There is average surroundings vector calculated,

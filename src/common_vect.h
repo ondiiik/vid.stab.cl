@@ -12,6 +12,13 @@
 
 namespace Common
 {
+    template <typename _Tp> struct VectPolar
+    {
+        _Tp   r;
+        float a;
+    };
+    
+    
     /**
      * @brief   Represents x y coordinates vector
      */
@@ -20,7 +27,7 @@ namespace Common
         typedef _Tp type_name;
         
         
-        Vect() noexcept
+        inline Vect() noexcept
             :
             x
         {
@@ -35,8 +42,8 @@ namespace Common
         }
         
         
-        template <typename _SrcTp> Vect(_SrcTp aX,
-                                        _SrcTp aY) noexcept
+        template <typename _SrcTp> inline Vect(_SrcTp aX,
+                                               _SrcTp aY) noexcept
             :
             x
         {
@@ -51,7 +58,7 @@ namespace Common
         }
         
         
-        template <typename _SrcTp> Vect(_SrcTp aN) noexcept
+        template <typename _SrcTp> inline Vect(_SrcTp aN) noexcept
             :
             x
         {
@@ -66,7 +73,7 @@ namespace Common
         }
         
         
-        template <typename _SrcTp> Vect(const Vect<_SrcTp>& aSrc) noexcept
+        template <typename _SrcTp> inline Vect(const Vect<_SrcTp>& aSrc) noexcept
             :
             x
         {
@@ -81,13 +88,22 @@ namespace Common
         }
         
         
+        template <typename _SrcTp> inline operator VectPolar<_SrcTp>() const noexcept
+        {
+            VectPolar<_SrcTp> v;
+            v.r = _SrcTp(size());
+            v.a = atan2(double(y), double(x));
+            return v;
+        }
+        
+        
         inline bool operator==(const Vect& aSrc) const noexcept
         {
             return ((this->x == aSrc.x) && (this->y == aSrc.y));
         }
         
         
-        bool operator!=(const Vect& aSrc) const noexcept
+        bool inline operator!=(const Vect& aSrc) const noexcept
         {
             return !(*this == aSrc);
         }
