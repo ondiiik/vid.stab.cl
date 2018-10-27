@@ -135,10 +135,11 @@ namespace VidStab
     {
         DirVal()
             :
-            meas {   },
-            esti {   },
-            val  {   },
-            dist { 0 }
+            meas     {   },
+            esti     {   },
+            val      {   },
+            contrast { 0 },
+            dist     { 0 }
         {
         
         }
@@ -157,6 +158,11 @@ namespace VidStab
          * @brief   Filtered value
          */
         Common::Vect<int> val;
+        
+        /**
+         * @brief   Contrast factor
+         */
+        unsigned contrast;
         
         /**
          * @brief   Distance of closest neighbors during estimation
@@ -232,8 +238,8 @@ namespace VidStab
         {
             _valid &= ~aFlag;
         }
-
-
+        
+        
         /**
          * @brief   Set flag
          * @param   aFlags  Flag to be set
@@ -326,11 +332,6 @@ namespace VidStab
          * @brief   Detected cell direction
          */
         Direction direction[Pyramids<int>::PTYPE_COUNT - Pyramids<int>::PTYPE_SW];
-        
-        /**
-         * @brief   Cell contrast quality factor
-         */
-        unsigned cntrQf;
     };
     
     
@@ -785,54 +786,6 @@ namespace VidStab
         
         
         /**
-         * @brief   Alias for unsigned range
-         */
-        typedef Common::Range<unsigned> RangeU;
-        
-        
-        /**
-         * @brief   Alias for signed range
-         */
-        typedef Common::Range<int> RangeS;
-        
-        
-        /**
-         * @brief   Alias for unsigned integer vector
-         */
-        typedef Common::Vect<unsigned> VectU;
-        
-        
-        /**
-         * @brief   Alias for signed integer vector
-         */
-        typedef Common::Vect<int> VectS;
-        
-        
-        /**
-         * @brief   Alias for unsigned integer iterator
-         */
-        typedef Common::VectIt<unsigned> VectIterU;
-        
-        
-        /**
-         * @brief   Alias for unsigned integer iterator
-         */
-        typedef Common::VectIt<int> VectIterS;
-        
-        
-        /**
-         * @brief   Alias for unsigned integer iterator
-         */
-        typedef Common::VectItSpiral<int> VectIterSSpiral;
-        
-        
-        /**
-         * @brief   Alias for unsigned integer iterator
-         */
-        typedef Common::VectItSpiral<unsigned> VectIterUSpiral;
-        
-        
-        /**
          * @brief   Initialize detection cells
          * @param   aPt     Pyramid type
          */
@@ -882,8 +835,8 @@ namespace VidStab
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _select(Pyramids<_PixT>& aPt);
-                                               
-                                               
+        
+        
         /**
          * @brief   Get quality marker of potential cell
          *
@@ -894,22 +847,29 @@ namespace VidStab
          *
          * @return  Contras quality marker
          */
-        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>& aCanvas,
-                                                           const VectU&                aPosition,
-                                                           const VectU&                aRect) const;
+        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
+                                                           const Common::Vect<unsigned>& aPosition,
+                                                           const Common::Vect<unsigned>& aRect) const;
                                                            
                                                            
+        /**
+         * @brief   Use measures directly without analyzes
+         *
+         * @param   aPt     Pyramid for calculation
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _measures(Pyramids<_PixT>& aPt);
+        
+        
         /**
          * @brief   Optimize according to initial estimation
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt,
-                                                VSFrame&         aFrame);
-                                                
-                                                
+        template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt);
+        
+        
         /**
          * @brief       Calculates average from surroundings
          *
@@ -921,11 +881,11 @@ namespace VidStab
          *
          * @return      Average surrounding vectors
          */
-        unsigned _analyze_avg(VectS&   aDst,
-                              VectU&   aPos,
-                              unsigned aDid,
-                              unsigned aTi,
-                              unsigned aSize);
+        unsigned _analyze_avg(Common::Vect<int>&      aDst,
+                              Common::Vect<unsigned>& aPos,
+                              unsigned                aDid,
+                              unsigned                aTi,
+                              unsigned                aSize);
                               
                               
         /**
@@ -934,13 +894,11 @@ namespace VidStab
          * Uses smallest canvas in pyramid to create first estimations
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _estimate(const Pyramids<_PixT>& aPt,
-                                                 VSFrame&               aFrame);
-                                                 
-                                                 
+        template <typename _PixT> void _estimate(const Pyramids<_PixT>& aPt);
+        
+        
         /**
          * @brief   Process corrected detection of movements
          *
@@ -948,13 +906,11 @@ namespace VidStab
          * for better movement detection
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _correct(const Pyramids<_PixT>& aPt,
-                                                VSFrame&               aFrame);
-
-
+        template <typename _PixT> void _correct(const Pyramids<_PixT>& aPt);
+                                                
+                                                
         /**
          * @brief   Accurate estimation of movements for valid cells only
          *
@@ -962,13 +918,11 @@ namespace VidStab
          * estimation
          *
          * @param   aPt         Pyramid for calculation
-         * @param   aFrame      New frame
          * @tparam  \_PixT      Pixel type
          */
-        template <typename _PixT> void _accurateValid(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame);
-
-
+        template <typename _PixT> void _accurateValid(Pyramids<_PixT>& aPt);
+                                                      
+                                                      
         /**
          * @brief   Accurate estimation of movements for all cells
          *
@@ -976,13 +930,11 @@ namespace VidStab
          * estimation
          *
          * @param   aPt         Pyramid for calculation
-         * @param   aFrame      New frame
          * @tparam  \_PixT      Pixel type
          */
-        template <typename _PixT> void _accurateAll(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame);
-                                                 
-                                                 
+        template <typename _PixT> void _accurateAll(Pyramids<_PixT>& aPt);
+        
+        
         /**
          * @brief   Show results of detection graphically
          *
@@ -1004,12 +956,12 @@ namespace VidStab
          * @param aRb       Range begin for iterator
          * @param aRe       Range end for iterator
          */
-        template <typename _PixT> void _correlate(Cell&                  aCell,
-                                                  const Pyramids<_PixT>& aPt,
-                                                  unsigned               aPType,
-                                                  unsigned               aLayer,
-                                                  const VectS&           aRb,
-                                                  const VectS&           aRe);
+        template <typename _PixT> void _correlate(Cell&                    aCell,
+                                                  const Pyramids<_PixT>&   aPt,
+                                                  unsigned                 aPType,
+                                                  unsigned                 aLayer,
+                                                  const Common::Vect<int>& aRb,
+                                                  const Common::Vect<int>& aRe);
                                                   
                                                   
         /**
@@ -1023,12 +975,12 @@ namespace VidStab
          *
          * @return  Correlation result
          */
-        template <typename _PixT> unsigned _correlateShot(const Frame::Canvas<_PixT>&  aCurrC,
-                                                          const Frame::Canvas<_PixT>&  aPrevC,
-                                                          const VectS&                 aCurrV,
-                                                          const VectS&                 aPrevV,
-                                                          const VectU&                 aRect,
-                                                          unsigned                     aTrh) const;
+        template <typename _PixT> unsigned _correlateShot(const Frame::Canvas<_PixT>&   aCurrC,
+                                                          const Frame::Canvas<_PixT>&   aPrevC,
+                                                          const Common::Vect<int>&      aCurrV,
+                                                          const Common::Vect<int>&      aPrevV,
+                                                          const Common::Vect<unsigned>& aRect,
+                                                          unsigned                      aTrh) const;
                                                           
                                                           
         /**

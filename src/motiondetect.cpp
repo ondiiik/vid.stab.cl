@@ -103,7 +103,7 @@ namespace
      *
      * Says how much contrast is considered to be used
      */
-    const unsigned _contrastThreshold { 4 };
+    const unsigned _contrastThreshold { 2 };
     
     
     /**
@@ -179,6 +179,16 @@ namespace
      * (less visible).
      */
     const unsigned _alpha { 32U };
+    
+    
+    /**
+     * @brief   Flag activating fast detection
+     *
+     * When this flag is true, then some analyzes of shaking are
+     * omitted. Movement detection can get bit worst results, but
+     * detection is faster.
+     */
+    const bool _fast { false };
     
     
     
@@ -373,9 +383,9 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
         const unsigned               mul    { 1U << idx                                  };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]                   };
-        VectU                        begin  { 0                                          };
-        VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
-        VectU                        rect   { _cellSize                                  };
+        Common::Vect<unsigned>       begin  { 0                                          };
+        Common::Vect<unsigned>       end    { (canvas.dim() - _cellSize / 2) / _cellSize };
+        Common::Vect<unsigned>       rect   { _cellSize                                  };
         
         
         _cells.list.resize(0);
@@ -386,15 +396,14 @@ namespace VidStab
         
         do
         {
-            VectU pos { i()* _cellSize };
+            Common::Vect<unsigned> pos { i()* _cellSize };
             
             Cell cell
             {
                 (pos + rect / 2)* mul,
                 rect * mul,
                 i() - begin,
-                { },
-                0
+                { }
             };
             
             _cells.list.push_back(cell);
@@ -406,18 +415,25 @@ namespace VidStab
     template <typename _PixT> void VSMD::_process(Pyramids<_PixT>& aPt,
                                                   VSFrame&         aFrame)
     {
-        _next(          aPt, aFrame );
-        _select(        aPt         );
+        _next(       aPt, aFrame);
+        _select(     aPt);
         
-//        _estimate(      aPt, aFrame );
-//        _accurateAll(   aPt, aFrame );
-//        _analyze(       aPt, aFrame );
-//
-//        _correct(       aPt, aFrame );
-//        _accurateValid( aPt, aFrame );
-//        _analyze(       aPt, aFrame );
-
-        _visualize(     aPt, aFrame );
+        _estimate(   aPt);
+        _accurateAll(aPt);
+        
+        if (_fast)
+        {
+            _measures(aPt);
+        }
+        else
+        {
+            _analyze(      aPt);
+            _correct(      aPt);
+            _accurateValid(aPt);
+//            _analyze(       aPt, aFrame );
+        }
+        
+        _visualize(aPt, aFrame);
     }
     
     
@@ -459,9 +475,10 @@ namespace VidStab
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
         const Frame::Canvas<_PixT>&  canvas = aPt.fm[_idxCurrent][idx];
-        VectU                        begin  { 0                                          };
-        VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
-        VectU                        rect   { _cellSize                                  };
+        Common::Vect<unsigned>       begin  { 0                                          };
+        Common::Vect<unsigned>       end    { (canvas.dim() - _cellSize / 2) / _cellSize };
+        Common::Vect<unsigned>       rect   { _cellSize                                  };
+        const unsigned               t      { Direction::frame2vidx(_idx)                };
         const unsigned               did    { Cell::ptype2dir(aPt.PTYPE_SW)              };
         
         
@@ -478,24 +495,24 @@ namespace VidStab
              * Calculate contrast factor and compare it with threshold to
              * know if there is enough contrast for further calculation.
              */
-            VectU    pos { i()* _cellSize                     };
-            unsigned q   { _selectContrast(canvas, pos, rect) };
+            Common::Vect<unsigned> pos { i()* _cellSize                     };
+            unsigned               q   { _selectContrast(canvas, pos, rect) };
+            auto&                  dir = c->direction[did];
+            auto&                  vel = dir.velo[t];
             
             if (_contrastThreshold <= q)
             {
-                c->cntrQf = q - _contrastThreshold;
+                vel.contrast = q - _contrastThreshold;
             }
             else
             {
-                c->cntrQf = 0;
+                vel.contrast = 0;
             }
             
             
-            auto& dir = c->direction[did];
-            
             dir.clr();
             
-            if (0 == c->cntrQf)
+            if (0 == vel.contrast)
             {
                 /*
                  * We should mark down that there is not enough contrast
@@ -510,15 +527,15 @@ namespace VidStab
     
     
     
-    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>& aCanvas,
-                                                             const VectU&                aPosition,
-                                                             const VectU&                aRect) const
+    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
+                                                             const Common::Vect<unsigned>& aPosition,
+                                                             const Common::Vect<unsigned>& aRect) const
     {
-        const unsigned dist { _cellSize / 2 };
-        VectS          h    { int(dist), 0  };
-        VectS          v    { 0, int(dist)  };
-        VectU          rect { aRect - dist  };
-        VectIterU      i    { rect          };
+        const unsigned           dist { _cellSize / 2 };
+        Common::Vect<int>        h    { int(dist), 0  };
+        Common::Vect<int>        v    { 0, int(dist)  };
+        Common::Vect<unsigned>   rect { aRect - dist  };
+        Common::VectIt<unsigned> i    { rect          };
         
         
         unsigned acc { 0 };
@@ -536,18 +553,17 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_estimate(const Pyramids<_PixT>& aPt,
-                                                   VSFrame&               aFrame)
+    template <typename _PixT> void VSMD::_estimate(const Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            auto&       cell  = _cells.list[idx];
-            unsigned    layer { aPt.fm[_idxCurrent].size() - 1 };
-            const VectS rb    { - int(_detectRange >> (layer + 1)) };
-            const VectS re    {   int(_detectRange >> (layer + 1)) };
+            auto&                   cell  = _cells.list[idx];
+            unsigned                layer { aPt.fm[_idxCurrent].size() - 1 };
+            const Common::Vect<int> rb    { - int(_detectRange >> (layer + 1)) };
+            const Common::Vect<int> re    {   int(_detectRange >> (layer + 1)) };
             
             for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
             {
@@ -557,8 +573,33 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt,
-                                                  VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_measures(Pyramids<_PixT>& aPt)
+    {
+        /*
+         * Process all filters
+         */
+        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+        {
+            /*
+             * Process all cells in current filter
+             */
+            const unsigned t   { Direction::frame2vidx(_idx)   };
+            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
+            
+            for (auto& cell : _cells.list)
+            {
+                auto& dir = cell.direction[did];
+                auto& vel = dir.velo[t];
+                
+                vel.dist = 1;
+                vel.val  = vel.meas;
+                vel.esti = vel.meas;
+            }
+        }
+    }
+    
+    
+    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt)
     {
         /*
          * Process all filters
@@ -584,10 +625,10 @@ namespace VidStab
                  * in surroundings. Start with close surrounding and extend it
                  * till we get some result.
                  */
-                VectS&         dirAvg = dir.velo[t0].esti;
-                unsigned       cnt    = 0;
-                unsigned       dist   = 1;
-                const unsigned end    = _cells.dim.y / 2;
+                Common::Vect<int>& dirAvg = dir.velo[t0].esti;
+                unsigned           cnt    = 0;
+                unsigned           dist   = 1;
+                const unsigned     end    = _cells.dim.y / 2;
                 
                 for (; dist < end; ++dist)
                 {
@@ -657,14 +698,14 @@ namespace VidStab
     }
     
     
-    unsigned VSMD::_analyze_avg(VectS&   aDst,
-                                VectU&   aPos,
-                                unsigned aDid,
-                                unsigned aTi,
-                                unsigned aSize)
+    unsigned VSMD::_analyze_avg(Common::Vect<int>&      aDst,
+                                Common::Vect<unsigned>& aPos,
+                                unsigned                aDid,
+                                unsigned                aTi,
+                                unsigned                aSize)
     {
-        VectS acc {   };
-        int   div { 0 };
+        Common::Vect<int> acc {   };
+        int               div { 0 };
         
         Common::VectIt<unsigned> i { aPos - aSize, aPos + aSize + 1};
         
@@ -698,8 +739,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_correct(const Pyramids<_PixT>& aPt,
-                                                  VSFrame&               aFrame)
+    template <typename _PixT> void VSMD::_correct(const Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -726,10 +766,10 @@ namespace VidStab
                 if (!dir.isSet(Direction::DIR___CONTRAST) &&
                     !dir.isSet(Direction::DIR___SURROUNDINGS))
                 {
-                    unsigned       layer { aPt.fm[_idxCurrent].size() - 1         };
-                    const unsigned vl2   { unsigned(v.size()) / _accuratorDivider };
-                    const VectS    rb    { v - vl2                                };
-                    const VectS    re    { v + vl2 + 1                            };
+                    unsigned                layer { aPt.fm[_idxCurrent].size() - 1         };
+                    const unsigned          vl2   { unsigned(v.size()) / _accuratorDivider };
+                    const Common::Vect<int> rb    { v - vl2                                };
+                    const Common::Vect<int> re    { v + vl2                                };
                     
                     _correlate(cell, aPt, idx, layer, rb, re);
                     
@@ -745,8 +785,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_accurateValid(Pyramids<_PixT>& aPt,
-                                                        VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_accurateValid(Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -766,8 +805,8 @@ namespace VidStab
                     {
                         const unsigned t   { Direction::frame2vidx(_idx) };
                         
-                        const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
-                        const VectS    re  { (dir.velo[t].meas >> p) + 2 };
+                        const Common::Vect<int> rb  { (dir.velo[t].meas >> p) - 1 };
+                        const Common::Vect<int> re  { (dir.velo[t].meas >> p) + 1 };
                         
                         _correlate(cell, aPt, idx, p, rb, re);
                     }
@@ -777,8 +816,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_accurateAll(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_accurateAll(Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -795,8 +833,8 @@ namespace VidStab
                     auto&          dir = cell.direction[did];
                     const unsigned t   { Direction::frame2vidx(_idx) };
                     
-                    const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
-                    const VectS    re  { (dir.velo[t].meas >> p) + 2 };
+                    const Common::Vect<int> rb  { (dir.velo[t].meas >> p) - 1 };
+                    const Common::Vect<int> re  { (dir.velo[t].meas >> p) + 1 };
                     
                     _correlate(cell, aPt, idx, p, rb, re);
                 }
@@ -808,12 +846,12 @@ namespace VidStab
     template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
                                                     VSFrame&         aFrame)
     {
-        Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
-        const unsigned       e    { unsigned(_cells.list.size())     };
-        const unsigned       t0   { Direction::frame2vidx(_idx)      };
-        VectU                rs   { 16                               };
-        const unsigned       t1   { Direction::frame2vidx(_idx - 1)  };
-        const unsigned       t2   { Direction::frame2vidx(_idx - 2)  };
+        Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
+        const unsigned         e    { unsigned(_cells.list.size())     };
+        const unsigned         t0   { Direction::frame2vidx(_idx)      };
+        Common::Vect<unsigned> rs   { 16                               };
+        const unsigned         t1   { Direction::frame2vidx(_idx - 1)  };
+        const unsigned         t2   { Direction::frame2vidx(_idx - 2)  };
         
         
         OMP_ALIAS(md, this)
@@ -827,11 +865,12 @@ namespace VidStab
             /*
              * Show fast filters - estimated
              */
-            const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)         };
-            auto&          dir   = i.direction[did];
-            unsigned       alpha { dir.isValid() ? 255U : _alpha         };
-            VectU          pos   { i.position                            };
-            VectU          dst   { pos  - i.direction[did].velo[t0].esti };
+            const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW) };
+            auto&                  dir   = i.direction[did];
+            unsigned               alpha { dir.isValid() ? 255U : _alpha };
+            Common::Vect<unsigned> pos   { i.position                    };
+            auto&                  vel0  = dir.velo[t0];
+            Common::Vect<unsigned> dst   { pos - vel0.esti               };
             
             
             if (!dir.isSet(Direction::DIR___SURROUNDINGS))
@@ -841,8 +880,8 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                VectU rs1 { (i.size * i.cntrQf) / 24 + i.size / 2     };
-                VectU rs2 { (i.size * i.cntrQf) / 24 + i.size / 2 + 4 };
+                Common::Vect<unsigned> rs1 { (i.size * vel0.contrast) / 24 + i.size / 2     };
+                Common::Vect<unsigned> rs2 { (i.size * vel0.contrast) / 24 + i.size / 2 + 4 };
                 
                 disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
                 disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
@@ -853,8 +892,8 @@ namespace VidStab
                 {
                     if (dir.isSet(Direction::DIR___SURROUNDINGS))
                     {
-                        VectS r1 { 24,  24 };
-                        VectS r2 { 24, -24 };
+                        Common::Vect<int> r1 { 24,  24 };
+                        Common::Vect<int> r2 { 24, -24 };
                         
                         disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
                         disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
@@ -862,8 +901,8 @@ namespace VidStab
                     
                     if (dir.isSet(Direction::DIR___ESTI_DEV))
                     {
-                        VectS r1 { 32, 0  };
-                        VectS r2 { 0,  32 };
+                        Common::Vect<int> r1 { 32, 0  };
+                        Common::Vect<int> r2 { 0,  32 };
                         
                         disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
                         disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
@@ -872,14 +911,14 @@ namespace VidStab
             }
             
             
-//            VectU dst1  { dst  - i.direction[did].velo[t1].esti };
-//            VectU dst2  { dst1 - i.direction[did].velo[t2].esti };
-//            VectU dst3a { dst2                                  };
+//            Common::Vect<unsigned> dst1  { dst  - i.direction[did].velo[t1].esti };
+//            Common::Vect<unsigned> dst2  { dst1 - i.direction[did].velo[t2].esti };
+//            Common::Vect<unsigned> dst3a { dst2                                  };
 //
 //            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
 //            {
-//                const unsigned ta    { Direction::frame2vidx(_idx - idx)      };
-//                VectU          dst3b { dst3a - i.direction[did].velo[ta].esti };
+//                const unsigned                                                      ta    { Direction::frame2vidx(_idx - idx)      };
+//                Common::Vect<unsigned>        dst3b { dst3a - i.direction[did].velo[ta].esti };
 //                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
 //                dst3a                       = dst3b;
 //            }
@@ -907,22 +946,22 @@ namespace VidStab
              * Show fast filters - valid
              */
             {
-                const unsigned did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
-                auto&          dir   = i.direction[did];
-                unsigned       alpha { dir.isValid() ? 255U : _alpha        };
-                VectU          pos   { i.position                           };
-                VectU          dst   { pos - i.direction[did].velo[t0].val  };
-                VectU          rs    { 12                                   };
-                VectU          dst1  { dst  - i.direction[did].velo[t1].val };
-                VectU          dst2  { dst1 - i.direction[did].velo[t2].val };
-                VectU          dst3a { dst2                                 };
+                const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
+                auto&                  dir   = i.direction[did];
+                unsigned               alpha { dir.isValid() ? 255U : _alpha        };
+                Common::Vect<unsigned> pos   { i.position                           };
+                Common::Vect<unsigned> dst   { pos - i.direction[did].velo[t0].val  };
+                Common::Vect<unsigned> rs    { 12                                   };
+                Common::Vect<unsigned> dst1  { dst  - i.direction[did].velo[t1].val };
+                Common::Vect<unsigned> dst2  { dst1 - i.direction[did].velo[t2].val };
+                Common::Vect<unsigned> dst3a { dst2                                 };
                 
                 for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
                 {
-                    const unsigned ta    { Direction::frame2vidx(_idx - idx)     };
-                    VectU          dst3b { dst3a - i.direction[did].velo[ta].val };
-                    disp.drawLine(         dst3a, dst3b, 1,  _PixT(150));
-                    dst3a                       = dst3b;
+                    const unsigned         ta    { Direction::frame2vidx(_idx - idx)     };
+                    Common::Vect<unsigned> dst3b { dst3a - i.direction[did].velo[ta].val };
+                    disp.drawLine(                 dst3a, dst3b, 1,  _PixT(150));
+                    dst3a                               = dst3b;
                 }
                 
                 disp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
@@ -937,23 +976,22 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_correlate(Cell&                  cell,
-                                                    const Pyramids<_PixT>& aPt,
-                                                    unsigned               aPType,
-                                                    unsigned               aLayer,
-                                                    const VectS&           aRb,
-                                                    const VectS&           aRe)
+    template <typename _PixT> void VSMD::_correlate(Cell&                    cell,
+                                                    const Pyramids<_PixT>&   aPt,
+                                                    unsigned                 aPType,
+                                                    unsigned                 aLayer,
+                                                    const Common::Vect<int>& aRb,
+                                                    const Common::Vect<int>& aRe)
     {
-        const VectU                 size { cell.size          >>   aLayer            };
-        const VectU                 pos  { cell.position      >>   aLayer            };
-        const Frame::Canvas<_PixT>& curr { aPt.fm[_idxCurrent][    aLayer]           };
-        const unsigned              t    { Direction::frame2vidx(_idx)               };
-        const unsigned              idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
-        const Frame::Canvas<_PixT>& prev { aPt.fm[idx][            aLayer]           };
-//        VectIterSSpiral             i    { aRb, aRe                                  };
-        VectIterS                   i    { aRb, aRe                                  };
-        unsigned                    min  { std::numeric_limits<unsigned>::max()      };
-        const unsigned              did
+        const Common::Vect<unsigned> size { cell.size          >>   aLayer            };
+        const Common::Vect<unsigned> pos  { cell.position      >>   aLayer            };
+        const Frame::Canvas<_PixT>&  curr { aPt.fm[_idxCurrent][    aLayer]           };
+        const unsigned               t    { Direction::frame2vidx(_idx)               };
+        const unsigned               idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
+        const Frame::Canvas<_PixT>&  prev { aPt.fm[idx][            aLayer]           };
+        Common::VectIt<int>          i    { aRb, aRe                                  };
+        unsigned                     min  { std::numeric_limits<unsigned>::max()      };
+        const unsigned               did
         {
             aPt.PTYPE_SW < aPType   ?
             Cell::ptype2dir(aPType) :
@@ -976,15 +1014,15 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> unsigned VSMD::_correlateShot(const Frame::Canvas<_PixT>& aCurrCanvas,
-                                                            const Frame::Canvas<_PixT>& aPrevCanvas,
-                                                            const VectS&                 aCurrShift,
-                                                            const VectS&                 aPrevShift,
-                                                            const VectU&                 aRect,
-                                                            unsigned                    aTrh) const
+    template <typename _PixT> unsigned VSMD::_correlateShot(const Frame::Canvas<_PixT>&   aCurrCanvas,
+                                                            const Frame::Canvas<_PixT>&   aPrevCanvas,
+                                                            const Common::Vect<int>&      aCurrShift,
+                                                            const Common::Vect<int>&      aPrevShift,
+                                                            const Common::Vect<unsigned>& aRect,
+                                                            unsigned                      aTrh) const
     {
-        VectIterU i   { aRect };
-        unsigned  acc { 0     };
+        Common::VectIt<unsigned> i   { aRect };
+        unsigned                 acc { 0     };
         
         do
         {
