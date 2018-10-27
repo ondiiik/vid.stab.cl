@@ -11,7 +11,7 @@
 #include "common_vect.h"
 
 
-namespace VidStab
+namespace Gimbal
 {
     class TransformationBarrel
     {

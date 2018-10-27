@@ -57,7 +57,7 @@
 #include <string.h>
 
 
-using namespace VidStab;
+using namespace Gimbal;
 
 
 namespace
@@ -316,7 +316,7 @@ namespace
 }
 
 
-namespace VidStab
+namespace Gimbal
 {
     VSTR::VSTR(const char*              aModName,
                VSTransformData&         aTd)

@@ -62,7 +62,7 @@ extern struct VSTransform vsLowPassTransforms(struct VSTransformData*   td,
                                               const struct VSTransform* trans);
 
 
-namespace VidStab
+namespace Gimbal
 {
     class VSTR
     {

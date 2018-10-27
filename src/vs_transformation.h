@@ -8,7 +8,7 @@
 #include "common_vect.h"
 
 
-namespace VidStab
+namespace Gimbal
 {
     /**
      * @brief   Generic transformation interface

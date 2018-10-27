@@ -66,39 +66,52 @@ add_definitions(-DOPENCL_DBG_MODE)
 endif()
 
 set(SOURCES
-    src/frameinfo.cpp
-    src/transformtype.cpp
-    src/libvidstab.cpp
-    src/transform.cpp
-    src/transformfixedpoint.cpp
-    src/motiondetect.cpp
-    src/motiondetect_opt.cpp
-    src/serialize.cpp
-    src/localmotion2transform.cpp
-    src/vs_vector.cpp
-    src/vs_transformation_barrel.cpp
-    src/orc/motiondetectorc.c
     src/cl/opencl.cpp
     src/cl/opencl___blur_h.c
-    src/cl/opencl___blur_v.c)
+    src/cl/opencl___blur_v.c
+    src/frameinfo.cpp
+    src/gimbal_detector.cpp
+    src/gimbal_motions.cpp
+    src/libvidstab.cpp
+    src/localmotion2transform.cpp
+    src/motiondetect_opt.cpp
+    src/orc/motiondetectorc.c
+    src/serialize.cpp
+    src/transform.cpp
+    src/transformfixedpoint.cpp
+    src/transformtype.cpp
+    src/vs_transformation_barrel.cpp
+    src/vs_vector.cpp)
 
 set(HEADERS
-    src/frame_canvas.h
-    src/common_vect.h
-    src/frameinfo.h
-    src/transformtype.h
-    src/libvidstab.h
-    src/transform.h
-    src/motiondetect.h
-    src/serialize.h
-    src/localmotion2transform.h
+    src/common_cutils.h
+    src/common_dbg.h
     src/common_exception.h
-    src/vs_vector.h
+    src/common_range.h
+    src/common_vect.h
+    src/dbg_profiler.h
+    src/frame_buff.h
+    src/frame_canvas.h
+    src/frame_pyramid.h
+    src/frameinfo.h
+    src/gimbal_detector.h
+    src/gimbal_motions.h
+    src/libvidstab.h
+    src/localmotion2transform.h
+    src/motiondetect_internal.h
+    src/motiondetect_opt.h
+    src/serialize.h
+    src/sys_omp.h
+    src/transform.h
+    src/transform_internal.h
+    src/transformfixedpoint.h
+    src/transformfloat.h
+    src/transformtype.h
+    src/transformtype_operations.h
+    src/vidstabdefines.h
     src/vs_transformation.h
     src/vs_transformation_barrel.h
-    src/cl/opencl.hpp
-    src/cl/opencl___blur_h.h
-    src/cl/opencl___blur_v.h)
+    src/vs_vector.h)
 
 
 # Create the vidstab library

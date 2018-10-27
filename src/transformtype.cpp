@@ -415,7 +415,7 @@ LocalMotion null_localmotion()
 
 int* localmotions_getx(const LocalMotions* localmotionsC)
 {
-    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    const Gimbal::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
     int len = localmotions.size();
     int* xs = (int*)vs_malloc(sizeof(int) * len);
     int i;
@@ -428,7 +428,7 @@ int* localmotions_getx(const LocalMotions* localmotionsC)
 
 int* localmotions_gety(const LocalMotions* localmotionsC)
 {
-    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    const Gimbal::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
     int len = localmotions.size();
     int* ys = (int*)vs_malloc(sizeof(int) * len);
     int i;
@@ -465,7 +465,7 @@ LocalMotion sub_localmotion(const LocalMotion* lm1, const LocalMotion* lm2)
  */
 LocalMotion cleanmean_localmotions(const LocalMotions* localmotionsC)
 {
-    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    const Gimbal::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
     int len = localmotions.size();
     int i, cut = len / 5;
     int* xs = localmotions_getx(localmotionsC);
@@ -492,7 +492,7 @@ LocalMotion cleanmean_localmotions(const LocalMotions* localmotionsC)
 
 VSArray localmotionsGetMatch(const LocalMotions* localmotionsC)
 {
-    const VidStab::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
+    const Gimbal::LmList localmotions { *const_cast<LocalMotions*>(localmotionsC) };
     VSArray m = vs_array_new(localmotions.size());
     for (int i = 0; i < m.len; i++)
     {

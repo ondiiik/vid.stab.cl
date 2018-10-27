@@ -38,7 +38,7 @@ int vsLocalmotions2Transforms(struct VSTransformData*   td,
                               const VSManyLocalMotions* motionsC,
                               struct VSTransformations* trans )
 {
-    const VidStab::LmLists motions { *const_cast<VSManyLocalMotions*>(motionsC) };
+    const Gimbal::LmLists motions { *const_cast<VSManyLocalMotions*>(motionsC) };
     int                    len     { motions.size()                             };
     
     assert(trans->len == 0 && trans->ts == 0);
@@ -102,7 +102,7 @@ double calcTransformQuality(VSArray params, void* dat)
 {
     struct VSGradientDat* gd          { (struct VSGradientDat*)dat           };
     const LocalMotions*   motionsC    { gd->motions                          };
-    const VidStab::LmList motions     { *const_cast<LocalMotions*>(motionsC) };
+    const Gimbal::LmList motions     { *const_cast<LocalMotions*>(motionsC) };
     int                   num_motions { motions.size()                       };
     
     struct VSTransform t = vsArrayToTransform(params);
@@ -144,7 +144,7 @@ double intMean(const int* ds, int len)
 VSTransform meanMotions(VSTransformData*    td,
                         const LocalMotions* motionsC)
 {
-    const VidStab::LmList motions { *const_cast<LocalMotions*>(motionsC) };
+    const Gimbal::LmList motions { *const_cast<LocalMotions*>(motionsC) };
     int len       = motions.size();
     int* xs       = localmotions_getx(motionsC);
     int* ys       = localmotions_gety(motionsC);
@@ -193,7 +193,7 @@ struct VSTransform vsMotionsToTransform(VSTransformData*    td,
                                         FILE* f)
 {
     VSTransform           t       { meanMotions(td, motionsC)            };
-    const VidStab::LmList motions { *const_cast<LocalMotions*>(motionsC) };
+    const Gimbal::LmList motions { *const_cast<LocalMotions*>(motionsC) };
 
     if ((nullptr == motionsC) || (0 == motions.size()))
     {
@@ -351,7 +351,7 @@ struct VSTransform vsSimpleMotionsToTransform(VSFrameInfo fi, const char* modNam
         return t;
     }
 
-    const VidStab::LmList motions     { *const_cast<LocalMotions*>(motionsC) };
+    const Gimbal::LmList motions     { *const_cast<LocalMotions*>(motionsC) };
     int                   num_motions { motions.size()                        };
 
     double* angles = (double*) vs_malloc(sizeof(double) * num_motions);

@@ -22,8 +22,8 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#include "gimbal_detector.h"
 #include "transformtype.h"
-#include "motiondetect.h"
 #include "transform.h"
 
 

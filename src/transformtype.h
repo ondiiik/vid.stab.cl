@@ -69,7 +69,7 @@ struct LocalMotion
 };
 
 
-namespace VidStab
+namespace Gimbal
 {
     typedef Common::VsVector<LocalMotion>  LmList;
     typedef Common::VsVector<LocalMotions> LmLists;

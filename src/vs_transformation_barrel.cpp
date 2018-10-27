@@ -8,7 +8,7 @@
 #include <iostream> // DEBUG
 
 
-namespace VidStab
+namespace Gimbal
 {
     TransformationBarrel::TransformationBarrel(float aK0,
                                                float aK1,

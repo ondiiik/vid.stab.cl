@@ -78,7 +78,7 @@ struct VSMotionDetectFields
 };
 
 
-namespace VidStab
+namespace Gimbal
 {
     /**
      * @brief   Contrast index item
@@ -271,7 +271,7 @@ namespace VidStab
          * @brief   Convert frame index to vector index
          * @param   aIdx    Frame index
          * @return  Vector index
-         * @sa      VidStab::Direction::vect
+         * @sa      Gimbal::Direction::vect
          */
         static inline unsigned frame2vidx(unsigned aIdx)
         {
@@ -369,12 +369,12 @@ namespace VidStab
     /**
      * @brief   Data structure for motion detection part of deshaking
      */
-    class VSMD
+    class Detector
     {
     public:
         /* type for a function that calculates the transformation of a certain field
          */
-        typedef LocalMotion (*calcFieldTransFunc)(VSMD&,
+        typedef LocalMotion (*calcFieldTransFunc)(Detector&,
                                                   const VSMotionDetectFields&,
                                                   const Field&,
                                                   int);
@@ -382,7 +382,7 @@ namespace VidStab
                                                   
         /* type for a function that calculates the contrast of a certain field
          */
-        typedef double (*contrastSubImgFunc)(VSMD&,
+        typedef double (*contrastSubImgFunc)(Detector&,
                                              const Field&);
                                              
                                              
@@ -394,7 +394,7 @@ namespace VidStab
          * @param   aConf       Initial configuration
          * @param   aFi         Frame info
          */
-        VSMD(const char*                 aModName,
+        Detector(const char*                 aModName,
              VSMotionDetect*             aMd,
              const VSMotionDetectConfig* aConf,
              const VSFrameInfo*          aFi);
@@ -403,7 +403,7 @@ namespace VidStab
         /**
          * @brief   Destroy VSDM
          */
-        virtual ~VSMD();
+        virtual ~Detector();
         
         
         /**
@@ -455,7 +455,7 @@ namespace VidStab
         /**
          * @brief   Processing frames info
          * @note    Wrapper around C interface structure
-         *          @ref VidStab::VSMD::fiInfoC
+         *          @ref Gimbal::Detector::fiInfoC
          */
         Frame::Info fi;
         
@@ -467,21 +467,21 @@ namespace VidStab
         /**
          * @brief   Current preprocessed frame
          * @note    Wrapper around C interface structure
-         *          @ref VidStab::VSMD::currPrepFrameC
+         *          @ref Gimbal::Detector::currPrepFrameC
          */
         Frame::Frame currPrep;
         
         /**
          * @brief   Temporary buffer used for bluring
          * @note    Wrapper around C interface structure
-         *          @ref VidStab::VSMD::currTmpFrameC
+         *          @ref Gimbal::Detector::currTmpFrameC
          */
         Frame::Frame currTmp;
         
         /**
          * @brief   Copy of previous frame
          * @note    Wrapper around C interface structure
-         *          @ref VidStab::VSMD::prevFrameC
+         *          @ref Gimbal::Detector::prevFrameC
          */
         Frame::Frame prev;
         
@@ -1120,10 +1120,10 @@ namespace VidStab
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
      */
-    inline VSMD& VSMD2Inst(VSMotionDetect* aMd)
+    inline Detector& FFInst2Detector(VSMotionDetect* aMd)
     {
         assert(nullptr != aMd);
-        VSMD* const md = (VSMD*)aMd->_inst;
+        Detector* const md = (Detector*)aMd->_inst;
         return *md;
     }
     
@@ -1131,7 +1131,7 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD&                       md,
+    LocalMotion visitor_calcFieldTransPacked(Detector&                       md,
                                              const VSMotionDetectFields& fs,
                                              const Field&                field,
                                              int                         fieldnum);
@@ -1140,7 +1140,7 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD&                       md,
+    LocalMotion visitor_calcFieldTransPlanar(Detector&                       md,
                                              const VSMotionDetectFields& fs,
                                              const Field&                field,
                                              int                         fieldnum);
@@ -1150,11 +1150,11 @@ namespace VidStab
        \see contrastSubImg_Michelson three times called with bytesPerPixel=3
        for all channels
     */
-    double visitor_contrastSubImgPacked(VSMD&        md,
+    double visitor_contrastSubImgPacked(Detector&        md,
                                         const Field& field);
                                         
                                         
     /** \see contrastSubImg*/
-    double visitor_contrastSubImgPlanar(VSMD&        md,
+    double visitor_contrastSubImgPlanar(Detector&        md,
                                         const Field& field);
 }

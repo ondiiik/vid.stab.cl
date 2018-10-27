@@ -48,7 +48,7 @@
 /*
  * C++ includes
  */
-#include "motiondetect.h"
+#include "gimbal_detector.h"
 #include "frame_canvas.h"
 #include "common_exception.h"
 #include "common_dbg.h"
@@ -69,7 +69,7 @@
 
 
 
-using namespace VidStab;
+using namespace Gimbal;
 
 
 namespace
@@ -197,11 +197,11 @@ namespace
      * @param   aMd     Motion detect instance
      * @return  C++ representation of motion detect instance
      */
-    inline const VSMD& VSMD2Inst(const VSMotionDetect* aMd)
+    inline const Detector& FFInst2Detector(const VSMotionDetect* aMd)
     {
         if (nullptr != aMd)
         {
-            const VSMD* const md = (VSMD*)aMd->_inst;
+            const Detector* const md = (Detector*)aMd->_inst;
             return *md;
         }
         else
@@ -227,12 +227,12 @@ namespace
 }
 
 
-namespace VidStab
+namespace Gimbal
 {
-    VSMD::VSMD(const char*                 aModName,
-               VSMotionDetect*             aMd,
-               const VSMotionDetectConfig* aConf,
-               const VSFrameInfo*          aFi)
+    Detector::Detector(const char*                 aModName,
+                       VSMotionDetect*             aMd,
+                       const VSMotionDetectConfig* aConf,
+                       const VSFrameInfo*          aFi)
         :
         fiInfoC        { aMd->fi             },
         firstFrame     { true                },
@@ -316,7 +316,7 @@ namespace VidStab
     }
     
     
-    VSMD::~VSMD()
+    Detector::~Detector()
     {
         delete   _piramidRGB;
         delete   _piramidYUV;
@@ -352,8 +352,8 @@ namespace VidStab
     }
     
     
-    void VSMD::operator()(LocalMotions* aMotions,
-                          VSFrame&      aFrame)
+    void Detector::operator()(LocalMotions* aMotions,
+                              VSFrame&      aFrame)
     {
         if      (nullptr != _piramidYUV)
         {
@@ -378,7 +378,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> inline void VSMD::_init(Pyramids<_PixT>& aPt)
+    template <typename _PixT> inline void Detector::_init(Pyramids<_PixT>& aPt)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
         const unsigned               mul    { 1U << idx                                  };
@@ -412,8 +412,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_process(Pyramids<_PixT>& aPt,
-                                                  VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_process(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame)
     {
         _next(       aPt, aFrame);
         _select(     aPt);
@@ -437,8 +437,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_nextPiramid(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_nextPiramid(Pyramids<_PixT>& aPt,
+                                                          VSFrame&         aFrame)
     {
         unsigned idx { _idx };
         _idxPrev     = _idx & 1;
@@ -471,7 +471,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_select(Pyramids<_PixT>& aPt)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
         const Frame::Canvas<_PixT>&  canvas = aPt.fm[_idxCurrent][idx];
@@ -527,9 +527,9 @@ namespace VidStab
     
     
     
-    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
-                                                             const Common::Vect<unsigned>& aPosition,
-                                                             const Common::Vect<unsigned>& aRect) const
+    template <typename _PixT> unsigned Detector::_selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
+                                                                 const Common::Vect<unsigned>& aPosition,
+                                                                 const Common::Vect<unsigned>& aRect) const
     {
         const unsigned           dist { _cellSize / 2 };
         Common::Vect<int>        h    { int(dist), 0  };
@@ -553,7 +553,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_estimate(const Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_estimate(const Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -573,7 +573,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_measures(Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_measures(Pyramids<_PixT>& aPt)
     {
         /*
          * Process all filters
@@ -599,7 +599,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_analyze(Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_analyze(Pyramids<_PixT>& aPt)
     {
         /*
          * Process all filters
@@ -698,11 +698,11 @@ namespace VidStab
     }
     
     
-    unsigned VSMD::_analyze_avg(Common::Vect<int>&      aDst,
-                                Common::Vect<unsigned>& aPos,
-                                unsigned                aDid,
-                                unsigned                aTi,
-                                unsigned                aSize)
+    unsigned Detector::_analyze_avg(Common::Vect<int>&      aDst,
+                                    Common::Vect<unsigned>& aPos,
+                                    unsigned                aDid,
+                                    unsigned                aTi,
+                                    unsigned                aSize)
     {
         Common::Vect<int> acc {   };
         int               div { 0 };
@@ -739,7 +739,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_correct(const Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_correct(const Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -785,7 +785,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_accurateValid(Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_accurateValid(Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -816,7 +816,7 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_accurateAll(Pyramids<_PixT>& aPt)
+    template <typename _PixT> void Detector::_accurateAll(Pyramids<_PixT>& aPt)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -843,8 +843,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_visualize(Pyramids<_PixT>& aPt,
+                                                        VSFrame&         aFrame)
     {
         Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned         e    { unsigned(_cells.list.size())     };
@@ -976,12 +976,12 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_correlate(Cell&                    cell,
-                                                    const Pyramids<_PixT>&   aPt,
-                                                    unsigned                 aPType,
-                                                    unsigned                 aLayer,
-                                                    const Common::Vect<int>& aRb,
-                                                    const Common::Vect<int>& aRe)
+    template <typename _PixT> void Detector::_correlate(Cell&                    cell,
+                                                        const Pyramids<_PixT>&   aPt,
+                                                        unsigned                 aPType,
+                                                        unsigned                 aLayer,
+                                                        const Common::Vect<int>& aRb,
+                                                        const Common::Vect<int>& aRe)
     {
         const Common::Vect<unsigned> size { cell.size          >>   aLayer            };
         const Common::Vect<unsigned> pos  { cell.position      >>   aLayer            };
@@ -1014,12 +1014,12 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> unsigned VSMD::_correlateShot(const Frame::Canvas<_PixT>&   aCurrCanvas,
-                                                            const Frame::Canvas<_PixT>&   aPrevCanvas,
-                                                            const Common::Vect<int>&      aCurrShift,
-                                                            const Common::Vect<int>&      aPrevShift,
-                                                            const Common::Vect<unsigned>& aRect,
-                                                            unsigned                      aTrh) const
+    template <typename _PixT> unsigned Detector::_correlateShot(const Frame::Canvas<_PixT>&   aCurrCanvas,
+                                                                const Frame::Canvas<_PixT>&   aPrevCanvas,
+                                                                const Common::Vect<int>&      aCurrShift,
+                                                                const Common::Vect<int>&      aPrevShift,
+                                                                const Common::Vect<unsigned>& aRect,
+                                                                unsigned                      aTrh) const
     {
         Common::VectIt<unsigned> i   { aRect };
         unsigned                 acc { 0     };
@@ -1234,8 +1234,8 @@ namespace
      * Compares contrast_idx structures respect to the contrast
      * (for sort function)
      */
-    bool _cmp_Contrast(const VidStab::ContrastIdx& ci1,
-                       const VidStab::ContrastIdx& ci2)
+    bool _cmp_Contrast(const Gimbal::ContrastIdx& ci1,
+                       const Gimbal::ContrastIdx& ci2)
     {
         return ci1.contrast < ci2.contrast;
     }
@@ -1255,9 +1255,9 @@ namespace
 }
 
 
-namespace VidStab
+namespace Gimbal
 {
-    void VSMD::_blur(const Frame::Frame& aFrame)
+    void Detector::_blur(const Frame::Frame& aFrame)
     {
         int stepSize;
         
@@ -1292,9 +1292,9 @@ namespace VidStab
     }
     
     
-    const Frame::Frame& VSMD::_blurBox(const Frame::Frame& aSrc,
-                                       unsigned int        aStepSize,
-                                       _BoxBlurColorMode   aColormode)
+    const Frame::Frame& Detector::_blurBox(const Frame::Frame& aSrc,
+                                           unsigned int        aStepSize,
+                                           _BoxBlurColorMode   aColormode)
     {
         if (aStepSize < 2)
         {
@@ -1356,10 +1356,10 @@ namespace VidStab
     }
     
     
-    void VSMD::_blurBoxHV(Frame::Plane&        aDst,
-                          Frame::Plane&        aTmp,
-                          const Frame::Plane&  aSrc,
-                          int                  aSize)
+    void Detector::_blurBoxHV(Frame::Plane&        aDst,
+                              Frame::Plane&        aTmp,
+                              const Frame::Plane&  aSrc,
+                              int                  aSize)
     {
 #if defined(USE_OPENCL)
         /*
@@ -1423,9 +1423,9 @@ namespace VidStab
     }
     
     
-    void VSMD::_blurBoxH(Frame::Plane&        dst,
-                         const Frame::Plane&  src,
-                         const int            size)
+    void Detector::_blurBoxH(Frame::Plane&        dst,
+                             const Frame::Plane&  src,
+                             const int            size)
     {
         const int size2 = size / 2; /* Size of one side of the kernel without center */
         
@@ -1468,9 +1468,9 @@ namespace VidStab
     }
     
     
-    void VSMD::_blurBoxV(Frame::Plane&        dst,
-                         const Frame::Plane&  src,
-                         const int            size)
+    void Detector::_blurBoxV(Frame::Plane&        dst,
+                             const Frame::Plane&  src,
+                             const int            size)
     {
         const int size2 = size / 2; // size of one side of the kernel without center
         
@@ -1512,8 +1512,8 @@ namespace VidStab
         }
     }
     
-    void VSMD::_vs_detect(LocalMotions*       aMotions,
-                          const Frame::Frame& aFrame)
+    void Detector::_vs_detect(LocalMotions*       aMotions,
+                              const Frame::Frame& aFrame)
     {
         LmList       motions       { *aMotions };
         LocalMotions                 motionsfineC;
@@ -1585,7 +1585,7 @@ namespace VidStab
     }
     
     
-    int VSMD::_detectContrast(LmList& aLmCoarse)
+    int Detector::_detectContrast(LmList& aLmCoarse)
     {
         aLmCoarse.init(0);
         LocalMotions& motionscoarse = aLmCoarse.LocalMotionsC();
@@ -1617,9 +1617,9 @@ namespace VidStab
      * some fields. We may simplify here by using random. People want high
      * quality, so typically we use all.
      */
-    void VSMD::_selectfields(std::vector<ContrastIdx>& goodflds,
-                             VSMotionDetectFields&     fs,
-                             contrastSubImgFunc        contrastfunc)
+    void Detector::_selectfields(std::vector<ContrastIdx>& goodflds,
+                                 VSMotionDetectFields&     fs,
+                                 contrastSubImgFunc        contrastfunc)
     {
         /*
          * Calculate contrast for each field
@@ -1718,7 +1718,7 @@ namespace VidStab
     /* calculates the optimal transformation for one field in Packed
      * slower than the Planar version because it uses all three color channels
      */
-    LocalMotion visitor_calcFieldTransPacked(VSMD&                       md,
+    LocalMotion visitor_calcFieldTransPacked(Detector&                       md,
                                              const VSMotionDetectFields& fs,
                                              const Field&                field,
                                              int                         fieldnum)
@@ -1853,7 +1853,7 @@ namespace VidStab
      * Calculates the optimal transformation for one field in Planar frames
      * (only luminance)
      */
-    LocalMotion visitor_calcFieldTransPlanar(VSMD&                       md,
+    LocalMotion visitor_calcFieldTransPlanar(Detector&                       md,
                                              const VSMotionDetectFields& fs,
                                              const Field&                field,
                                              int                         fieldnum)
@@ -2022,7 +2022,7 @@ namespace VidStab
     }
     
     
-    double visitor_contrastSubImgPacked(VSMD&        md,
+    double visitor_contrastSubImgPacked(Detector&        md,
                                         const Field& field)
     {
         Frame::Plane pl { md.curr[0] };
@@ -2034,7 +2034,7 @@ namespace VidStab
     }
     
     
-    double visitor_contrastSubImgPlanar(VSMD&        md,
+    double visitor_contrastSubImgPlanar(Detector&        md,
                                         const Field& field)
     {
         Frame::Plane pl { md.curr[0] };
@@ -2054,7 +2054,7 @@ namespace VidStab
     }
     
     
-    void VSMD::_initOpenCl()
+    void Detector::_initOpenCl()
     {
 #if defined(USE_OPENCL)
         _initOpenCl_selectDevice();
@@ -2064,7 +2064,7 @@ namespace VidStab
     
     
 #if defined(USE_OPENCL)
-    void VSMD::_initOpenCl_selectDevice()
+    void Detector::_initOpenCl_selectDevice()
     {
         vs_log_info(_mn.c_str(), "[OpenCL] Devices:\n");
         
@@ -2101,7 +2101,7 @@ namespace VidStab
     }
     
     
-    void VSMD::_initOpenCl_prepareKernels()
+    void Detector::_initOpenCl_prepareKernels()
     {
         cl::Program::Sources           opencl___blur_h_src;
         opencl___blur_h_src.push_back({opencl___blur_h,  opencl___blur_h_len});
@@ -2131,7 +2131,7 @@ namespace VidStab
 #endif /* !defined(USE_OPENCL) */
     
     
-    void VSMD::_initMsg()
+    void Detector::_initMsg()
     {
         vs_log_info(_mn.c_str(), "[filter] Info:\n");
         vs_log_info(_mn.c_str(), "[filter] \tbuilt - " __DATE__ "\n");
@@ -2150,8 +2150,8 @@ namespace VidStab
     }
     
     
-    void VSMD::_initVsDetect(const VSMotionDetectConfig* aConf,
-                             const VSFrameInfo*          aFi)
+    void Detector::_initVsDetect(const VSMotionDetectConfig* aConf,
+                                 const VSFrameInfo*          aFi)
     {
         /*
          * First of all check inputs before we use them
@@ -2236,13 +2236,13 @@ namespace VidStab
     }
     
     
-    void VSMD::_initFields(VSMotionDetectFields& fs,
-                           int                   size,
-                           int                   maxShift,
-                           int                   stepSize,
-                           short                 keepBorder,
-                           int                   spacing,
-                           double                contrastThreshold)
+    void Detector::_initFields(VSMotionDetectFields& fs,
+                               int                   size,
+                               int                   maxShift,
+                               int                   stepSize,
+                               short                 keepBorder,
+                               int                   spacing,
+                               double                contrastThreshold)
     {
         fs.fieldSize         = size;
         fs.maxShift          = maxShift;
@@ -2302,9 +2302,9 @@ namespace VidStab
     }
     
     
-    LocalMotions VSMD::_calcTransFields(VSMotionDetectFields& fields,
-                                        calcFieldTransFunc    fieldfunc,
-                                        contrastSubImgFunc    contrastfunc)
+    LocalMotions Detector::_calcTransFields(VSMotionDetectFields& fields,
+                                            calcFieldTransFunc    fieldfunc,
+                                            contrastSubImgFunc    contrastfunc)
     {
         LocalMotions                   localmotionsC;
         LmList          localmotions { localmotionsC };
@@ -2556,7 +2556,7 @@ void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
 {
     try
     {
-        const VSMD& md = VSMD2Inst(aMd);
+        const Detector& md = FFInst2Detector(aMd);
         *aConf    = md.conf;
     }
     catch (std::exception& exc)
@@ -2578,7 +2578,7 @@ const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
 {
     try
     {
-        const VSMD& md = VSMD2Inst(aMd);
+        const Detector& md = FFInst2Detector(aMd);
         return     &md.fiInfoC;
     }
     catch (std::exception& exc)
@@ -2612,7 +2612,7 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
     
     try
     {
-        VSMD* md   = new VSMD(modName, aMd, aConf, aFi);
+        Detector* md   = new Detector(modName, aMd, aConf, aFi);
         aMd->_inst = md;
     }
     catch (std::exception& exc)
@@ -2641,7 +2641,7 @@ int vsMotionDetectInit(VSMotionDetect*             aMd,
 
 void vsMotionDetectionCleanup(VSMotionDetect* aMd)
 {
-    VSMD*  md = &(VSMD2Inst(aMd));
+    Detector*  md = &(FFInst2Detector(aMd));
     delete md;
     aMd->_inst = nullptr;
 }
@@ -2658,7 +2658,7 @@ int vsMotionDetection(VSMotionDetect* aMd,
                       LocalMotions*   aMotions,
                       VSFrame*        aFrame)
 {
-    VSMD& md = VSMD2Inst(aMd);
+    Detector& md = FFInst2Detector(aMd);
     
     try
     {
@@ -2685,7 +2685,7 @@ int vsPrepareFile(const VSMotionDetect* aMd,
     
     try
     {
-        const VSMD& md = VSMD2Inst(aMd);
+        const Detector& md = FFInst2Detector(aMd);
         
         fprintf(f, "VID.STAB 1\n");
         fprintf(f, "#       vidstab = vid.stab.cl built " __DATE__ " " __TIME__ "\n");
@@ -2722,7 +2722,7 @@ int vsWriteToFile(const VSMotionDetect* aMd,
     
     try
     {
-        const VSMD& md = VSMD2Inst(aMd);
+        const Detector& md = FFInst2Detector(aMd);
         
         if (fprintf(f, "Frame %i (", md.frameNum) <= 0)
         {

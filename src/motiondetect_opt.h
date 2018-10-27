@@ -25,7 +25,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#include "motiondetect.h"
+#include "gimbal_detector.h"
 
 
 #ifdef __cplusplus

@@ -26,6 +26,8 @@
 #include <string.h>
 
 #include "serialize.h"
+
+#include "gimbal_detector.h"
 #include "transformtype.h"
 #include "transformtype_operations.h"
 
@@ -33,9 +35,8 @@
 /*
  * C++ includes
  */
-#include "motiondetect.h"
 
-using namespace VidStab;
+using namespace Gimbal;
 
 
 const char* modname = "vid.stab - serialization";
@@ -70,7 +71,7 @@ LocalMotion restoreLocalmotion(FILE* f)
 int vsStoreLocalmotions(FILE*               f,
                         const LocalMotions* lmsC)
 {
-    const VidStab::LmList lms { *const_cast<LocalMotions*>(lmsC) };
+    const Gimbal::LmList lms { *const_cast<LocalMotions*>(lmsC) };
     int                   len { lms.size()                       };
     
     fprintf(f, "List %i [", len);
@@ -97,7 +98,7 @@ int vsStoreLocalmotions(FILE*               f,
 LocalMotions vsRestoreLocalmotions(FILE* f)
 {
     LocalMotions          lmsC;
-    VidStab::LmList lms { lmsC };
+    Gimbal::LmList lms { lmsC };
     int i;
     char c;
     int len;
@@ -217,7 +218,7 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlmsC)
     }
     assert(mlmsC);
     // initial number of frames, but it will automatically be increaseed
-    VidStab::LmLists mlms { *mlmsC };
+    Gimbal::LmLists mlms { *mlmsC };
     mlms.init(1024);
     
     int index;
