@@ -225,6 +225,16 @@ namespace VidStab
         
         
         /**
+         * @brief   Clear flag
+         * @param   aFlags  Flag to be set
+         */
+        inline void clr(unsigned aFlag)
+        {
+            _valid &= ~aFlag;
+        }
+
+
+        /**
          * @brief   Set flag
          * @param   aFlags  Flag to be set
          */
@@ -941,17 +951,34 @@ namespace VidStab
                                                  
                                                  
         /**
-         * @brief   Complete estimation of movements
+         * @brief   Process corrected detection of movements
          *
-         * Uses the rest canvases in pyramid to create precise movement
-         * estimation
+         * Uses smallest canvas in pyramid and results from analyzes
+         * for better movement detection
          *
          * @param   aPt     Pyramid for calculation
          * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
+        template <typename _PixT> void _correct(const Pyramids<_PixT>& aPt,
+                                                VSFrame&               aFrame);
+
+
+        /**
+         * @brief   Accurate estimation of movements
+         *
+         * Uses the rest canvases in pyramid to create precise movement
+         * estimation
+         *
+         * @param   aPt         Pyramid for calculation
+         * @param   aFrame      New frame
+         * @param   aValidOnly  Set if all or only valid cells shall be
+         *                      accurated
+         * @tparam  \_PixT  Pixel type
+         */
         template <typename _PixT> void _accurate(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame);
+                                                 VSFrame&         aFrame,
+                                                 bool             aValidOnly);
                                                  
                                                  
         /**
