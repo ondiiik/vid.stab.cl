@@ -331,11 +331,6 @@ namespace VidStab
          * @brief   Cell contrast quality factor
          */
         unsigned cntrQf;
-        
-        /**
-         * @brief   Cell contrast range
-         */
-        Common::Range<unsigned> cntrRng;
     };
     
     
@@ -884,17 +879,14 @@ namespace VidStab
          * @brief   Find optimal places (cells) for detection
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _select(Pyramids<_PixT>& aPt,
-                                               VSFrame&         aFrame);
+        template <typename _PixT> void _select(Pyramids<_PixT>& aPt);
                                                
                                                
         /**
          * @brief   Get quality marker of potential cell
          *
-         * @param[out]  aR          Range of pixel values
          * @param[in]   aCanvas     Canvas to be analyzed
          * @param[in]   aPosition   Position of cell
          * @param[in]   aRect       Size of cell
@@ -902,8 +894,7 @@ namespace VidStab
          *
          * @return  Contras quality marker
          */
-        template <typename _PixT> unsigned _selectContrast(RangeU&                     aR,
-                                                           const Frame::Canvas<_PixT>& aCanvas,
+        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>& aCanvas,
                                                            const VectU&                aPosition,
                                                            const VectU&                aRect) const;
                                                            

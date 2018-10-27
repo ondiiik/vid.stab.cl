@@ -100,8 +100,10 @@ namespace
     
     /**
      * @brief   Quality threshold for selection
+     *
+     * Says how much contrast is considered to be used
      */
-    const unsigned _contrastThreshold { 32 };
+    const unsigned _contrastThreshold { 4 };
     
     
     /**
@@ -168,8 +170,8 @@ namespace
      * @brief   Defines range for accurator
      */
     const unsigned _accuratorDivider { 8 };
-
-
+    
+    
     /**
      * @brief   Default alpha for invalid cells
      *
@@ -405,16 +407,16 @@ namespace VidStab
                                                   VSFrame&         aFrame)
     {
         _next(          aPt, aFrame );
-        _select(        aPt, aFrame );
+        _select(        aPt         );
         
-        _estimate(      aPt, aFrame );
-        _accurateAll(   aPt, aFrame );
-        _analyze(       aPt, aFrame );
-        
-        _correct(       aPt, aFrame );
-        _accurateValid( aPt, aFrame );
-        _analyze(       aPt, aFrame );
-        
+//        _estimate(      aPt, aFrame );
+//        _accurateAll(   aPt, aFrame );
+//        _analyze(       aPt, aFrame );
+//
+//        _correct(       aPt, aFrame );
+//        _accurateValid( aPt, aFrame );
+//        _analyze(       aPt, aFrame );
+
         _visualize(     aPt, aFrame );
     }
     
@@ -453,24 +455,31 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame)
+    template <typename _PixT> void VSMD::_select(Pyramids<_PixT>& aPt)
     {
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
-        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]                   };
-        VectU                        begin  { 1                                          };
+        const Frame::Canvas<_PixT>&  canvas = aPt.fm[_idxCurrent][idx];
+        VectU                        begin  { 0                                          };
         VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         VectU                        rect   { _cellSize                                  };
-        const unsigned               t      { Direction::frame2vidx(_idx)                };
+        const unsigned               did    { Cell::ptype2dir(aPt.PTYPE_SW)              };
         
         
-        Common::VectIt<unsigned> i { begin, end };
+        /*
+         * Go through all cells and measure contrast of cell to
+         * see if detection will work.
+         */
+        Common::VectIt<unsigned> i { begin, end          };
         auto                     c { _cells.list.begin() };
         
         do
         {
-            VectU    pos { i()* _cellSize                                 };
-            unsigned q   { _selectContrast(c->cntrRng, canvas, pos, rect) };
+            /*
+             * Calculate contrast factor and compare it with threshold to
+             * know if there is enough contrast for further calculation.
+             */
+            VectU    pos { i()* _cellSize                     };
+            unsigned q   { _selectContrast(canvas, pos, rect) };
             
             if (_contrastThreshold <= q)
             {
@@ -482,12 +491,15 @@ namespace VidStab
             }
             
             
-            auto& dir = c->direction[t];
+            auto& dir = c->direction[did];
             
             dir.clr();
             
             if (0 == c->cntrQf)
             {
+                /*
+                 * We should mark down that there is not enough contrast
+                 */
                 dir.set(Direction::DIR___CONTRAST);
             }
             
@@ -498,8 +510,7 @@ namespace VidStab
     
     
     
-    template <typename _PixT> unsigned VSMD::_selectContrast(RangeU&                     aR,
-                                                             const Frame::Canvas<_PixT>& aCanvas,
+    template <typename _PixT> unsigned VSMD::_selectContrast(const Frame::Canvas<_PixT>& aCanvas,
                                                              const VectU&                aPosition,
                                                              const VectU&                aRect) const
     {
@@ -509,53 +520,19 @@ namespace VidStab
         VectU          rect { aRect - dist  };
         VectIterU      i    { rect          };
         
-        aR.min = aR.maxVal();
-        aR.max = aR.minVal();
-        int minV { std::numeric_limits<int>::max() };
-        int maxV { std::numeric_limits<int>::min() };
-        int minH { std::numeric_limits<int>::max() };
-        int maxH { std::numeric_limits<int>::min() };
+        
+        unsigned acc { 0 };
         
         do
         {
-            int p  { int(aCanvas[aPosition + i()].abs()) };
+            auto p { aPosition + i() };
             
-            if (aR.min > unsigned(p))
-            {
-                aR.min = unsigned(p);
-            }
-            
-            if (aR.max < unsigned(p))
-            {
-                aR.max = unsigned(p);
-            }
-            
-            int dh { p - int(aCanvas[aPosition + i() + h].abs()) };
-            int dv { p - int(aCanvas[aPosition + i() + v].abs()) };
-            
-            if (minV > dv)
-            {
-                minV = dv;
-            }
-            
-            if (maxV < dv)
-            {
-                maxV = dv;
-            }
-            
-            if (minH > dh)
-            {
-                minH = dh;
-            }
-            
-            if (maxH < dh)
-            {
-                maxH = dh;
-            }
+            acc += abs(int(aCanvas(p).abs()) - int(aCanvas(p.x + 1, p.y    ).abs()));
+            acc += abs(int(aCanvas(p).abs()) - int(aCanvas(p.x,     p.y + 1).abs()));
         }
         while (i.next());
         
-        return abs(minV * maxV * minH * maxH);
+        return acc / aRect.dim();
     }
     
     
@@ -864,22 +841,11 @@ namespace VidStab
             
             if (dir.isValid())
             {
-                if (i.cntrQf > _contrastThreshold)
-                {
-                    VectU rs1 { i.size - 4 };
-                    VectU rs2 { i.size - 8 };
-                    
-                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
-                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
-                }
-                else
-                {
-                    VectU rs1 { i.size - 20 };
-                    VectU rs2 { i.size - 24 };
-                    
-                    disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
-                    disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
-                }
+                VectU rs1 { (i.size * i.cntrQf) / 24 + i.size / 2     };
+                VectU rs2 { (i.size * i.cntrQf) / 24 + i.size / 2 + 4 };
+                
+                disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
             }
             else
             {
