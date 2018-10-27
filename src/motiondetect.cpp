@@ -101,7 +101,7 @@ namespace
     /**
      * @brief   Quality threshold for selection
      */
-    const unsigned _contrastThreshold { 16 };
+    const unsigned _contrastThreshold { 32 };
     
     
     /**
@@ -138,30 +138,43 @@ namespace
     
     /**
      * @brief   Border detection divider
+     *
+     * Divide frame according to its high on multiple parts.
+     * This also defines border width.
      */
-    const unsigned _borderDiv { 6 };
+    const unsigned _borderDiv { 8 };
     
     
     /**
      * @brief   Minimum neighbors required for estimation
+     *
+     * When average is calculated, then this is minimal amount
+     * of neighbors to declare average as valid.
      */
     const unsigned _minNeighbors { 6 };
     
     
     /**
      * @brief   Deviation measure factor
+     *
+     * Deviation vector is multiplied by this factor. Higher number
+     * means higher deviation, so detection tends to drop less
+     * deviated measurements.
      */
-    const unsigned _devFactor { 1 };
+    const unsigned _devFactor { 2 };
     
     
     /**
-     * @brief   Minimal quadratic size for analysis
+     * @brief   Defines range for accurator
      */
-    const unsigned _minQSize { 1 };
-    
-    
+    const unsigned _accuratorDivider { 8 };
+
+
     /**
      * @brief   Default alpha for invalid cells
+     *
+     * Used by visualization to make invalid values transparent
+     * (less visible).
      */
     const unsigned _alpha { 32U };
     
@@ -230,7 +243,7 @@ namespace VidStab
         _threadsCnt    { OMP_MAX_THREADS },
         
         _cells         {                 },
-        _detectRange   { unsigned(aFi->width / _borderDiv) }
+        _detectRange   { unsigned(aFi->height / _borderDiv) }
         
         
         
@@ -355,12 +368,12 @@ namespace VidStab
     
     template <typename _PixT> inline void VSMD::_init(Pyramids<_PixT>& aPt)
     {
-        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
-        const unsigned               mul    { 1U << idx };
-        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        VectU                        begin  { 0 };
+        const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1             };
+        const unsigned               mul    { 1U << idx                                  };
+        const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx]                   };
+        VectU                        begin  { 0                                          };
         VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
-        VectU                        rect   { _cellSize };
+        VectU                        rect   { _cellSize                                  };
         
         
         _cells.list.resize(0);
@@ -391,18 +404,18 @@ namespace VidStab
     template <typename _PixT> void VSMD::_process(Pyramids<_PixT>& aPt,
                                                   VSFrame&         aFrame)
     {
-        _next(      aPt, aFrame        );
-        _select(    aPt, aFrame        );
+        _next(          aPt, aFrame );
+        _select(        aPt, aFrame );
         
-        _estimate(  aPt, aFrame        );
-        _accurate(  aPt, aFrame, true );
+        _estimate(      aPt, aFrame );
+        _accurateAll(   aPt, aFrame );
+        _analyze(       aPt, aFrame );
         
-        _analyze(   aPt, aFrame        );
+        _correct(       aPt, aFrame );
+        _accurateValid( aPt, aFrame );
+        _analyze(       aPt, aFrame );
         
-        _correct(   aPt, aFrame        );
-        _accurate(  aPt, aFrame, false );
-        
-        _visualize( aPt, aFrame        );
+        _visualize(     aPt, aFrame );
     }
     
     
@@ -736,10 +749,10 @@ namespace VidStab
                 if (!dir.isSet(Direction::DIR___CONTRAST) &&
                     !dir.isSet(Direction::DIR___SURROUNDINGS))
                 {
-                    unsigned       layer { aPt.fm[_idxCurrent].size() - 1 };
-                    const unsigned vl2   { unsigned(v.size()) / 2         };
-                    const VectS    rb    { v - vl2                        };
-                    const VectS    re    { v + vl2                        };
+                    unsigned       layer { aPt.fm[_idxCurrent].size() - 1         };
+                    const unsigned vl2   { unsigned(v.size()) / _accuratorDivider };
+                    const VectS    rb    { v - vl2                                };
+                    const VectS    re    { v + vl2 + 1                            };
                     
                     _correlate(cell, aPt, idx, layer, rb, re);
                     
@@ -755,9 +768,8 @@ namespace VidStab
     }
     
     
-    template <typename _PixT> void VSMD::_accurate(Pyramids<_PixT>& aPt,
-                                                   VSFrame&         aFrame,
-                                                   const bool       aAll)
+    template <typename _PixT> void VSMD::_accurateValid(Pyramids<_PixT>& aPt,
+                                                        VSFrame&         aFrame)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -773,7 +785,7 @@ namespace VidStab
                     const unsigned did { Cell::ptype2dir(idx) };
                     auto&          dir = cell.direction[did];
                     
-                    if (aAll || dir.isValid())
+                    if (dir.isValid())
                     {
                         const unsigned t   { Direction::frame2vidx(_idx) };
                         
@@ -788,8 +800,36 @@ namespace VidStab
     }
     
     
+    template <typename _PixT> void VSMD::_accurateAll(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame)
+    {
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(_threadsCnt,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < _cells.list.size(); ++idx))
+        {
+            auto& cell = _cells.list[idx];
+            
+            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+            {
+                for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
+                {
+                    const unsigned did { Cell::ptype2dir(idx) };
+                    auto&          dir = cell.direction[did];
+                    const unsigned t   { Direction::frame2vidx(_idx) };
+                    
+                    const VectS    rb  { (dir.velo[t].meas >> p) - 1 };
+                    const VectS    re  { (dir.velo[t].meas >> p) + 2 };
+                    
+                    _correlate(cell, aPt, idx, p, rb, re);
+                }
+            }
+        }
+    }
+    
+    
     template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
-                                                    VSFrame&          aFrame)
+                                                    VSFrame&         aFrame)
     {
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned       e    { unsigned(_cells.list.size())     };

@@ -965,20 +965,31 @@ namespace VidStab
 
 
         /**
-         * @brief   Accurate estimation of movements
+         * @brief   Accurate estimation of movements for valid cells only
          *
          * Uses the rest canvases in pyramid to create precise movement
          * estimation
          *
          * @param   aPt         Pyramid for calculation
          * @param   aFrame      New frame
-         * @param   aAll        Set if all or only valid cells shall be
-         *                      accurated
          * @tparam  \_PixT      Pixel type
          */
-        template <typename _PixT> void _accurate(Pyramids<_PixT>& aPt,
-                                                 VSFrame&         aFrame,
-                                                 const bool       aAll);
+        template <typename _PixT> void _accurateValid(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame);
+
+
+        /**
+         * @brief   Accurate estimation of movements for all cells
+         *
+         * Uses the rest canvases in pyramid to create precise movement
+         * estimation
+         *
+         * @param   aPt         Pyramid for calculation
+         * @param   aFrame      New frame
+         * @tparam  \_PixT      Pixel type
+         */
+        template <typename _PixT> void _accurateAll(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame);
                                                  
                                                  
         /**
