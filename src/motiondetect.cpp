@@ -395,12 +395,12 @@ namespace VidStab
         _select(    aPt, aFrame        );
         
         _estimate(  aPt, aFrame        );
-        _accurate(  aPt, aFrame, false );
+        _accurate(  aPt, aFrame, true );
         
         _analyze(   aPt, aFrame        );
         
         _correct(   aPt, aFrame        );
-        _accurate(  aPt, aFrame, true  );
+        _accurate(  aPt, aFrame, false );
         
         _visualize( aPt, aFrame        );
     }
@@ -757,7 +757,7 @@ namespace VidStab
     
     template <typename _PixT> void VSMD::_accurate(Pyramids<_PixT>& aPt,
                                                    VSFrame&         aFrame,
-                                                   bool             aValidOnly)
+                                                   const bool       aAll)
     {
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
@@ -773,7 +773,7 @@ namespace VidStab
                     const unsigned did { Cell::ptype2dir(idx) };
                     auto&          dir = cell.direction[did];
                     
-                    if (dir.isValid())
+                    if (aAll || dir.isValid())
                     {
                         const unsigned t   { Direction::frame2vidx(_idx) };
                         

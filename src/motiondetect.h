@@ -972,13 +972,13 @@ namespace VidStab
          *
          * @param   aPt         Pyramid for calculation
          * @param   aFrame      New frame
-         * @param   aValidOnly  Set if all or only valid cells shall be
+         * @param   aAll        Set if all or only valid cells shall be
          *                      accurated
-         * @tparam  \_PixT  Pixel type
+         * @tparam  \_PixT      Pixel type
          */
         template <typename _PixT> void _accurate(Pyramids<_PixT>& aPt,
                                                  VSFrame&         aFrame,
-                                                 bool             aValidOnly);
+                                                 const bool       aAll);
                                                  
                                                  
         /**
