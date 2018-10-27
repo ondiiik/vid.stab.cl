@@ -143,6 +143,12 @@ namespace
     
     
     /**
+     * @brief   Minimum neighbors required for estimation
+     */
+    const unsigned _minNeighbors { 4 };
+    
+    
+    /**
      * @brief   Deviation measure factor
      */
     const unsigned _devFactor { 1 };
@@ -352,7 +358,7 @@ namespace VidStab
         const unsigned               idx    { aPt.fm[_idxCurrent].size() - 1 };
         const unsigned               mul    { 1U << idx };
         const Frame::Canvas<_PixT>&  canvas { aPt.fm[_idxCurrent][idx] };
-        VectU                        begin  { 1 };
+        VectU                        begin  { 0 };
         VectU                        end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         VectU                        rect   { _cellSize };
         
@@ -574,44 +580,51 @@ namespace VidStab
                 auto& dir     = cell.direction[did];
                 auto& velCurr = dir.velo[t0];
                 auto& dirCurr = velCurr.meas;
-//                auto  dirCurrQSize { dirCurr.qsize() };
-//
-//                /*
-//                 * Analyze only not so short vectors, otherwise error
-//                 * in analyzes can be too high.
-//                 */
-//                if (int(_minQSize) > dirCurrQSize)
-//                {
-//                    /*
-//                     * Measured vector is too short, so we will use it
-//                     * as result.
-//                     */
-//                    dir.velo[t0].val = dirCurr;
-//                    continue;
-//                }
-
-
+                
+                
                 /*
                  * We are analyzing deviation between measured vector
-                 * and average from neighbors.
+                 * and average from neighbors. We should search for neighbors
+                 * in surroundings. Start with close surrounding and extend it
+                 * till we get some result.
                  */
-                VectS    dirAvg;
-                unsigned cnt { _analyze_avg(dirAvg, cell.idx, did, t0, 2) };
+                VectS&         dirAvg = dir.velo[t0].esti;
+                unsigned       cnt    = 0;
+                unsigned       dist   = 1;
+                const unsigned end    = _cells.dim.y / 2;
+                
+                for (; dist < end; ++dist)
+                {
+                    cnt = _analyze_avg(dirAvg, cell.idx, did, t0, dist);
+                    
+                    if (_minNeighbors < cnt)
+                    {
+                        break;
+                    }
+                }
+                
+                if (end != dist)
+                {
+                    dir.velo[t0].dist = dist;
+                }
+                else
+                {
+                    dir.velo[t0].dist = std::numeric_limits<unsigned>::max();
+                }
+                
                 
                 /*
                  * We can work correctly only when there is enough
                  * neighbors around, otherwise we can not make assumption
                  * about direction.
                  */
-                if (4 < cnt)
+                if (_minNeighbors < cnt)
                 {
                     /*
                      * There is average surroundings vector calculated,
                      * so we should calculate deviation of measured
                      * and estimated direction.
                      */
-                    dir.velo[t0].esti = dirAvg;
-                    
                     if (deviates(dirCurr, dirAvg))
                     {
                         /*
@@ -634,7 +647,7 @@ namespace VidStab
                 else
                 {
                     /*
-                     * We don't have enough neighbors around, so we
+                     * We don't have enough neighbors far away, so we
                      * have to use history for estimation. For now we
                      * only copy last value.
                      */
@@ -747,7 +760,10 @@ template <typename _PixT> void VSMD::_visualize(Pyramids<_PixT>& aPt,
         VectU          dst   { pos  - i.direction[did].velo[t0].esti };
         
         
-        disp.drawLine(pos, dst, 4, _PixT(0), alpha);
+        if (!dir.isSet(Direction::DIR___SURROUNDINGS))
+        {
+            disp.drawLine(pos, dst, 4, _PixT(0), alpha);
+        }
         
         if (dir.isValid())
         {

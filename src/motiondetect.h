@@ -135,8 +135,10 @@ namespace VidStab
     {
         DirVal()
             :
-            meas {},
-            esti {}
+            meas {   },
+            esti {   },
+            val  {   },
+            dist { 0 }
         {
         
         }
@@ -155,7 +157,11 @@ namespace VidStab
          * @brief   Filtered value
          */
         Common::Vect<int> val;
-
+        
+        /**
+         * @brief   Distance of closest neighbors during estimation
+         */
+        unsigned dist;
     };
     
     
@@ -197,7 +203,7 @@ namespace VidStab
          */
         static const unsigned DIR___ESTI_DEV { 0b100U };
         
-
+        
         /**
          * @brief   Check if flag is set
          * @param   aFlags  Flag to be checked
