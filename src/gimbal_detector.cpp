@@ -171,7 +171,7 @@ namespace
      * omitted. Movement detection can get bit worst results, but
      * detection is faster.
      */
-    const bool _fast { false };
+    const bool _fast { true };
     
     
     /**
@@ -902,7 +902,7 @@ namespace Gimbal
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         
         _visualizeStatic(aPt, disp);
-//        _visualizeSlow(  aPt, disp);
+        _visualizeSlow(  aPt, disp);
 //        _visualizeFast(  aPt, disp);
     }
     
@@ -1033,8 +1033,8 @@ namespace Gimbal
             Common::Vect<unsigned> dstA   { pos - velA0.val                   };
             Common::Vect<unsigned> dstB   { pos - velB0.val                   };
             
-            aDisp.drawLine(pos, dstA, 4, 1, _PixT(0), alphaA);
-            aDisp.drawLine(pos, dstB, 4, 1, _PixT(0), alphaB);
+            aDisp.drawLine(pos, dstA, 2, 2, _PixT(255), alphaA);
+            aDisp.drawLine(pos, dstB, 2, 2, _PixT(0),   alphaB);
         }
     }
     
@@ -1067,8 +1067,8 @@ namespace Gimbal
             Common::Vect<unsigned> dstA   { pos - velA0.val                     };
             Common::Vect<unsigned> dstB   { pos - velB0.val                     };
             
-            aDisp.drawLine(pos, dstA, 4, 2, _PixT(0), alphaA);
-            aDisp.drawLine(pos, dstB, 4, 2, _PixT(0), alphaB);
+            aDisp.drawLine(pos, dstA, 1, 4, _PixT(255), alphaA);
+            aDisp.drawLine(pos, dstB, 1, 4, _PixT(0),   alphaB);
         }
     }
     
