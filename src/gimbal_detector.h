@@ -36,7 +36,7 @@
 #include <cassert>
 #include <list>
 
-#include "gimbal_motions.h"
+#include "gimbal_serializer.h"
 #include "frame_pyramid.h"
 #include "common_average.h"
 #include "common_range.h"
