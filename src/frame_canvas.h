@@ -39,7 +39,7 @@ namespace Frame
         {
             if (nullptr == _buf)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
+                throw Common::EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
             }
         }
         
@@ -53,7 +53,7 @@ namespace Frame
         {
             if (nullptr == _buf)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
+                throw Common::EXCEPTION_M("FrmCanvas", "Memory allocation failed!");
             }
         }
         
@@ -67,7 +67,7 @@ namespace Frame
         {
             if (nullptr == _buf)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
+                throw Common::EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
             }
         }
         
@@ -82,7 +82,7 @@ namespace Frame
         {
             if (nullptr == _buf)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
+                throw Common::EXCEPTION_M("FrmCanvas", "Null canvas buffer!");
             }
         }
         
@@ -153,7 +153,7 @@ namespace Frame
         {
             if (_dim != aSrc._dim)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas",
+                throw Common::EXCEPTION_M("FrmCanvas",
                                              "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
                                              width(),
                                              height(),
@@ -170,7 +170,7 @@ namespace Frame
         {
             if (_dim != aSrc._dim)
             {
-                throw Common::VS_EXCEPTION_M("FrmCanvas",
+                throw Common::EXCEPTION_M("FrmCanvas",
                                              "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
                                              width(),
                                              height(),

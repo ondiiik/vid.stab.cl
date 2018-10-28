@@ -40,7 +40,7 @@ namespace Frame
             
             if (1 > _pyramid.size())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid, "Frame pyramid needs at least one layer!");
+                throw Common::EXCEPTION_M(FrmPiramid, "Frame pyramid needs at least one layer!");
             }
         }
         
@@ -54,7 +54,7 @@ namespace Frame
             
             if (1 > _pyramid.size())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid, "Frame pyramid needs at least one layer!");
+                throw Common::EXCEPTION_M(FrmPiramid, "Frame pyramid needs at least one layer!");
             }
         }
         
@@ -63,7 +63,7 @@ namespace Frame
         {
             if (_pyramid.size() != aSrc._pyramid.size())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid,
+                throw Common::EXCEPTION_M(FrmPiramid,
                                              "Frame pyramid layers count mismatch (%u != %u)!",
                                              unsigned(_pyramid.size()),
                                              unsigned(aSrc._pyramid.size()));
@@ -71,7 +71,7 @@ namespace Frame
             
             if (_pyramid[0]->dim() != aSrc._pyramid[0]->dim())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid,
+                throw Common::EXCEPTION_M(FrmPiramid,
                                              "Frame pyramid dimensions mismatch ([%ux%u] != [%ux%u])!",
                                              unsigned(_pyramid[0]->width()),
                                              unsigned(_pyramid[0]->height()),
@@ -106,7 +106,7 @@ namespace Frame
         {
             if (aIdx >= _pyramid.size())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid,
+                throw Common::EXCEPTION_M(FrmPiramid,
                                              "Layer %u out of range (max %u)!",
                                              unsigned(aIdx),
                                              unsigned(_pyramid.size()));
@@ -120,7 +120,7 @@ namespace Frame
         {
             if (aIdx >= _pyramid.size())
             {
-                throw Common::VS_EXCEPTION_M(FrmPiramid,
+                throw Common::EXCEPTION_M(FrmPiramid,
                                              "Layer %u out of range (max %u)!",
                                              unsigned(aIdx),
                                              unsigned(_pyramid.size()));

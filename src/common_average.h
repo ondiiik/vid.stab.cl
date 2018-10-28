@@ -43,7 +43,7 @@ namespace Common
             }
             else
             {
-                throw Common::exception("[AVG] Can not got to negative count!");
+                throw EXCEPTION_M("AVG", "Can not got to negative count!");
             }
         }
         
@@ -56,7 +56,7 @@ namespace Common
             }
             else
             {
-                throw Common::exception("[AVG] Can not calculate average from 0 items count!");
+                throw EXCEPTION_M("AVG", "Can not got to negative count!");
             }
         }
         
@@ -64,6 +64,13 @@ namespace Common
         inline operator _Tp() const
         {
             return (*this)();
+        }
+        
+        
+        inline void reset()
+        {
+            _acc = _AccTp(0);
+            _cnt = 0U;
         }
         
         

@@ -79,7 +79,7 @@ void* operator new (std::size_t size)
     
     if (nullptr == p)
     {
-        throw Common::VS_EXCEPTION("Memory allocation failed!");
+        throw Common::EXCEPTION("Memory allocation failed!");
     }
     
     return p;
@@ -92,7 +92,7 @@ void* operator new[](std::size_t size)
 
     if (nullptr == p)
     {
-        throw Common::VS_EXCEPTION("Memory allocation failed!");
+        throw Common::EXCEPTION("Memory allocation failed!");
     }
 
     return p;

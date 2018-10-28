@@ -50,6 +50,7 @@
  */
 #include "gimbal_detector.h"
 #include "frame_canvas.h"
+#include "common_average.h"
 #include "common_exception.h"
 #include "common_dbg.h"
 
@@ -206,7 +207,7 @@ namespace
         }
         else
         {
-            throw Common::VS_EXCEPTION("Detect data C structure is NULL!");
+            throw Common::EXCEPTION("Detect data C structure is NULL!");
         }
     }
     
@@ -273,12 +274,12 @@ namespace Gimbal
          */
         if (nullptr == aConf)
         {
-            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
+            throw Common::EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw Common::VS_EXCEPTION("Frame info structure is NULL!");
+            throw Common::EXCEPTION("Frame info structure is NULL!");
         }
         
         
@@ -365,7 +366,7 @@ namespace Gimbal
         }
         else
         {
-            throw Common::VS_EXCEPTION("No valid pixel model selected!");
+            throw Common::EXCEPTION("No valid pixel model selected!");
         }
         
         
@@ -622,31 +623,29 @@ namespace Gimbal
                 /*
                  * We are analyzing deviation between measured vector
                  * and average from neighbors. We should search for neighbors
-                 * in surroundings. Start with close surrounding and extend it
-                 * till we get some result.
+                 * in surroundings.
                  */
-                Common::Vect<int>& dirAvg = dir.velo[t0].esti;
-                unsigned           cnt    = 0;
-                unsigned           dist   = 1;
-                const unsigned     end    = _cells.dim.y / 2;
+                auto&                               velo0  = dir.velo[t0];
+                Common::Vect<int>&                  dirAvg = velo0.esti;
+                const unsigned                      end    = _cells.dim.y / 2;
+                Common::Average<Common::Vect<int> > avg;
                 
-                for (; dist < end; ++dist)
+                /*
+                 * Start with close surrounding and extend it if don't find
+                 * sufficient amount of neighbors.
+                 */
+                velo0.dist = std::numeric_limits<unsigned>::max();
+                
+                for (unsigned dist = 1; dist < end; ++dist)
                 {
-                    cnt = _analyze_avg(dirAvg, cell.idx, did, t0, dist);
+                    _analyze_avg(avg, cell.idx, did, t0, dist);
                     
-                    if (_minNeighbors < cnt)
+                    if (_minNeighbors < avg.cnt())
                     {
+                        dirAvg    = avg();
+                        velo0.dist = dist;
                         break;
                     }
-                }
-                
-                if (end != dist)
-                {
-                    dir.velo[t0].dist = dist;
-                }
-                else
-                {
-                    dir.velo[t0].dist = std::numeric_limits<unsigned>::max();
                 }
                 
                 
@@ -655,7 +654,7 @@ namespace Gimbal
                  * neighbors around, otherwise we can not make assumption
                  * about direction.
                  */
-                if (_minNeighbors < cnt)
+                if (_minNeighbors < avg.cnt())
                 {
                     /*
                      * There is average surroundings vector calculated,
@@ -669,7 +668,7 @@ namespace Gimbal
                          * probability that average will be better
                          * result.
                          */
-                        dir.velo[t0].val = dirAvg;
+                        velo0.val = dirAvg;
                         dir.set(Direction::DIR___ESTI_DEV);
                     }
                     else
@@ -678,7 +677,7 @@ namespace Gimbal
                          * There is no big deviation, so we can trust
                          * measured value.
                          */
-                        dir.velo[t0].val = dirCurr;
+                        velo0.val = dirCurr;
                     }
                 }
                 else
@@ -688,9 +687,12 @@ namespace Gimbal
                      * have to use history for estimation. For now we
                      * only copy last value.
                      */
-                    const unsigned t1 { Direction::frame2vidx(_idx - 1) };
-                    dir.velo[t0].val  = dir.velo[t1].val;
-                    dir.velo[t0].esti = dir.velo[t1].esti;
+                    const unsigned t1    { Direction::frame2vidx(_idx - 1) };
+                    auto&          velo1 = dir.velo[t1];
+                    
+                    velo0.val  = velo1.val;
+                    velo0.esti = velo1.esti;
+                    
                     dir.set(Direction::DIR___SURROUNDINGS);
                 }
             }
@@ -698,16 +700,14 @@ namespace Gimbal
     }
     
     
-    unsigned Detector::_analyze_avg(Common::Vect<int>&      aDst,
-                                    Common::Vect<unsigned>& aPos,
-                                    unsigned                aDid,
-                                    unsigned                aTi,
-                                    unsigned                aSize)
+    void Detector::_analyze_avg(Common::Average<Common::Vect<int> >& aAvg,
+                                Common::Vect<unsigned>&              aPos,
+                                unsigned                             aDid,
+                                unsigned                             aTi,
+                                unsigned                             aSize)
     {
-        Common::Vect<int> acc {   };
-        int               div { 0 };
-        
         Common::VectIt<unsigned> i { aPos - aSize, aPos + aSize + 1};
+        aAvg.reset();
         
         do
         {
@@ -721,21 +721,11 @@ namespace Gimbal
                 
                 if (dir.isValid())
                 {
-                    acc += dir.velo[aTi].meas;
-                    ++div;
+                    aAvg += dir.velo[aTi].meas;
                 }
             }
         }
         while (i.next());
-        
-        
-        if (0 != div)
-        {
-            acc /= div;
-            aDst = acc;
-        }
-        
-        return div;
     }
     
     
@@ -2094,7 +2084,7 @@ namespace Gimbal
         
         if (first)
         {
-            throw Common::VS_EXCEPTION("There is no device available!");
+            throw Common::EXCEPTION("There is no device available!");
         }
         
         _clContext = new cl::Context({_clDevice});
@@ -2120,7 +2110,7 @@ namespace Gimbal
             
             if (CL_SUCCESS != pgm->build({_clDevice}))
             {
-                throw Common::VS_EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
+                throw Common::EXCEPTION("OpenCL build error:\n%s\n", pgm->getBuildInfo<CL_PROGRAM_BUILD_LOG>(_clDevice).c_str());
             }
             
             _clProgram.push_back(pgm);
@@ -2158,12 +2148,12 @@ namespace Gimbal
          */
         if (nullptr == aConf)
         {
-            throw Common::VS_EXCEPTION("Configuration structure is NULL!");
+            throw Common::EXCEPTION("Configuration structure is NULL!");
         }
         
         if (nullptr == aFi)
         {
-            throw Common::VS_EXCEPTION("Frame info is NULL!");
+            throw Common::EXCEPTION("Frame info is NULL!");
         }
         
         conf    = *aConf;
@@ -2177,7 +2167,7 @@ namespace Gimbal
             (fi.pixFormat() == PF_PACKED) ||
             (fi.pixFormat() >= PF_NUMBER))
         {
-            throw Common::VS_EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
+            throw Common::EXCEPTION("Unsupported Pixel Format (%i)", fi.pixFormat());
         }
         
         
@@ -2259,7 +2249,7 @@ namespace Gimbal
         
         if (!(fs.fields = (Field*)vs_malloc(sizeof(Field) * fs.fieldNum)))
         {
-            throw Common::VS_EXCEPTION("Allocation failed!");
+            throw Common::EXCEPTION("Allocation failed!");
         }
         else
         {

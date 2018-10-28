@@ -79,7 +79,7 @@ namespace
         }
         else
         {
-            throw Common::VS_EXCEPTION("Transform data C structure is NULL!");
+            throw Common::EXCEPTION("Transform data C structure is NULL!");
         }
     }
     

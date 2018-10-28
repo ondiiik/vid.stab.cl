@@ -62,7 +62,7 @@ namespace Frame
     {
         if (_info.planes() > int(COMMON_ARRAY_ITEMS_CNT(_frame.data)))
         {
-            throw Common::VS_EXCEPTION("Too many planes (%i)! Maximum is %i!",
+            throw Common::EXCEPTION("Too many planes (%i)! Maximum is %i!",
                                         _info.planes(),
                                         int(COMMON_ARRAY_ITEMS_CNT(_frame.data)));
         }
@@ -81,7 +81,7 @@ namespace Frame
             
             if (0 == size)
             {
-                throw Common::VS_EXCEPTION("Unexpected plane %i!", i);
+                throw Common::EXCEPTION("Unexpected plane %i!", i);
             }
             
             _frame.data[i]     = new uint8_t[size];
@@ -114,12 +114,12 @@ namespace Frame
     {
         if (empty())
         {
-            throw Common::VS_EXCEPTION("Can not copy to empty frame!");
+            throw Common::EXCEPTION("Can not copy to empty frame!");
         }
         
         if (_info != aSrc._info)
         {
-            throw Common::VS_EXCEPTION("Copy of incompatible frames!");
+            throw Common::EXCEPTION("Copy of incompatible frames!");
         }
         
         
@@ -143,12 +143,12 @@ namespace Frame
     {
         if (nullptr == _buff)
         {
-            throw Common::VS_EXCEPTION("Can not copy to null plane!");
+            throw Common::EXCEPTION("Can not copy to null plane!");
         }
         
         if (nullptr == aSrc._buff)
         {
-            throw Common::VS_EXCEPTION("Can not copy from null plane!");
+            throw Common::EXCEPTION("Can not copy from null plane!");
         }
         
         if (_frame.info() == aSrc._frame.info())
@@ -157,7 +157,7 @@ namespace Frame
         }
         else
         {
-            throw Common::VS_EXCEPTION("Incompatible planes to copy!");
+            throw Common::EXCEPTION("Incompatible planes to copy!");
         }
         
         return *this;

@@ -37,6 +37,7 @@
 #include <list>
 
 #include "frame_pyramid.h"
+#include "common_average.h"
 #include "common_range.h"
 #include "common_vect.h"
 #include "vs_vector.h"
@@ -873,19 +874,17 @@ namespace Gimbal
         /**
          * @brief       Calculates average from surroundings
          *
-         * @param[out]  aDst    Average vector
+         * @param[out]  aAvg    Average calculator
          * @param[in]   aPos    Position of cell
          * @param[in]   aDid    Filter ID
          * @param[in]   aTi     Time index
          * @brief[in]   aSize   Size of area border
-         *
-         * @return      Average surrounding vectors
          */
-        unsigned _analyze_avg(Common::Vect<int>&      aDst,
-                              Common::Vect<unsigned>& aPos,
-                              unsigned                aDid,
-                              unsigned                aTi,
-                              unsigned                aSize);
+        void _analyze_avg(Common::Average<Common::Vect<int> >& aAvg,
+                          Common::Vect<unsigned>&              aPos,
+                          unsigned                             aDid,
+                          unsigned                             aTi,
+                          unsigned                             aSize);
                               
                               
         /**

@@ -13,8 +13,8 @@
 #include <cstdio>
 
 
-#define VS_EXCEPTION(...)           exception(moduleName, __FUNCTION__, __LINE__, __VA_ARGS__)
-#define VS_EXCEPTION_M(module, ...) exception(#module,    __FUNCTION__, __LINE__, __VA_ARGS__)
+#define EXCEPTION(...)           exception(moduleName, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define EXCEPTION_M(module, ...) exception(#module,    __FUNCTION__, __LINE__, __VA_ARGS__)
 
 
 namespace Common

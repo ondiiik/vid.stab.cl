@@ -99,17 +99,17 @@ namespace Common
         {
             if (nullptr == _m._data)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+                throw Common::EXCEPTION_M(vsvector, "Container destroyed!");
             }
             
             if (std::size_t(_m._buffersize) <= aIdx)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
+                throw Common::EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
             }
             
             if (nullptr == _m._data[aIdx])
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
+                throw Common::EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
             }
             
             return *(pointer(_m._data[aIdx]));
@@ -120,17 +120,17 @@ namespace Common
         {
             if (nullptr == _m._data)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+                throw Common::EXCEPTION_M(vsvector, "Container destroyed!");
             }
             
             if (std::size_t(_m._buffersize) <= aIdx)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
+                throw Common::EXCEPTION_M(vsvector, "Index %i out of range (0 - %i)!", aIdx, _m._buffersize);
             }
             
             if (nullptr == _m._data[aIdx])
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
+                throw Common::EXCEPTION_M(vsvector, "No data on index %i!", aIdx);
             }
             
             return *(const_pointer(_m._data[aIdx]));
@@ -150,7 +150,7 @@ namespace Common
                 
                 if (nullptr == _m._data)
                 {
-                    throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                    throw Common::EXCEPTION_M(vsvector, "Allocation error!");
                 }
             }
             else
@@ -180,7 +180,7 @@ namespace Common
         {
             if (nullptr == _m._data)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+                throw Common::EXCEPTION_M(vsvector, "Container destroyed!");
             }
             
             for (int i = 0; i < _m._nelems; i++)
@@ -209,7 +209,7 @@ namespace Common
                 
                 if (nullptr == _m._data)
                 {
-                    throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                    throw Common::EXCEPTION_M(vsvector, "Allocation error!");
                 }
                 
                 _m._buffersize = aNewsize;
@@ -239,7 +239,7 @@ namespace Common
             
             if (nullptr == d)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                throw Common::EXCEPTION_M(vsvector, "Allocation error!");
             }
             
             *d = aData;
@@ -254,7 +254,7 @@ namespace Common
             
             if (_m._buffersize <= aIdx)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Index %i out of rang (0 - %i)!", aIdx, _m._buffersize);
+                throw Common::EXCEPTION_M(vsvector, "Index %i out of rang (0 - %i)!", aIdx, _m._buffersize);
             }
             
             
@@ -289,7 +289,7 @@ namespace Common
             
             if (nullptr == d)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Allocation error!");
+                throw Common::EXCEPTION_M(vsvector, "Allocation error!");
             }
             
             *d = aData;
@@ -303,7 +303,7 @@ namespace Common
         {
             if (nullptr == _m._data)
             {
-                throw Common::VS_EXCEPTION_M(vsvector, "Container destroyed!");
+                throw Common::EXCEPTION_M(vsvector, "Container destroyed!");
             }
             
             result.init(_m._nelems);
