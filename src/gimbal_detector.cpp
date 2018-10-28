@@ -249,7 +249,8 @@ namespace Gimbal
         _threadsCnt    { OMP_MAX_THREADS },
         
         _cells         {                 },
-        _detectRange   { unsigned(aFi->height / _borderDiv) }
+        _detectRange   { unsigned(aFi->height / _borderDiv) },
+        _ser           { "/tmp/gimbal.gbl" }
         
         
         
@@ -403,6 +404,9 @@ namespace Gimbal
             _cells.list.push_back(cell);
         }
         while (i.next());
+        
+        SerializerHdr hdr { aPt.fm[0][0].dim() };
+        _ser.create(  hdr);
     }
     
     
@@ -450,6 +454,11 @@ namespace Gimbal
             _correct(      aPt);
             _accurateValid(aPt);
         }
+        
+        /*
+         * Motions are measured so we shall serialize them into file.
+         */
+        _serialize();
         
         /*
          * We can visualize results or safe computation time by disabling it.
@@ -895,6 +904,12 @@ namespace Gimbal
                 }
             }
         }
+    }
+    
+    
+    void Detector::_serialize()
+    {
+        _ser.write(_cells, Direction::frame2vidx(_idx));
     }
     
     

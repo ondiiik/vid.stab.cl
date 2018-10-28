@@ -565,14 +565,6 @@ namespace Gimbal
                                                     
                                                     
         /**
-         * @brief   Read new frame pyramid
-         * @param   aFrame  New frame
-         */
-        template <typename _PixT> void _nextPyramid(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame);
-                                                    
-                                                    
-        /**
          * @brief   Find optimal places (cells) for detection
          *
          * @param   aPt     Pyramid for calculation
@@ -581,21 +573,6 @@ namespace Gimbal
         template <typename _PixT> void _select(Pyramids<_PixT>& aPt);
         
         
-        /**
-         * @brief   Get quality marker of potential cell
-         *
-         * @param[in]   aCanvas     Canvas to be analyzed
-         * @param[in]   aPosition   Position of cell
-         * @param[in]   aRect       Size of cell
-         * @tparam      \_PixT      Pixel type
-         *
-         * @return  Contras quality marker
-         */
-        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
-                                                           const Common::Vect<unsigned>& aPosition,
-                                                           const Common::Vect<unsigned>& aRect) const;
-                                                           
-                                                           
         /**
          * @brief   Use measures directly without analyzes
          *
@@ -614,22 +591,6 @@ namespace Gimbal
         template <typename _PixT> void _analyze(Pyramids<_PixT>& aPt);
         
         
-        /**
-         * @brief       Calculates average from surroundings
-         *
-         * @param[out]  aAvg    Average calculator
-         * @param[in]   aPos    Position of cell
-         * @param[in]   aDid    Filter ID
-         * @param[in]   aTi     Time index
-         * @brief[in]   aSize   Size of area border
-         */
-        void _analyze_avg(Common::Average<Common::Vect<int> >& aAvg,
-                          Common::Vect<unsigned>&              aPos,
-                          unsigned                             aDid,
-                          unsigned                             aTi,
-                          unsigned                             aSize);
-                          
-                          
         /**
          * @brief   Process first estimation of movements
          *
@@ -678,6 +639,12 @@ namespace Gimbal
         
         
         /**
+         * @brief   Serialize measured results
+         */
+        void _serialize();
+        
+        
+        /**
          * @brief   Show results of detection graphically
          *
          * @param   aPt     Pyramid for calculation
@@ -688,6 +655,45 @@ namespace Gimbal
                                                   VSFrame&         aFrame);
                                                   
                                                   
+        /**
+         * @brief   Read new frame pyramid
+         * @param   aFrame  New frame
+         */
+        template <typename _PixT> void _nextPyramid(Pyramids<_PixT>& aPt,
+                                                    VSFrame&         aFrame);
+                                                    
+                                                    
+        /**
+         * @brief   Get quality marker of potential cell
+         *
+         * @param[in]   aCanvas     Canvas to be analyzed
+         * @param[in]   aPosition   Position of cell
+         * @param[in]   aRect       Size of cell
+         * @tparam      \_PixT      Pixel type
+         *
+         * @return  Contras quality marker
+         */
+        template <typename _PixT> unsigned _selectContrast(const Frame::Canvas<_PixT>&   aCanvas,
+                                                           const Common::Vect<unsigned>& aPosition,
+                                                           const Common::Vect<unsigned>& aRect) const;
+                                                           
+                                                           
+        /**
+         * @brief       Calculates average from surroundings
+         *
+         * @param[out]  aAvg    Average calculator
+         * @param[in]   aPos    Position of cell
+         * @param[in]   aDid    Filter ID
+         * @param[in]   aTi     Time index
+         * @brief[in]   aSize   Size of area border
+         */
+        void _analyze_avg(Common::Average<Common::Vect<int> >& aAvg,
+                          Common::Vect<unsigned>&              aPos,
+                          unsigned                             aDid,
+                          unsigned                             aTi,
+                          unsigned                             aSize);
+                          
+                          
         /**
          * @brief   Show results of fast detection graphically
          *
@@ -794,16 +800,33 @@ namespace Gimbal
         unsigned _threadsCnt;
         
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         /**
          * @brief   Movement per-CPU cells list
          */
         Cells _cells;
         
-        
         /**
          * @brief   Range where searching for movements makes sense
          */
         unsigned _detectRange;
+        
+        /**
+         * @brief   Serializer used to store results
+         */
+        Serializer _ser;
         
         
         

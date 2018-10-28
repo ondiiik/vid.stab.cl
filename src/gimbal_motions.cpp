@@ -9,7 +9,7 @@
 
 namespace Gimbal
 {
-    MotionsSerializer::MotionsSerializer(const std::string& aFileName) noexcept
+    Serializer::Serializer(const std::string& aFileName) noexcept
         :
         _fileName
     {
@@ -21,7 +21,7 @@ namespace Gimbal
     }
     
     
-    MotionsSerializer::~MotionsSerializer()
+    Serializer::~Serializer()
     {
         if (_file.is_open())
         {
@@ -30,20 +30,32 @@ namespace Gimbal
     }
     
     
-    void MotionsSerializer::create(const MotionsSHdr& aHdr)
+    void Serializer::create(const SerializerHdr& aHdr)
     {
-        _file.open("example.bin",
-                   std::ios::out    |
-                   std::ios::app    |
-                   std::ios::binary |
-                   std::ios::trunc);
-                   
-        MotionsSHdr*                        hdr = new MotionsSHdr(aHdr);
+        _file.open(_fileName.c_str(), std::ios::out | std::ios::binary);
+        SerializerHdr*                      hdr = new SerializerHdr(aHdr);
         _file.write(reinterpret_cast<char*>(hdr), sizeof(*hdr));
+        _file.flush();
     }
     
     
-    MotionsDeserializer::MotionsDeserializer(const std::string& aFileName) noexcept
+    void Serializer::write(const Cells&   aCels,
+                           const unsigned aIdx)
+    {
+        SerializerBlockHdr*                 hdr = new SerializerBlockHdr(aCels.list.size());
+        _file.write(reinterpret_cast<char*>(hdr), sizeof(*hdr));
+        
+        for (auto& cell : aCels.list)
+        {
+            SerializerCell*                     cs = new SerializerCell(cell, aIdx);
+            _file.write(reinterpret_cast<char*>(cs), sizeof(*cs));
+        }
+        
+        _file.flush();
+    }
+    
+    
+    Deserializer::Deserializer(const std::string& aFileName) noexcept
         :
         _fileName
     {

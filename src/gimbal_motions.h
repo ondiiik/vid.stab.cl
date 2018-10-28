@@ -118,6 +118,17 @@ namespace Gimbal
          * @param   aFlags  Flag to be checked
          * @return  Result
          */
+        inline unsigned flags() const
+        {
+            return _valid;
+        }
+        
+        
+        /**
+         * @brief   Check if flag is set
+         * @param   aFlags  Flag to be checked
+         * @return  Result
+         */
         inline bool isValid() const
         {
             return _valid == DIR___VALID;
@@ -174,7 +185,6 @@ namespace Gimbal
          * @brief   Convert frame index to vector index
          * @param   aIdx    Frame index
          * @return  Vector index
-         * @sa      Gimbal::Direction::vect
          */
         static inline unsigned frame2vidx(unsigned aIdx)
         {
@@ -272,27 +282,126 @@ namespace Gimbal
     /**
      * @brief   Motions serializer header
      */
-    struct MotionsSHdr
+    struct SerializerHdr
     {
+        inline SerializerHdr(const Common::Vect<unsigned>& aDim)
+            :
+            id        { 'G', 'B', 'L', 'F', '0', '0', '0', '1' },
+            frameSize { aDim                                   }
+        {
+        
+        }
+        
+        const char id[8];
         Common::Vect<unsigned> frameSize;
+    };
+    
+    
+    /**
+     * @brief   Serializer block header
+     */
+    struct SerializerBlockHdr
+    {
+        inline SerializerBlockHdr(unsigned aCnt)
+            :
+            id  { 'F', 'R', 'B', 'L' },
+            cnt { aCnt               }
+        {
+        
+        }
+        
+        const char id[4];
+        unsigned cnt;
+    };
+    
+    
+    /**
+     * @brief   Direction value serializer
+     */
+    struct SerializerDirVal
+    {
+        DirVal dir;
+        unsigned valid;
+    };
+    
+    
+    /**
+     * @brief   Detection cell
+     */
+    struct SerializerCell
+    {
+        /**
+         * @brief   Create serialized version of cell
+         * @param   aCell   Cell to be serialized
+         */
+        SerializerCell(const Cell& aCell,
+                       unsigned    aIdx)
+            :
+            id       { 'C','E','L','L' },
+            position { aCell.position  }
+        {
+            for (unsigned i = 0; i < sizeof(direction) / sizeof(direction[0]); ++i)
+            {
+                auto& dst = direction[i];
+                auto& src = aCell.direction[i];
+                
+                dst.dir   = src.velo[aIdx];
+                dst.valid = src.flags();
+            }
+        }
+        
+        /**
+         * @brief   Identifier
+         */
+        const char id[4];
+        
+        /**
+         * @brief   Position of center of cell
+         */
+        Common::Vect<int> position;
+        
+        /**
+         * @brief   Detected cell direction
+         */
+        SerializerDirVal direction[__FLR_CNT - FLR_FAST];
     };
     
     
     /**
      * @brief   Serializer for detected motions
      */
-    class MotionsSerializer
+    class Serializer
     {
     public:
-        MotionsSerializer(const std::string& aFileName) noexcept;
+        /**
+         * @brief   Construct serializer
+         * @param   aFileName   File name where serialized data shall be stored
+         */
+        Serializer(const std::string& aFileName) noexcept;
         
         
-        ~MotionsSerializer();
+        /**
+         * @brief   Destroy serializer
+         */
+        ~Serializer();
         
         
-        void create(const MotionsSHdr& aHdr);
+        /**
+         * @brief   Create serializer file
+         * @param   aHdr    File header
+         */
+        void create(const SerializerHdr& aHdr);
         
         
+        /**
+         * @brief   Write cells row
+         * @param   aHdr    File header
+         * @param   aIdx    Current index in time buffer
+         */
+        void write(const Cells&   aCels,
+                   const unsigned aIdx);
+                   
+                   
     private:
         const std::string _fileName;
         std::ofstream     _file;
@@ -302,10 +411,10 @@ namespace Gimbal
     /**
      * @brief   Deserializer of detected motions
      */
-    class MotionsDeserializer
+    class Deserializer
     {
     public:
-        MotionsDeserializer(const std::string& aFileName) noexcept;
+        Deserializer(const std::string& aFileName) noexcept;
         
         
     private:
