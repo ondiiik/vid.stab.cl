@@ -396,11 +396,11 @@ namespace Gimbal
          * @param   aFi         Frame info
          */
         Detector(const char*                 aModName,
-             VSMotionDetect*             aMd,
-             const VSMotionDetectConfig* aConf,
-             const VSFrameInfo*          aFi);
-             
-             
+                 VSMotionDetect*             aMd,
+                 const VSMotionDetectConfig* aConf,
+                 const VSFrameInfo*          aFi);
+                 
+                 
         /**
          * @brief   Destroy VSDM
          */
@@ -811,8 +811,8 @@ namespace Gimbal
          */
         template <typename _PixT> inline void _next(Pyramids<_PixT>& aPt,
                                                     VSFrame&         aFrame);
-        
-        
+                                                    
+                                                    
         /**
          * @brief   Read new frame pyramid
          * @param   aFrame  New frame
@@ -877,8 +877,8 @@ namespace Gimbal
                           unsigned                             aDid,
                           unsigned                             aTi,
                           unsigned                             aSize);
-                              
-                              
+                          
+                          
         /**
          * @brief   Process first estimation of movements
          *
@@ -900,8 +900,8 @@ namespace Gimbal
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> void _correct(const Pyramids<_PixT>& aPt);
-                                                
-                                                
+        
+        
         /**
          * @brief   Accurate estimation of movements for valid cells only
          *
@@ -912,8 +912,8 @@ namespace Gimbal
          * @tparam  \_PixT      Pixel type
          */
         template <typename _PixT> void _accurateValid(Pyramids<_PixT>& aPt);
-                                                      
-                                                      
+        
+        
         /**
          * @brief   Accurate estimation of movements for all cells
          *
@@ -937,6 +937,39 @@ namespace Gimbal
                                                   VSFrame&         aFrame);
                                                   
                                                   
+        /**
+         * @brief   Show results of fast detection graphically
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _visualizeFast(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame);
+                                                      
+                                                      
+        /**
+         * @brief   Show results of slow detection graphically
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _visualizeSlow(Pyramids<_PixT>& aPt,
+                                                      VSFrame&         aFrame);
+                                                      
+                                                      
+        /**
+         * @brief   Show results of static detection graphically
+         *
+         * @param   aPt     Pyramid for calculation
+         * @param   aFrame  New frame
+         * @tparam  \_PixT  Pixel type
+         */
+        template <typename _PixT> void _visualizeStatic(Pyramids<_PixT>& aPt,
+                                                        VSFrame&         aFrame);
+                                                        
+                                                        
         /**
          * @brief Correlate to detect best matching movement
          *

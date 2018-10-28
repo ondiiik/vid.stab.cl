@@ -899,6 +899,15 @@ namespace Gimbal
     template <typename _PixT> void Detector::_visualize(Pyramids<_PixT>& aPt,
                                                         VSFrame&         aFrame)
     {
+        _visualizeStatic(aPt, aFrame);
+        _visualizeSlow(  aPt, aFrame);
+        _visualizeFast(  aPt, aFrame);
+    }
+    
+    
+    template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>& aPt,
+                                                            VSFrame&         aFrame)
+    {
         Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned         e    { unsigned(_cells.list.size())     };
         const unsigned         t0   { Direction::frame2vidx(_idx)      };
@@ -992,6 +1001,20 @@ namespace Gimbal
                 disp.drawRectangle( pos,  rs, _PixT(0),   alpha);
             }
         }
+    }
+    
+    
+    template <typename _PixT> void Detector::_visualizeSlow(Pyramids<_PixT>& aPt,
+                                                            VSFrame&         aFrame)
+    {
+    
+    }
+    
+    
+    template <typename _PixT> void Detector::_visualizeStatic(Pyramids<_PixT>& aPt,
+                                                              VSFrame&         aFrame)
+    {
+    
     }
     
     
