@@ -354,7 +354,7 @@ namespace Gimbal
         
         
         /**
-         * @brief   Cells array dimmension
+         * @brief   Cells array dimension
          */
         Common::Vect<unsigned> dim;
         

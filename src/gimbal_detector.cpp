@@ -609,8 +609,8 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const unsigned t0  { Direction::frame2vidx(_idx)   };
-            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
+            const unsigned t0  { Direction::frame2vidx(_idx) };
+            const unsigned did { Cell::ptype2dir(idx)        };
             
             for (auto& cell : _cells.list)
             {
