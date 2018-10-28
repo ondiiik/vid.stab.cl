@@ -14,12 +14,14 @@
 
 
 #define VERSION_ID  'G', 'B', 'L', 'F', '0', '0', '0', '1'
+#define FAILURE_ID  '!', '!', 'N', 'O', 'N', 'E', '!', '!'
 
 
 namespace
 {
     const char moduleName[]  { "serializer" };
     const char version_id[8] { VERSION_ID   };
+    const char failure_id[8] { FAILURE_ID   };
 }
 
 
@@ -130,6 +132,12 @@ namespace Gimbal
          * Read and check head first
          */
         _file.open(_fileName.c_str(), std::ios::in | std::ios::binary);
+        
+        if (!_file.is_open())
+        {
+            throw Common::EXCEPTION("Can not oprn file '%s'!", _fileName.c_str());
+        }
+        
         SerializerHdr h;
         _file.read(reinterpret_cast<char*>(&h), sizeof(h));
         
@@ -185,7 +193,7 @@ namespace Gimbal
     
     SerializerHdr::SerializerHdr()
         :
-        id        { VERSION_ID },
+        id        { FAILURE_ID },
         frameSize {            }
     {
     
