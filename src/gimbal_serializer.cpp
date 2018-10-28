@@ -135,7 +135,7 @@ namespace Gimbal
         
         if (!_file.is_open())
         {
-            throw Common::EXCEPTION("Can not oprn file '%s'!", _fileName.c_str());
+            throw Common::EXCEPTION("Can not open file '%s'!", _fileName.c_str());
         }
         
         SerializerHdr h;
