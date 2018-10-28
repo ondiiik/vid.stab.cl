@@ -605,7 +605,10 @@ namespace Gimbal
         /*
          * Process all filters
          */
-        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(_threadsCnt,
+                         omp parallel for shared(md),
+                         (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx))
         {
             /*
              * Process all cells in current filter
