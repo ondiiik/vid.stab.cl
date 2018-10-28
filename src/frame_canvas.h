@@ -154,11 +154,11 @@ namespace Frame
             if (_dim != aSrc._dim)
             {
                 throw Common::EXCEPTION_M("FrmCanvas",
-                                             "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
-                                             width(),
-                                             height(),
-                                             aSrc.width(),
-                                             aSrc.height());
+                                          "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
+                                          width(),
+                                          height(),
+                                          aSrc.width(),
+                                          aSrc.height());
             }
             
             memcpy(_buf, aSrc._buf, sizeof(_buf[0]) * _dim.dim());
@@ -171,11 +171,11 @@ namespace Frame
             if (_dim != aSrc._dim)
             {
                 throw Common::EXCEPTION_M("FrmCanvas",
-                                             "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
-                                             width(),
-                                             height(),
-                                             aSrc.width(),
-                                             aSrc.height());
+                                          "Incorrect base dimension (expected [%i x %i] but got [%i x %i])!",
+                                          width(),
+                                          height(),
+                                          aSrc.width(),
+                                          aSrc.height());
             }
             
             for (pix_t* i = _buf, *j = aSrc._buf, * const e = _buf + _dim.dim(); i != e; ++i, ++j)
@@ -262,10 +262,14 @@ namespace Frame
         void drawLine(const Common::Vect<unsigned>& aPix1,
                       const Common::Vect<unsigned>& aPix2,
                       int                           aThickness,
+                      unsigned                      aGaps,
                       pix_t                         aColor)
         {
-            Vec div { aPix2 - aPix1  };
-            int th  { aThickness / 2 };
+            Vec            div   { aPix2 - aPix1      };
+            int            th    { aThickness / 2     };
+            unsigned       cnt   { 0                  };
+            const unsigned gcnt  { aThickness * aGaps };
+            bool           paint { true               };
             
             
             if (div.y == 0) // horizontal line
@@ -280,11 +284,24 @@ namespace Frame
                 
                 for (int k { 0 }; k <= div.x; k++)
                 {
-                    auto x { pix1.x + k };
-                    
-                    for (int r { -th }; r <= th; ++r)
+                    if (0 != gcnt)
                     {
-                        (*this)(x, pix1.y + r) = aColor;
+                        ++cnt;
+                        if (cnt > gcnt)
+                        {
+                            cnt   = 0;
+                            paint = !paint;
+                        }
+                    }
+                    
+                    if (paint)
+                    {
+                        auto x { pix1.x + k };
+                        
+                        for (int r { -th }; r <= th; ++r)
+                        {
+                            (*this)(x, pix1.y + r) = aColor;
+                        }
                     }
                 }
                 
@@ -303,11 +320,24 @@ namespace Frame
                 
                 for (int k { 0 }; k <= div.y; ++k)
                 {
-                    auto y { pix1.y + k };
-                    
-                    for (int r { -th }; r <= th; ++r)
+                    if (0 != gcnt)
                     {
-                        (*this)(pix1.x + r, y) = aColor;
+                        ++cnt;
+                        if (cnt > gcnt)
+                        {
+                            cnt   = 0;
+                            paint = !paint;
+                        }
+                    }
+                    
+                    if (paint)
+                    {
+                        auto y { pix1.y + k };
+                        
+                        for (int r { -th }; r <= th; ++r)
+                        {
+                            (*this)(pix1.x + r, y) = aColor;
+                        }
                     }
                 }
                 
@@ -320,18 +350,31 @@ namespace Frame
             
             for (int c = 0; c <= abs(div.y); c++)
             {
-                int      dy { (div.y < 0) ? -c : c                     };
-                unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
-                unsigned y  { aPix1.y + dy                             };
-                
-                for (unsigned k = 0; k <= horlen; k++)
+                if (0 != gcnt)
                 {
-                    auto xx { x + k };
-                    
-                    for (int r { -th }; r <= th; ++r)
+                    ++cnt;
+                    if (cnt > gcnt)
                     {
-                        (*this)(xx + r, y    ) = aColor;
-                        (*this)(xx,     y + r) = aColor;
+                        cnt   = 0;
+                        paint = !paint;
+                    }
+                }
+                
+                if (paint)
+                {
+                    int      dy { (div.y < 0) ? -c : c                     };
+                    unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
+                    unsigned y  { aPix1.y + dy                             };
+                    
+                    for (unsigned k = 0; k <= horlen; k++)
+                    {
+                        auto xx { x + k };
+                        
+                        for (int r { -th }; r <= th; ++r)
+                        {
+                            (*this)(xx + r, y    ) = aColor;
+                            (*this)(xx,     y + r) = aColor;
+                        }
                     }
                 }
             }
@@ -347,11 +390,15 @@ namespace Frame
         void drawLine(const Common::Vect<unsigned>& aPix1,
                       const Common::Vect<unsigned>& aPix2,
                       int                           aThickness,
+                      unsigned                      aGaps,
                       pix_t                         aColor,
                       unsigned                      aAlpha)
         {
-            Vec dif { aPix2 - aPix1  };
-            int th  { aThickness / 2 };
+            Vec            dif   { aPix2 - aPix1      };
+            int            th    { aThickness / 2     };
+            unsigned       cnt   { 0                  };
+            const unsigned gcnt  { aThickness * aGaps };
+            bool           paint { true               };
             
             
             if (dif.y == 0) // horizontal line
@@ -366,14 +413,27 @@ namespace Frame
                 
                 for (int k { 0 }; k <= dif.x; k++)
                 {
-                    auto x { pix1.x + k };
-                    
-                    for (int r { -th }; r <= th; ++r)
+                    if (0 != gcnt)
                     {
-                        unsigned  c            = (*this)(x, pix1.y + r).abs() * (255 - aAlpha);
-                        c                     += aColor.abs()                 *        aAlpha;
-                        c                     /= 255;
-                        (*this)(x, pix1.y + r) = c;
+                        ++cnt;
+                        if (cnt > gcnt)
+                        {
+                            cnt   = 0;
+                            paint = !paint;
+                        }
+                    }
+                    
+                    if (paint)
+                    {
+                        auto x { pix1.x + k };
+                        
+                        for (int r { -th }; r <= th; ++r)
+                        {
+                            unsigned  c            = (*this)(x, pix1.y + r).abs() * (255 - aAlpha);
+                            c                     += aColor.abs()                 *        aAlpha;
+                            c                     /= 255;
+                            (*this)(x, pix1.y + r) = c;
+                        }
                     }
                 }
                 
@@ -392,14 +452,27 @@ namespace Frame
                 
                 for (int k { 0 }; k <= dif.y; ++k)
                 {
-                    auto y { pix1.y + k };
-                    
-                    for (int r { -th }; r <= th; ++r)
+                    if (0 != gcnt)
                     {
-                        unsigned  c            = (*this)(pix1.x + r, y).abs() * (255 - aAlpha);
-                        c                     += aColor.abs()                 *        aAlpha;
-                        c                     /= 255;
-                        (*this)(pix1.x + r, y) = c;
+                        ++cnt;
+                        if (cnt > gcnt)
+                        {
+                            cnt   = 0;
+                            paint = !paint;
+                        }
+                    }
+                    
+                    if (paint)
+                    {
+                        auto y { pix1.y + k };
+                        
+                        for (int r { -th }; r <= th; ++r)
+                        {
+                            unsigned  c            = (*this)(pix1.x + r, y).abs() * (255 - aAlpha);
+                            c                     += aColor.abs()                 *        aAlpha;
+                            c                     /= 255;
+                            (*this)(pix1.x + r, y) = c;
+                        }
                     }
                 }
                 
@@ -412,29 +485,42 @@ namespace Frame
             
             for (int c = 0; c <= abs(dif.y); c++)
             {
-                int      dy { (dif.y < 0) ? -c : c                     };
-                unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
-                unsigned y  { aPix1.y + dy                             };
-                
-                for (unsigned k = 0; k <= horlen; k++)
+                if (0 != gcnt)
                 {
-                    auto xx { x + k };
-                    
-                    for (int r { 0 }; r <= th; ++r)
+                    ++cnt;
+                    if (cnt > gcnt)
                     {
-                        if (horlen > 1)
+                        cnt   = 0;
+                        paint = !paint;
+                    }
+                }
+                
+                if (paint)
+                {
+                    int      dy { (dif.y < 0) ? -c : c                     };
+                    unsigned x  { aPix1.x + unsigned(m * dy) - horlen / 2U };
+                    unsigned y  { aPix1.y + dy                             };
+                    
+                    for (unsigned k = 0; k <= horlen; k++)
+                    {
+                        auto xx { x + k };
+                        
+                        for (int r { 0 }; r <= th; ++r)
                         {
-                            unsigned  c        = (*this)(xx, y + r).abs() * (255 - aAlpha);
-                            c                 += aColor.abs()             *        aAlpha;
-                            c                 /= 255;
-                            (*this)(xx, y + r) = c;
-                        }
-                        else
-                        {
-                            unsigned  c       = (*this)(xx + r, y).abs() * (255 - aAlpha);
-                            c                 += aColor.abs()            *        aAlpha;
-                            c                 /= 255;
-                            (*this)(xx + r, y) = c;
+                            if (horlen > 1)
+                            {
+                                unsigned  c        = (*this)(xx, y + r).abs() * (255 - aAlpha);
+                                c                 += aColor.abs()             *        aAlpha;
+                                c                 /= 255;
+                                (*this)(xx, y + r) = c;
+                            }
+                            else
+                            {
+                                unsigned  c       = (*this)(xx + r, y).abs() * (255 - aAlpha);
+                                c                 += aColor.abs()            *        aAlpha;
+                                c                 /= 255;
+                                (*this)(xx + r, y) = c;
+                            }
                         }
                     }
                 }
