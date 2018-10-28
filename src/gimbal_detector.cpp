@@ -537,7 +537,6 @@ namespace Gimbal
         Common::Vect<unsigned>       end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         Common::Vect<unsigned>       rect   { _cellSize                                  };
         const unsigned               t      { Direction::frame2vidx(_idx)                };
-        const unsigned               did    { Cell::ptype2dir(aPt.PTYPE_SW)              };
         
         
         /*
@@ -555,27 +554,30 @@ namespace Gimbal
              */
             Common::Vect<unsigned> pos { i()* _cellSize                     };
             unsigned               q   { _selectContrast(canvas, pos, rect) };
-            auto&                  dir = c->direction[did];
-            auto&                  vel = dir.velo[t];
+            unsigned               f   { Direction::DIR___VALID             };
             
             if (_contrastThreshold <= q)
             {
-                vel.contrast = q - _contrastThreshold;
+                q -= _contrastThreshold;
             }
             else
             {
-                vel.contrast = 0;
+                q = 0;
+                f = Direction::DIR___CONTRAST;
             }
             
             
-            dir.clr();
-            
-            if (0 == vel.contrast)
+            /*
+             * We shall set contrast for all layers
+             */
+            for (unsigned fidx = aPt.PTYPE_SW; fidx < aPt.PTYPE_COUNT; ++ fidx)
             {
-                /*
-                 * We should mark down that there is not enough contrast
-                 */
-                dir.set(Direction::DIR___CONTRAST);
+                const unsigned did { Cell::ptype2dir(fidx) };
+                auto&          dir = c->direction[did];
+                auto&          vel = dir.velo[t];
+                
+                vel.contrast = q;
+                dir.init(f);
             }
             
             ++c;
@@ -902,7 +904,7 @@ namespace Gimbal
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         
         _visualizeStatic(aPt, disp);
-        _visualizeSlow(  aPt, disp);
+//        _visualizeSlow(  aPt, disp);
 //        _visualizeFast(  aPt, disp);
     }
     

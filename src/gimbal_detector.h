@@ -225,9 +225,9 @@ namespace Gimbal
         /**
          * @brief   Clear all flags
          */
-        inline void clr()
+        inline void init(unsigned aInit = DIR___VALID)
         {
-            _valid = DIR___VALID;
+            _valid = aInit;
         }
         
         
