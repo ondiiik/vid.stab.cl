@@ -36,6 +36,7 @@
 #include <cassert>
 #include <list>
 
+#include "gimbal_motions.h"
 #include "frame_pyramid.h"
 #include "common_average.h"
 #include "common_range.h"
@@ -96,18 +97,6 @@ namespace Gimbal
         typedef _PixT pix_t;
         
         
-        enum PType
-        {
-            PTYPE_SW0,
-            PTYPE_SW,
-            PTYPE_SLOW_A,
-            PTYPE_SLOW_B,
-            PTYPE_STATIC_A,
-            PTYPE_STATIC_B,
-            PTYPE_COUNT
-        };
-        
-        
         Pyramids(const Common::Vect<unsigned>& aDim,
                  unsigned                      aMin)
             :
@@ -125,7 +114,7 @@ namespace Gimbal
         }
         
         
-        Frame::Pyramid<_PixT> fm[PTYPE_COUNT];
+        Frame::Pyramid<_PixT> fm[__FLR_CNT];
     };
     
     
@@ -311,7 +300,7 @@ namespace Gimbal
     {
         static inline unsigned ptype2dir(unsigned aPType)
         {
-            return aPType - Pyramids<int>::PTYPE_SW;
+            return aPType - FLR_FAST;
         }
         
         /**
@@ -332,7 +321,7 @@ namespace Gimbal
         /**
          * @brief   Detected cell direction
          */
-        Direction direction[Pyramids<int>::PTYPE_COUNT - Pyramids<int>::PTYPE_SW];
+        Direction direction[__FLR_CNT - FLR_FAST];
     };
     
     

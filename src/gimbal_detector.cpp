@@ -501,14 +501,14 @@ namespace Gimbal
          */
         if (0 == (idx % _slowACnt))
         {
-            aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_SLOW_A] = aPt.fm[_idxCurrent];
         }
         
         const unsigned slowBCnt { _slowACnt / 2U };
         
         if ((0 == idx) || (0 == ((idx + slowBCnt) % _slowACnt)))
         {
-            aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_SLOW_B] = aPt.fm[_idxCurrent];
         }
         
         
@@ -517,14 +517,14 @@ namespace Gimbal
          */
         if (0 == (idx % _staticACnt))
         {
-            aPt.fm[aPt.PTYPE_STATIC_A] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_STATIC_A] = aPt.fm[_idxCurrent];
         }
         
         const unsigned staticBCnt { _staticACnt / 2U };
         
         if ((0 == idx) || (0 == ((idx + staticBCnt) % _staticACnt)))
         {
-            aPt.fm[aPt.PTYPE_STATIC_B] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_STATIC_B] = aPt.fm[_idxCurrent];
         }
     }
     
@@ -570,7 +570,7 @@ namespace Gimbal
             /*
              * We shall set contrast for all layers
              */
-            for (unsigned fidx = aPt.PTYPE_SW; fidx < aPt.PTYPE_COUNT; ++ fidx)
+            for (unsigned fidx = FLR_FAST; fidx < __FLR_CNT; ++ fidx)
             {
                 const unsigned did { Cell::ptype2dir(fidx) };
                 auto&          dir = c->direction[did];
@@ -625,7 +625,7 @@ namespace Gimbal
             const Common::Vect<int> rb    { - int(_detectRange >> (layer + 1)) };
             const Common::Vect<int> re    {   int(_detectRange >> (layer + 1)) };
             
-            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
             {
                 _correlate(cell, aPt, idx, layer, rb, re);
             }
@@ -638,7 +638,7 @@ namespace Gimbal
         /*
          * Process all filters
          */
-        for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+        for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
         {
             /*
              * Process all cells in current filter
@@ -667,7 +667,7 @@ namespace Gimbal
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
-                         (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx))
+                         (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx))
         {
             /*
              * Process all cells in current filter
@@ -801,7 +801,7 @@ namespace Gimbal
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
-            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
             {
                 /*
                  * Get result of analyzes, so we can decide to re-measure again
@@ -849,7 +849,7 @@ namespace Gimbal
         {
             auto& cell = _cells.list[idx];
             
-            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
@@ -880,7 +880,7 @@ namespace Gimbal
         {
             auto& cell = _cells.list[idx];
             
-            for (unsigned idx = aPt.PTYPE_SW; idx < aPt.PTYPE_COUNT; ++idx)
+            for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
@@ -912,11 +912,11 @@ namespace Gimbal
     template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>&      aPt,
                                                             Frame::Canvas<_PixT>& aDisp)
     {
-        const unsigned         e    { unsigned(_cells.list.size())     };
-        const unsigned         t0   { Direction::frame2vidx(_idx)      };
-        Common::Vect<unsigned> rs   { 16                               };
-        const unsigned         t1   { Direction::frame2vidx(_idx - 1)  };
-        const unsigned         t2   { Direction::frame2vidx(_idx - 2)  };
+        const unsigned         e  { unsigned(_cells.list.size())     };
+        const unsigned         t0 { Direction::frame2vidx(_idx)      };
+        Common::Vect<unsigned> rs { 16                               };
+        const unsigned         t1 { Direction::frame2vidx(_idx - 1)  };
+        const unsigned         t2 { Direction::frame2vidx(_idx - 2)  };
         
         
         /*
@@ -928,7 +928,7 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell  = _cells.list[idx];
-            const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW) };
+            const unsigned         did   { Cell::ptype2dir(FLR_FAST)     };
             auto&                  dir   = cell.direction[did];
             unsigned               alpha { dir.isValid() ? 255U : _alpha };
             Common::Vect<unsigned> pos   { cell.position                 };
@@ -977,7 +977,7 @@ namespace Gimbal
              * Show fast filters - valid
              */
             {
-                const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW)           };
+                const unsigned         did   { Cell::ptype2dir(FLR_FAST)               };
                 auto&                  dir   = cell.direction[did];
                 unsigned               alpha { dir.isValid() ? 255U : _alpha           };
                 Common::Vect<unsigned> pos   { cell.position                           };
@@ -1023,10 +1023,10 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell   = _cells.list[idx];
-            const unsigned         didA   { Cell::ptype2dir(aPt.PTYPE_SLOW_A) };
+            const unsigned         didA   { Cell::ptype2dir(FLR_SLOW_A)         };
             auto&                  dirA   = cell.direction[didA];
             auto&                  velA0  = dirA.velo[t0];
-            const unsigned         didB   { Cell::ptype2dir(aPt.PTYPE_SLOW_B) };
+            const unsigned         didB   { Cell::ptype2dir(FLR_SLOW_B)         };
             auto&                  dirB   = cell.direction[didB];
             auto&                  velB0  = dirB.velo[t0];
             Common::Vect<unsigned> pos    { cell.position                       };
@@ -1077,10 +1077,10 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell   = _cells.list[idx];
-            const unsigned         didA   { Cell::ptype2dir(aPt.PTYPE_STATIC_A) };
+            const unsigned         didA   { Cell::ptype2dir(FLR_STATIC_A)       };
             auto&                  dirA   = cell.direction[didA];
             auto&                  velA0  = dirA.velo[t0];
-            const unsigned         didB   { Cell::ptype2dir(aPt.PTYPE_STATIC_B) };
+            const unsigned         didB   { Cell::ptype2dir(FLR_STATIC_B)       };
             auto&                  dirB   = cell.direction[didB];
             auto&                  velB0  = dirB.velo[t0];
             Common::Vect<unsigned> pos    { cell.position                       };
@@ -1126,15 +1126,15 @@ namespace Gimbal
         const Common::Vect<unsigned> pos  { cell.position      >>   aLayer            };
         const Frame::Canvas<_PixT>&  curr { aPt.fm[_idxCurrent][    aLayer]           };
         const unsigned               t    { Direction::frame2vidx(_idx)               };
-        const unsigned               idx  { aPt.PTYPE_SW < aPType ? aPType : _idxPrev };
+        const unsigned               idx  { FLR_FAST < aPType     ? aPType : _idxPrev };
         const Frame::Canvas<_PixT>&  prev { aPt.fm[idx][            aLayer]           };
         Common::VectIt<int>          i    { aRb, aRe                                  };
         unsigned                     min  { std::numeric_limits<unsigned>::max()      };
         const unsigned               did
         {
-            aPt.PTYPE_SW < aPType   ?
+            FLR_FAST < aPType       ?
             Cell::ptype2dir(aPType) :
-            Cell::ptype2dir(aPt.PTYPE_SW)
+            Cell::ptype2dir(FLR_FAST)
         };
         
         do
