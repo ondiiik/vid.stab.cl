@@ -5,6 +5,8 @@
  *      Author: ondiiik
  */
 #include "gimbal_serializer.h"
+#include "common_exception.h"
+#include <cstring>
 
 
 #define VERSION_ID  'G', 'B', 'L', 'F', '0', '0', '0', '1'
@@ -12,7 +14,8 @@
 
 namespace
 {
-    const char version_id[8] = { VERSION_ID };
+    const char moduleName[]  { "serializer" };
+    const char version_id[8] { VERSION_ID   };
 }
 
 
@@ -49,8 +52,8 @@ namespace Gimbal
     }
     
     
-    void Serializer::write(const Cells&   aCels,
-                           const unsigned aIdx)
+    void Serializer::write(const Cells<dtHistCnt>& aCels,
+                           const unsigned      aIdx)
     {
         /*
          * Search for cells which contains at least one valid
@@ -119,9 +122,16 @@ namespace Gimbal
     
     void Deserializer::load()
     {
+        /*
+         * Read and check head first
+         */
         _file.open(_fileName.c_str(), std::ios::in | std::ios::binary);
         SerializerHdr hdr;
         _file.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+        
+        hdr.checkValidity();
+        
+        _dim = hdr.frameSize;
     }
     
     
@@ -140,5 +150,31 @@ namespace Gimbal
         frameSize { aDim       }
     {
     
+    }
+    
+    
+    void SerializerHdr::checkValidity() const
+    {
+        if (0 != memcmp(version_id, id, sizeof(version_id)))
+        {
+            throw Common::EXCEPTION("Incompatible detector version "
+                                    "(required %c%c%c%c%c%c%c%c, but got %c%c%c%c%c%c%c%c)!",
+                                    version_id[0],
+                                    version_id[1],
+                                    version_id[2],
+                                    version_id[3],
+                                    version_id[4],
+                                    version_id[5],
+                                    version_id[6],
+                                    version_id[7],
+                                    id[        0],
+                                    id[        1],
+                                    id[        2],
+                                    id[        3],
+                                    id[        4],
+                                    id[        5],
+                                    id[        6],
+                                    id[        7]);
+        }
     }
 }

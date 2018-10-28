@@ -28,7 +28,12 @@ namespace Gimbal
          * @brief   Construct serializer header
          */
         SerializerHdr();
-
+        
+        /**
+         * @brief   Checks if head is valid
+         */
+        void checkValidity() const;
+        
         /**
          * @brief   Version identifier
          */
@@ -105,8 +110,8 @@ namespace Gimbal
          * @brief   Create serialized version of cell
          * @param   aCell   Cell to be serialized
          */
-        SerializerCell(const Cell& aCell,
-                       unsigned    aIdx)
+        SerializerCell(const Cell<dtHistCnt>& aCell,
+                       unsigned           aIdx)
             :
             id       { 'C', 'L'       },
             position { aCell.position }
@@ -122,7 +127,7 @@ namespace Gimbal
                 dst.val      = velo.val;
                 dst.contrast = velo.contrast;
                 dst.dist     = velo.dist;
-                dst.valid    = src.flags();
+                dst.valid    = src.valid;
             }
         }
         
@@ -177,8 +182,8 @@ namespace Gimbal
          * @param   aHdr    File header
          * @param   aIdx    Current index in time buffer
          */
-        void write(const Cells&   aCels,
-                   const unsigned aIdx);
+        void write(const Cells<dtHistCnt>& aCels,
+                   const unsigned      aIdx);
                    
                    
     private:
@@ -207,7 +212,8 @@ namespace Gimbal
         
         
     private:
-        const std::string _fileName;
-        std::ifstream     _file;
+        const std::string      _fileName;
+        std::ifstream          _file;
+        Common::Vect<unsigned> _dim;
     };
 }

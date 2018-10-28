@@ -13,6 +13,10 @@
 
 namespace Gimbal
 {
+    static const unsigned dtHistCnt { 8 };
+    static const unsigned crHistCnt { 1 };
+    
+    
     /**
      * @brief   Defines filter layer index
      *
@@ -77,7 +81,7 @@ namespace Gimbal
     /**
      * @brief   Direction vector structure
      */
-    class Direction
+    template <unsigned _Cnt> class Direction
     {
     public:
         /**
@@ -85,8 +89,8 @@ namespace Gimbal
          */
         Direction()
             :
-            velo   {                        },
-            _valid { Direction::DIR___VALID }
+            velo  {                        },
+            valid { Direction::DIR___VALID }
         {
         
         }
@@ -118,20 +122,9 @@ namespace Gimbal
          * @param   aFlags  Flag to be checked
          * @return  Result
          */
-        inline unsigned flags() const
-        {
-            return _valid;
-        }
-        
-        
-        /**
-         * @brief   Check if flag is set
-         * @param   aFlags  Flag to be checked
-         * @return  Result
-         */
         inline bool isValid() const
         {
-            return _valid == DIR___VALID;
+            return valid == DIR___VALID;
         }
         
         
@@ -140,7 +133,7 @@ namespace Gimbal
          */
         inline void init(unsigned aInit = DIR___VALID)
         {
-            _valid = aInit;
+            valid = aInit;
         }
         
         
@@ -150,7 +143,7 @@ namespace Gimbal
          */
         inline void clr(unsigned aFlag)
         {
-            _valid &= ~aFlag;
+            valid &= ~aFlag;
         }
         
         
@@ -160,7 +153,7 @@ namespace Gimbal
          */
         inline void set(unsigned aFlag)
         {
-            _valid |= aFlag;
+            valid |= aFlag;
         }
         
         
@@ -171,14 +164,8 @@ namespace Gimbal
          */
         inline bool isSet(unsigned aFlag) const
         {
-            return 0 != (_valid & aFlag);
+            return 0 != (valid & aFlag);
         }
-        
-        
-        /**
-         * @brief   History count of direction
-         */
-        static const unsigned hcnt { 8 };
         
         
         /**
@@ -188,7 +175,7 @@ namespace Gimbal
          */
         static inline unsigned frame2vidx(unsigned aIdx)
         {
-            return aIdx % hcnt;
+            return aIdx % _Cnt;
         }
         
         
@@ -198,10 +185,9 @@ namespace Gimbal
          * Vectors are in array to cover also history of cell movement
          * for better detection algorithm.
          */
-        DirVal velo[hcnt];
+        DirVal velo[_Cnt];
         
         
-    private:
         /**
          * @brief   Cell validity flag
          *
@@ -212,25 +198,19 @@ namespace Gimbal
          * Validity is set of flags, however only 0 (DIR___VALID) is
          * represented as valid.
          */
-        unsigned _valid;
+        unsigned valid;
     };
     
     
     /**
      * @brief   Detection cell
      */
-    class Cell
+    template <unsigned _Cnt> class Cell
     {
     public:
         static inline unsigned ptype2dir(FilterLayer aPType)
         {
             return aPType - FLR_FAST;
-        }
-        
-        
-        inline Direction& operator[](FilterLayer aPType)
-        {
-            return direction[aPType];
         }
         
         
@@ -252,23 +232,23 @@ namespace Gimbal
         /**
          * @brief   Detected cell direction
          */
-        Direction direction[__FLR_CNT - FLR_FAST];
+        Direction<_Cnt> direction[__FLR_CNT - FLR_FAST];
     };
     
     
     /**
      * @brief   Cells set
      */
-    struct Cells
+    template <unsigned _Cnt> struct Cells
     {
-        inline Cell& operator[](const Common::Vect<unsigned>& aVec)
+        inline Cell<_Cnt>& operator[](const Common::Vect<unsigned>& aVec)
         {
             return list[aVec.y * dim.x + aVec.x];
         }
         
         
-        inline Cell& operator()(unsigned aX,
-                                unsigned aY)
+        inline Cell<_Cnt>& operator()(unsigned aX,
+                                      unsigned aY)
         {
             return list[aY * dim.x + aX];
         }
@@ -283,7 +263,7 @@ namespace Gimbal
         /**
          * @brief   Cells array
          */
-        std::vector<Cell> list;
+        std::vector<Cell<_Cnt> > list;
     };
 }
 

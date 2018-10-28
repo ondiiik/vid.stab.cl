@@ -338,16 +338,19 @@ namespace Gimbal
         fsrc        { aTd.src,     isrc },
         fdst        { aTd.dest,    idst },
         fdstB       { aTd.destbuf, idst },
-
-
-
+        
+        
+        
         _ser        { "/tmp/gimbal.gbl" },
-
-
-
-
+        
+        
+        
+        
         _lensTrn    {                   }
     {
+        _ser.load();
+        
+        
         _initVsTransform();
     }
     
