@@ -223,7 +223,9 @@ namespace
     {
         Common::Vect<int> dev { aV1 };
         dev -= aV2;
-        return int(dev.qsize() * _devFactor) > aV2.qsize();
+        int     ds { int(dev.size() * _devFactor) };
+        return (ds > aV1.size()) ||
+               (ds > aV2.size());
     }
 }
 
@@ -681,6 +683,9 @@ namespace Gimbal
                          * measured value.
                          */
                         velo0.val = dirCurr;
+                        
+                        Common::Vect<int> dev { dirCurr };
+                        dev -= dirAvg;
                     }
                 }
                 else

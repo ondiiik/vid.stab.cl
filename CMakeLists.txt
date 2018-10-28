@@ -20,6 +20,7 @@ option(BUILD_SHARED_LIBS "build shared libraries instead of static libraries"
        ON)
 
 option(USE_OMP              "use parallelization over OMP"                         ON)
+option(USE_COUT             "use std::cout for printing messages"                  ON)
 option(USE_SSE2             "use SSE2 optimization"                                ON)
 option(USE_OPENCL_DETECT    "use parallelization over OpenCL for detect plugin"    ON)
 option(USE_OPENCL_TRANSFORM "use parallelization over OpenCL for transform plugin" ON)
@@ -45,24 +46,28 @@ endif()
 
 if(USE_SSE2)
 if(SSE2_FOUND)
-add_definitions(-DUSE_SSE2
+add_definitions(-DUSE_SSE2=1
                 -msse2
                 -ffast-math)
 endif()
 endif()
 
+if(USE_COUT)
+add_definitions(-DUSE_COUT=1)
+endif()
+
 if(USE_OMP)
 add_definitions(-fopenmp
-                -DUSE_OMP)
+                -DUSE_OMP=1)
 endif()
 
 if(USE_OPENCL_DETECT)
-add_definitions(-DUSE_OPENCL
-                -DUSE_OPENCL_DETECT)
+add_definitions(-DUSE_OPENCL=1
+                -DUSE_OPENCL_DETECT=1)
 endif()
 
 if(USE_OPENCL_DEBUG)
-add_definitions(-DOPENCL_DBG_MODE)
+add_definitions(-DOPENCL_DBG_MODE=1)
 endif()
 
 set(SOURCES

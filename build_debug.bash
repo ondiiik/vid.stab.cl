@@ -6,6 +6,7 @@ cd "$DIRECTORY" || exit 1
 
 cmake \
     -DUSE_OMP=OFF \
+    -DUSE_COUT=ON \
     -DUSE_SSE2=OFF \
     -DUSE_OPENCL_DETECT=OFF \
     -DUSE_OPENCL_TRANSFORM=OFF \

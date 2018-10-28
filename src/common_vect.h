@@ -579,3 +579,14 @@ namespace Common
         _Tp             _step;
     };
 }
+
+
+#if defined(USE_COUT)
+#include <iostream>
+
+
+template <typename _Tp> std::ostream& operator<<(std::ostream& aThis, Common::Vect<_Tp>& aVect)
+{
+    return aThis << '[' << aVect.x << " x " << aVect.y << ']';
+}
+#endif
