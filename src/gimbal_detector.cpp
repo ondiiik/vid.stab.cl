@@ -899,16 +899,17 @@ namespace Gimbal
     template <typename _PixT> void Detector::_visualize(Pyramids<_PixT>& aPt,
                                                         VSFrame&         aFrame)
     {
-        _visualizeStatic(aPt, aFrame);
-        _visualizeSlow(  aPt, aFrame);
-        _visualizeFast(  aPt, aFrame);
+        Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
+
+//        _visualizeStatic(aPt, disp);
+        _visualizeSlow(  aPt, disp);
+//        _visualizeFast(  aPt, disp);
     }
     
     
-    template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>& aPt,
-                                                            VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>&      aPt,
+                                                            Frame::Canvas<_PixT>& aDisp)
     {
-        Frame::Canvas<_PixT>   disp { (_PixT*)aFrame.data[0], fi.dim() };
         const unsigned         e    { unsigned(_cells.list.size())     };
         const unsigned         t0   { Direction::frame2vidx(_idx)      };
         Common::Vect<unsigned> rs   { 16                               };
@@ -924,27 +925,27 @@ namespace Gimbal
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
         {
-            auto&                  i     = _cells.list[idx];
+            auto&                  cell  = _cells.list[idx];
             const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW) };
-            auto&                  dir   = i.direction[did];
+            auto&                  dir   = cell.direction[did];
             unsigned               alpha { dir.isValid() ? 255U : _alpha };
-            Common::Vect<unsigned> pos   { i.position                    };
+            Common::Vect<unsigned> pos   { cell.position                 };
             auto&                  vel0  = dir.velo[t0];
             Common::Vect<unsigned> dst   { pos - vel0.esti               };
             
             
             if (!dir.isSet(Direction::DIR___SURROUNDINGS))
             {
-                disp.drawLine(pos, dst, 4, _PixT(0), alpha);
+                aDisp.drawLine(pos, dst, 4, _PixT(0), alpha);
             }
             
             if (dir.isValid())
             {
-                Common::Vect<unsigned> rs1 { (i.size * vel0.contrast) / 24 + i.size / 2     };
-                Common::Vect<unsigned> rs2 { (i.size * vel0.contrast) / 24 + i.size / 2 + 4 };
+                Common::Vect<unsigned> rs1 { (cell.size * vel0.contrast) / 24 + cell.size / 2     };
+                Common::Vect<unsigned> rs2 { (cell.size * vel0.contrast) / 24 + cell.size / 2 + 4 };
                 
-                disp.drawBox(pos + 1, rs1, _PixT(0),   64U);
-                disp.drawBox(pos + 1, rs2, _PixT(255), 64U);
+                aDisp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                aDisp.drawBox(pos + 1, rs2, _PixT(255), 64U);
             }
             else
             {
@@ -953,8 +954,8 @@ namespace Gimbal
                     Common::Vect<int> r1 { 24,  24 };
                     Common::Vect<int> r2 { 24, -24 };
                     
-                    disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
-                    disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
+                    aDisp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                    aDisp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
                 }
             }
         }
@@ -967,52 +968,97 @@ namespace Gimbal
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
         {
-            auto& i = _cells.list[idx];
+            auto& cell = _cells.list[idx];
             
             
             /*
              * Show fast filters - valid
              */
             {
-                const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW)        };
-                auto&                  dir   = i.direction[did];
-                unsigned               alpha { dir.isValid() ? 255U : _alpha        };
-                Common::Vect<unsigned> pos   { i.position                           };
-                Common::Vect<unsigned> dst   { pos - i.direction[did].velo[t0].val  };
-                Common::Vect<unsigned> rs    { 12                                   };
-                Common::Vect<unsigned> dst1  { dst  - i.direction[did].velo[t1].val };
-                Common::Vect<unsigned> dst2  { dst1 - i.direction[did].velo[t2].val };
-                Common::Vect<unsigned> dst3a { dst2                                 };
+                const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW)           };
+                auto&                  dir   = cell.direction[did];
+                unsigned               alpha { dir.isValid() ? 255U : _alpha           };
+                Common::Vect<unsigned> pos   { cell.position                           };
+                Common::Vect<unsigned> dst   { pos - cell.direction[did].velo[t0].val  };
+                Common::Vect<unsigned> rs    { 12                                      };
+                Common::Vect<unsigned> dst1  { dst  - cell.direction[did].velo[t1].val };
+                Common::Vect<unsigned> dst2  { dst1 - cell.direction[did].velo[t2].val };
+                Common::Vect<unsigned> dst3a { dst2                                    };
                 
                 for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
                 {
-                    const unsigned         ta    { Direction::frame2vidx(_idx - idx)     };
-                    Common::Vect<unsigned> dst3b { dst3a - i.direction[did].velo[ta].val };
-                    disp.drawLine(                 dst3a, dst3b, 1,  _PixT(150));
+                    const unsigned         ta    { Direction::frame2vidx(_idx - idx)        };
+                    Common::Vect<unsigned> dst3b { dst3a - cell.direction[did].velo[ta].val };
+                    aDisp.drawLine(                 dst3a, dst3b, 1,  _PixT(150));
                     dst3a                               = dst3b;
                 }
                 
-                disp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
-                disp.drawLine(dst,  dst1, 3,  _PixT(200), alpha);
-                disp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
+                aDisp.drawLine(dst1, dst2, 2,  _PixT(175), alpha);
+                aDisp.drawLine(dst,  dst1, 3,  _PixT(200), alpha);
+                aDisp.drawLine(pos,  dst,  4,  _PixT(255), alpha);
                 
-                disp.drawBox(       pos,  rs, _PixT(255), alpha);
-                disp.drawRectangle( dst,  rs, _PixT(255), alpha);
-                disp.drawRectangle( pos,  rs, _PixT(0),   alpha);
+                aDisp.drawBox(       pos,  rs, _PixT(255), alpha);
+                aDisp.drawRectangle( dst,  rs, _PixT(255), alpha);
+                aDisp.drawRectangle( pos,  rs, _PixT(0),   alpha);
             }
         }
     }
     
     
-    template <typename _PixT> void Detector::_visualizeSlow(Pyramids<_PixT>& aPt,
-                                                            VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_visualizeSlow(Pyramids<_PixT>&      aPt,
+                                                            Frame::Canvas<_PixT>& aDisp)
     {
-    
+        const unsigned e  { unsigned(_cells.list.size()) };
+        const unsigned t0 { Direction::frame2vidx(_idx)  };
+        
+        
+        /*
+         * First we shall draw estimations and overall cell states
+         */
+        OMP_ALIAS(md, this)
+        OMP_PARALLEL_FOR(_threadsCnt,
+                         omp parallel for shared(md),
+                         (unsigned idx = 0; idx < e; ++idx))
+        {
+            auto&                  cell  = _cells.list[idx];
+            const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW) };
+            auto&                  dir   = cell.direction[did];
+            unsigned               alpha { dir.isValid() ? 255U : _alpha };
+            Common::Vect<unsigned> pos   { cell.position                    };
+            auto&                  vel0  = dir.velo[t0];
+            Common::Vect<unsigned> dst   { pos - vel0.esti               };
+            
+            
+            if (!dir.isSet(Direction::DIR___SURROUNDINGS))
+            {
+                aDisp.drawLine(pos, dst, 4, _PixT(0), alpha);
+            }
+            
+            if (dir.isValid())
+            {
+                Common::Vect<unsigned> rs1 { (cell.size * vel0.contrast) / 24 + cell.size / 2     };
+                Common::Vect<unsigned> rs2 { (cell.size * vel0.contrast) / 24 + cell.size / 2 + 4 };
+                
+                aDisp.drawBox(pos + 1, rs1, _PixT(0),   64U);
+                aDisp.drawBox(pos + 1, rs2, _PixT(255), 64U);
+            }
+            else
+            {
+                if (dir.isSet(Direction::DIR___CONTRAST))
+                {
+                    Common::Vect<int> r1 { 24,  24 };
+                    Common::Vect<int> r2 { 24, -24 };
+                    
+                    aDisp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                    aDisp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
+                }
+            }
+        }
     }
     
     
-    template <typename _PixT> void Detector::_visualizeStatic(Pyramids<_PixT>& aPt,
-                                                              VSFrame&         aFrame)
+    template <typename _PixT> void Detector::_visualizeStatic(Pyramids<_PixT>&      aPt,
+                                                              Frame::Canvas<_PixT>& aDisp)
     {
     
     }

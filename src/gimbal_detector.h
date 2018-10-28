@@ -941,33 +941,33 @@ namespace Gimbal
          * @brief   Show results of fast detection graphically
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
+         * @param   aDisp   Frame canvas
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _visualizeFast(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame);
+        template <typename _PixT> void _visualizeFast(Pyramids<_PixT>&      aPt,
+                                                      Frame::Canvas<_PixT>& aDisp);
                                                       
                                                       
         /**
          * @brief   Show results of slow detection graphically
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
+         * @param   aDisp   Frame canvas
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _visualizeSlow(Pyramids<_PixT>& aPt,
-                                                      VSFrame&         aFrame);
+        template <typename _PixT> void _visualizeSlow(Pyramids<_PixT>&      aPt,
+                                                      Frame::Canvas<_PixT>& aDisp);
                                                       
                                                       
         /**
          * @brief   Show results of static detection graphically
          *
          * @param   aPt     Pyramid for calculation
-         * @param   aFrame  New frame
+         * @param   aDisp   Frame canvas
          * @tparam  \_PixT  Pixel type
          */
-        template <typename _PixT> void _visualizeStatic(Pyramids<_PixT>& aPt,
-                                                        VSFrame&         aFrame);
+        template <typename _PixT> void _visualizeStatic(Pyramids<_PixT>&      aPt,
+                                                        Frame::Canvas<_PixT>& aDisp);
                                                         
                                                         
         /**
