@@ -171,7 +171,7 @@ namespace
      * omitted. Movement detection can get bit worst results, but
      * detection is faster.
      */
-    const bool _fast { true };
+    const bool _fast { false };
     
     
     /**
@@ -904,8 +904,8 @@ namespace Gimbal
         Frame::Canvas<_PixT> disp { (_PixT*)aFrame.data[0], fi.dim() };
         
         _visualizeStatic(aPt, disp);
-//        _visualizeSlow(  aPt, disp);
-//        _visualizeFast(  aPt, disp);
+        _visualizeSlow(  aPt, disp);
+        _visualizeFast(  aPt, disp);
     }
     
     
@@ -1025,18 +1025,38 @@ namespace Gimbal
             auto&                  cell   = _cells.list[idx];
             const unsigned         didA   { Cell::ptype2dir(aPt.PTYPE_SLOW_A) };
             auto&                  dirA   = cell.direction[didA];
-            unsigned               alphaA { dirA.isValid() ? 255U : _alpha    };
             auto&                  velA0  = dirA.velo[t0];
             const unsigned         didB   { Cell::ptype2dir(aPt.PTYPE_SLOW_B) };
             auto&                  dirB   = cell.direction[didB];
-            unsigned               alphaB { dirB.isValid() ? 255U : _alpha    };
             auto&                  velB0  = dirB.velo[t0];
-            Common::Vect<unsigned> pos    { cell.position                     };
-            Common::Vect<unsigned> dstA   { pos - velA0.val                   };
-            Common::Vect<unsigned> dstB   { pos - velB0.val                   };
+            Common::Vect<unsigned> pos    { cell.position                       };
+            Common::Vect<unsigned> dstA   { pos - velA0.val                     };
+            Common::Vect<unsigned> dstB   { pos - velB0.val                     };
+            Common::Vect<unsigned> rs     { 16                                  };
+            Common::Vect<unsigned> v1     { 16, 0                               };
+            Common::Vect<unsigned> v2     { 0,  16                              };
             
-            aDisp.drawLine(pos, dstA, 2, 2, _PixT(255), alphaA);
-            aDisp.drawLine(pos, dstB, 2, 2, _PixT(0),   alphaB);
+            if (dirA.isValid())
+            {
+                aDisp.drawLine(pos, dstA, 2, 2, _PixT(0), 128);
+                aDisp.drawBox(      dstA, rs,   _PixT(0), 64);
+                aDisp.drawRectangle(dstA, rs,   _PixT(0), 128);
+            }
+            
+            if (dirB.isValid())
+            {
+                aDisp.drawLine(pos, dstB, 2, 2, _PixT(0), 128);
+                aDisp.drawBox(      dstB, rs,   _PixT(0), 64);
+                aDisp.drawRectangle(dstB, rs,   _PixT(0), 128);
+            }
+            
+            if (dirA.isValid() || dirB.isValid())
+            {
+                aDisp.drawLine(pos + v1, pos - v1, 5, 0, _PixT(255), 128);
+                aDisp.drawLine(pos + v2, pos - v2, 5, 0, _PixT(255), 128);
+                aDisp.drawLine(pos + v1, pos - v1, 1, 0, _PixT(0),   128);
+                aDisp.drawLine(pos + v2, pos - v2, 1, 0, _PixT(0),   128);
+            }
         }
     }
     
@@ -1059,18 +1079,38 @@ namespace Gimbal
             auto&                  cell   = _cells.list[idx];
             const unsigned         didA   { Cell::ptype2dir(aPt.PTYPE_STATIC_A) };
             auto&                  dirA   = cell.direction[didA];
-            unsigned               alphaA { dirA.isValid() ? 255U : _alpha      };
             auto&                  velA0  = dirA.velo[t0];
             const unsigned         didB   { Cell::ptype2dir(aPt.PTYPE_STATIC_B) };
             auto&                  dirB   = cell.direction[didB];
-            unsigned               alphaB { dirB.isValid() ? 255U : _alpha      };
             auto&                  velB0  = dirB.velo[t0];
             Common::Vect<unsigned> pos    { cell.position                       };
             Common::Vect<unsigned> dstA   { pos - velA0.val                     };
             Common::Vect<unsigned> dstB   { pos - velB0.val                     };
+            Common::Vect<unsigned> rs     { 24                                  };
+            Common::Vect<unsigned> v1     { 24, 0                               };
+            Common::Vect<unsigned> v2     { 0,  24                              };
             
-            aDisp.drawLine(pos, dstA, 1, 4, _PixT(255), alphaA);
-            aDisp.drawLine(pos, dstB, 1, 4, _PixT(0),   alphaB);
+            if (dirA.isValid())
+            {
+                aDisp.drawLine(pos, dstA, 1, 4, _PixT(0), 128);
+                aDisp.drawBox(      dstA, rs,   _PixT(0), 64);
+                aDisp.drawRectangle(dstA, rs,   _PixT(0), 128);
+            }
+            
+            if (dirB.isValid())
+            {
+                aDisp.drawLine(pos, dstB, 1, 4, _PixT(0), 128);
+                aDisp.drawBox(      dstB, rs,   _PixT(0), 64);
+                aDisp.drawRectangle(dstB, rs,   _PixT(0), 128);
+            }
+            
+            if (dirA.isValid() || dirB.isValid())
+            {
+                aDisp.drawLine(pos + v1, pos - v1, 5, 0, _PixT(255), 128);
+                aDisp.drawLine(pos + v2, pos - v2, 5, 0, _PixT(255), 128);
+                aDisp.drawLine(pos + v1, pos - v1, 1, 0, _PixT(0),   128);
+                aDisp.drawLine(pos + v2, pos - v2, 1, 0, _PixT(0),   128);
+            }
         }
     }
     
