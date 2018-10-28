@@ -13,7 +13,7 @@
 
 namespace Gimbal
 {
-    static const unsigned dtHistCnt { 8 };
+    static const unsigned detectorHistoryCnt { 8 };
     static const unsigned crHistCnt { 1 };
     
     
@@ -81,16 +81,16 @@ namespace Gimbal
     /**
      * @brief   Direction vector structure
      */
-    template <unsigned _Cnt> class Direction
+    class DetectorDirection
     {
     public:
         /**
          * @brief   Default constructor
          */
-        Direction()
+        DetectorDirection()
             :
             velo  {                        },
-            valid { Direction::DIR___VALID }
+            valid { DetectorDirection::DIR___VALID }
         {
         
         }
@@ -175,7 +175,7 @@ namespace Gimbal
          */
         static inline unsigned frame2vidx(unsigned aIdx)
         {
-            return aIdx % _Cnt;
+            return aIdx % detectorHistoryCnt;
         }
         
         
@@ -185,7 +185,7 @@ namespace Gimbal
          * Vectors are in array to cover also history of cell movement
          * for better detection algorithm.
          */
-        DirVal velo[_Cnt];
+        DirVal velo[detectorHistoryCnt];
         
         
         /**
@@ -205,7 +205,7 @@ namespace Gimbal
     /**
      * @brief   Detection cell
      */
-    template <unsigned _Cnt> class Cell
+    class DetectorCell
     {
     public:
         static inline unsigned ptype2dir(FilterLayer aPType)
@@ -232,23 +232,23 @@ namespace Gimbal
         /**
          * @brief   Detected cell direction
          */
-        Direction<_Cnt> direction[__FLR_CNT - FLR_FAST];
+        DetectorDirection direction[__FLR_CNT - FLR_FAST];
     };
     
     
     /**
      * @brief   Cells set
      */
-    template <unsigned _Cnt> struct Cells
+    struct DetectorCells
     {
-        inline Cell<_Cnt>& operator[](const Common::Vect<unsigned>& aVec)
+        inline DetectorCell& operator[](const Common::Vect<unsigned>& aVec)
         {
             return list[aVec.y * dim.x + aVec.x];
         }
         
         
-        inline Cell<_Cnt>& operator()(unsigned aX,
-                                      unsigned aY)
+        inline DetectorCell& operator()(unsigned aX,
+                                        unsigned aY)
         {
             return list[aY * dim.x + aX];
         }
@@ -263,7 +263,73 @@ namespace Gimbal
         /**
          * @brief   Cells array
          */
-        std::vector<Cell<_Cnt> > list;
+        std::vector<DetectorCell> list;
+    };
+    
+    
+    /**
+     * @brief   Direction values
+     */
+    struct CorrectorDirVal
+    {
+        /**
+         * @brief   Measured value
+         */
+        Common::Vect<int> meas;
+        
+        /**
+         * @brief   Estimated value
+         */
+        Common::Vect<int> esti;
+        
+        /**
+         * @brief   Filtered value
+         */
+        Common::Vect<int> val;
+        
+        /**
+         * @brief   Contrast factor
+         */
+        unsigned contrast;
+        
+        /**
+         * @brief   Distance of closest neighbors during estimation
+         */
+        unsigned dist;
+        
+        /**
+         * @brief   Valid flags
+         */
+        unsigned valid;
+    };
+    
+    
+    /**
+     * @brief   Correction cell
+     */
+    struct CorrectorCell
+    {
+        /**
+         * @brief   Position of center of cell
+         */
+        Common::Vect<unsigned> position;
+        
+        /**
+         * @brief   Detected cell direction
+         */
+        CorrectorDirVal direction[__FLR_CNT - FLR_FAST];
+    };
+
+
+    /**
+     * @brief   Correction cell
+     */
+    struct CorrectorCells
+    {
+        /**
+         * @brief   List of cells
+         */
+        std::vector<CorrectorCell> list;
     };
 }
 

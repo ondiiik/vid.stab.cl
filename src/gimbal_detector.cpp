@@ -393,7 +393,7 @@ namespace Gimbal
         {
             Common::Vect<unsigned> pos { i()* _cellSize };
             
-            Cell<dtHistCnt> cell
+            DetectorCell cell
             {
                 (pos + rect / 2)* mul,
                 rect * mul,
@@ -545,7 +545,7 @@ namespace Gimbal
         Common::Vect<unsigned>       begin  { 0                                          };
         Common::Vect<unsigned>       end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         Common::Vect<unsigned>       rect   { _cellSize                                  };
-        const unsigned               t      { Direction<dtHistCnt>::frame2vidx(_idx)         };
+        const unsigned               t      { DetectorDirection::frame2vidx(_idx)         };
         
         
         /*
@@ -563,7 +563,7 @@ namespace Gimbal
              */
             Common::Vect<unsigned> pos { i()* _cellSize                     };
             unsigned               q   { _selectContrast(canvas, pos, rect) };
-            unsigned               f   { Direction<dtHistCnt>::DIR___VALID      };
+            unsigned               f   { DetectorDirection::DIR___VALID      };
             
             if (_contrastThreshold <= q)
             {
@@ -572,7 +572,7 @@ namespace Gimbal
             else
             {
                 q = 0;
-                f = Direction<dtHistCnt>::DIR___CONTRAST;
+                f = DetectorDirection::DIR___CONTRAST;
             }
             
             
@@ -582,7 +582,7 @@ namespace Gimbal
             for (unsigned fidx = FLR_FAST; fidx < __FLR_CNT; ++ fidx)
             {
                 const FilterLayer la  { FilterLayer(fidx)   };
-                const unsigned    did { Cell<dtHistCnt>::ptype2dir(la) };
+                const unsigned    did { DetectorCell::ptype2dir(la) };
                 auto&             dir = c->direction[did];
                 auto&             vel = dir.velo[t];
                 
@@ -655,8 +655,8 @@ namespace Gimbal
              * Process all cells in current filter
              */
             const FilterLayer la  { FilterLayer(idx)                   };
-            const unsigned    t   { Direction<dtHistCnt>::frame2vidx(_idx) };
-            const unsigned    did { Cell<dtHistCnt>::ptype2dir(la)         };
+            const unsigned    t   { DetectorDirection::frame2vidx(_idx) };
+            const unsigned    did { DetectorCell::ptype2dir(la)         };
             
             for (auto& cell : _cells.list)
             {
@@ -684,9 +684,9 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const unsigned    t0  { Direction<dtHistCnt>::frame2vidx(_idx) };
+            const unsigned    t0  { DetectorDirection::frame2vidx(_idx) };
             const FilterLayer la  { FilterLayer(idx)                   };
-            const unsigned    did { Cell<dtHistCnt>::ptype2dir(la)         };
+            const unsigned    did { DetectorCell::ptype2dir(la)         };
             
             for (auto& cell : _cells.list)
             {
@@ -744,7 +744,7 @@ namespace Gimbal
                          * result.
                          */
                         velo0.val = dirAvg;
-                        dir.set(Direction<dtHistCnt>::DIR___ESTI_DEV);
+                        dir.set(DetectorDirection::DIR___ESTI_DEV);
                     }
                     else
                     {
@@ -765,13 +765,13 @@ namespace Gimbal
                      * have to use history for estimation. For now we
                      * only copy last value.
                      */
-                    const unsigned t1    { Direction<dtHistCnt>::frame2vidx(_idx - 1) };
+                    const unsigned t1    { DetectorDirection::frame2vidx(_idx - 1) };
                     auto&          velo1 = dir.velo[t1];
                     
                     velo0.val  = velo1.val;
                     velo0.esti = velo1.esti;
                     
-                    dir.set(Direction<dtHistCnt>::DIR___SURROUNDINGS);
+                    dir.set(DetectorDirection::DIR___SURROUNDINGS);
                 }
             }
         }
@@ -821,9 +821,9 @@ namespace Gimbal
                  * some cells.
                  */
                 auto&             cell = _cells.list[idx];
-                const unsigned    t0   { Direction<dtHistCnt>::frame2vidx(_idx) };
-                const FilterLayer la   { FilterLayer(idx)                   };
-                const unsigned    did  { Cell<dtHistCnt>::ptype2dir(la)         };
+                const unsigned    t0   { DetectorDirection::frame2vidx(_idx) };
+                const FilterLayer la   { FilterLayer(idx)                       };
+                const unsigned    did  { DetectorCell::ptype2dir(la)         };
                 auto&             dir  = cell.direction[did];
                 auto&             velo = dir.velo[t0];
                 auto&             v    = velo.val;
@@ -832,8 +832,8 @@ namespace Gimbal
                  * We re-measure only cells which needs it and analyzes was able
                  * to do estimation based on neighbors.
                  */
-                if (!dir.isSet(Direction<dtHistCnt>::DIR___CONTRAST) &&
-                    !dir.isSet(Direction<dtHistCnt>::DIR___SURROUNDINGS))
+                if (!dir.isSet(DetectorDirection::DIR___CONTRAST) &&
+                    !dir.isSet(DetectorDirection::DIR___SURROUNDINGS))
                 {
                     unsigned                layer { aPt.fm[_idxCurrent].size() - 1         };
                     const unsigned          vl2   { unsigned(v.size()) / _accuratorDivider };
@@ -847,7 +847,7 @@ namespace Gimbal
                      * flag invalidating cell. This allow following analyzes to
                      * check this measurement again.
                      */
-                    dir.clr(Direction<dtHistCnt>::DIR___ESTI_DEV);
+                    dir.clr(DetectorDirection::DIR___ESTI_DEV);
                 }
             }
         }
@@ -868,12 +868,12 @@ namespace Gimbal
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
                     const FilterLayer la  { FilterLayer(idx)    };
-                    const unsigned    did { Cell<dtHistCnt>::ptype2dir(la) };
+                    const unsigned    did { DetectorCell::ptype2dir(la) };
                     auto&             dir = cell.direction[did];
                     
                     if (dir.isValid())
                     {
-                        const unsigned t   { Direction<dtHistCnt>::frame2vidx(_idx) };
+                        const unsigned t   { DetectorDirection::frame2vidx(_idx) };
                         
                         const Common::Vect<int> rb  { (dir.velo[t].meas >> p) - 1 };
                         const Common::Vect<int> re  { (dir.velo[t].meas >> p) + 1 };
@@ -899,10 +899,10 @@ namespace Gimbal
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    const FilterLayer la  { FilterLayer(idx)                   };
-                    const unsigned    did { Cell<dtHistCnt>::ptype2dir(la)         };
+                    const FilterLayer la  { FilterLayer(idx)                       };
+                    const unsigned    did { DetectorCell::ptype2dir(la)         };
                     auto&             dir = cell.direction[did];
-                    const unsigned    t   { Direction<dtHistCnt>::frame2vidx(_idx) };
+                    const unsigned    t   { DetectorDirection::frame2vidx(_idx) };
                     
                     const Common::Vect<int> rb { (dir.velo[t].meas >> p) - 1 };
                     const Common::Vect<int> re { (dir.velo[t].meas >> p) + 1 };
@@ -916,7 +916,7 @@ namespace Gimbal
     
     void Detector::_serialize()
     {
-        _ser.write(_cells, Direction<dtHistCnt>::frame2vidx(_idx));
+        _ser.write(_cells, DetectorDirection::frame2vidx(_idx));
     }
     
     
@@ -934,11 +934,11 @@ namespace Gimbal
     template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>&      aPt,
                                                             Frame::Canvas<_PixT>& aDisp)
     {
-        const unsigned         e  { unsigned(_cells.list.size())           };
-        const unsigned         t0 { Direction<dtHistCnt>::frame2vidx(_idx)     };
-        Common::Vect<unsigned> rs { 16                                     };
-        const unsigned         t1 { Direction<dtHistCnt>::frame2vidx(_idx - 1) };
-        const unsigned         t2 { Direction<dtHistCnt>::frame2vidx(_idx - 2) };
+        const unsigned         e  { unsigned(_cells.list.size())               };
+        const unsigned         t0 { DetectorDirection::frame2vidx(_idx)     };
+        Common::Vect<unsigned> rs { 16                                         };
+        const unsigned         t1 { DetectorDirection::frame2vidx(_idx - 1) };
+        const unsigned         t2 { DetectorDirection::frame2vidx(_idx - 2) };
         
         
         /*
@@ -950,7 +950,7 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell  = _cells.list[idx];
-            const unsigned         did   { Cell<dtHistCnt>::ptype2dir(FLR_FAST)     };
+            const unsigned         did   { DetectorCell::ptype2dir(FLR_FAST) };
             auto&                  dir   = cell.direction[did];
             unsigned               alpha { dir.isValid() ? 255U : _alpha };
             Common::Vect<unsigned> pos   { cell.position                 };
@@ -958,7 +958,7 @@ namespace Gimbal
             Common::Vect<unsigned> dst   { pos - vel0.esti               };
             
             
-            if (!dir.isSet(Direction<dtHistCnt>::DIR___SURROUNDINGS))
+            if (!dir.isSet(DetectorDirection::DIR___SURROUNDINGS))
             {
                 aDisp.drawLine(pos, dst, 4, 0, _PixT(0), alpha);
             }
@@ -973,7 +973,7 @@ namespace Gimbal
             }
             else
             {
-                if (dir.isSet(Direction<dtHistCnt>::DIR___CONTRAST))
+                if (dir.isSet(DetectorDirection::DIR___CONTRAST))
                 {
                     Common::Vect<int> r1 { 24,  24 };
                     Common::Vect<int> r2 { 24, -24 };
@@ -999,7 +999,7 @@ namespace Gimbal
              * Show fast filters - valid
              */
             {
-                const unsigned         did   { Cell<dtHistCnt>::ptype2dir(FLR_FAST)               };
+                const unsigned         did   { DetectorCell::ptype2dir(FLR_FAST)    };
                 auto&                  dir   = cell.direction[did];
                 unsigned               alpha { dir.isValid() ? 255U : _alpha           };
                 Common::Vect<unsigned> pos   { cell.position                           };
@@ -1009,10 +1009,10 @@ namespace Gimbal
                 Common::Vect<unsigned> dst2  { dst1 - cell.direction[did].velo[t2].val };
                 Common::Vect<unsigned> dst3a { dst2                                    };
                 
-                for (unsigned idx = 3; idx < dtHistCnt; ++idx)
+                for (unsigned idx = 3; idx < detectorHistoryCnt; ++idx)
                 {
-                    const unsigned         ta    { Direction<dtHistCnt>::frame2vidx(_idx - idx) };
-                    Common::Vect<unsigned> dst3b { dst3a - cell.direction[did].velo[ta].val };
+                    const unsigned         ta    { DetectorDirection::frame2vidx(_idx - idx) };
+                    Common::Vect<unsigned> dst3b { dst3a - cell.direction[did].velo[ta].val     };
                     aDisp.drawLine(                dst3a, dst3b, 1, 0, _PixT(150));
                     dst3a                               = dst3b;
                 }
@@ -1033,7 +1033,7 @@ namespace Gimbal
                                                             Frame::Canvas<_PixT>& aDisp)
     {
         const unsigned e  { unsigned(_cells.list.size())       };
-        const unsigned t0 { Direction<dtHistCnt>::frame2vidx(_idx) };
+        const unsigned t0 { DetectorDirection::frame2vidx(_idx) };
         
         
         /*
@@ -1045,18 +1045,18 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell   = _cells.list[idx];
-            const unsigned         didA   { Cell<dtHistCnt>::ptype2dir(FLR_SLOW_A)         };
+            const unsigned         didA   { DetectorCell::ptype2dir(FLR_SLOW_A) };
             auto&                  dirA   = cell.direction[didA];
             auto&                  velA0  = dirA.velo[t0];
-            const unsigned         didB   { Cell<dtHistCnt>::ptype2dir(FLR_SLOW_B)         };
+            const unsigned         didB   { DetectorCell::ptype2dir(FLR_SLOW_B) };
             auto&                  dirB   = cell.direction[didB];
             auto&                  velB0  = dirB.velo[t0];
-            Common::Vect<unsigned> pos    { cell.position                       };
-            Common::Vect<unsigned> dstA   { pos - velA0.val                     };
-            Common::Vect<unsigned> dstB   { pos - velB0.val                     };
-            Common::Vect<unsigned> rs     { 16                                  };
-            Common::Vect<unsigned> v1     { 16, 0                               };
-            Common::Vect<unsigned> v2     { 0,  16                              };
+            Common::Vect<unsigned> pos    { cell.position   };
+            Common::Vect<unsigned> dstA   { pos - velA0.val };
+            Common::Vect<unsigned> dstB   { pos - velB0.val };
+            Common::Vect<unsigned> rs     { 16              };
+            Common::Vect<unsigned> v1     { 16, 0           };
+            Common::Vect<unsigned> v2     { 0,  16          };
             
             if (dirA.isValid())
             {
@@ -1087,7 +1087,7 @@ namespace Gimbal
                                                               Frame::Canvas<_PixT>& aDisp)
     {
         const unsigned e  { unsigned(_cells.list.size())       };
-        const unsigned t0 { Direction<dtHistCnt>::frame2vidx(_idx) };
+        const unsigned t0 { DetectorDirection::frame2vidx(_idx) };
         
         
         /*
@@ -1099,18 +1099,18 @@ namespace Gimbal
                          (unsigned idx = 0; idx < e; ++idx))
         {
             auto&                  cell   = _cells.list[idx];
-            const unsigned         didA   { Cell<dtHistCnt>::ptype2dir(FLR_STATIC_A)       };
+            const unsigned         didA   { DetectorCell::ptype2dir(FLR_STATIC_A) };
             auto&                  dirA   = cell.direction[didA];
             auto&                  velA0  = dirA.velo[t0];
-            const unsigned         didB   { Cell<dtHistCnt>::ptype2dir(FLR_STATIC_B)       };
+            const unsigned         didB   { DetectorCell::ptype2dir(FLR_STATIC_B) };
             auto&                  dirB   = cell.direction[didB];
             auto&                  velB0  = dirB.velo[t0];
-            Common::Vect<unsigned> pos    { cell.position                       };
-            Common::Vect<unsigned> dstA   { pos - velA0.val                     };
-            Common::Vect<unsigned> dstB   { pos - velB0.val                     };
-            Common::Vect<unsigned> rs     { 24                                  };
-            Common::Vect<unsigned> v1     { 24, 0                               };
-            Common::Vect<unsigned> v2     { 0,  24                              };
+            Common::Vect<unsigned> pos    { cell.position   };
+            Common::Vect<unsigned> dstA   { pos - velA0.val };
+            Common::Vect<unsigned> dstB   { pos - velB0.val };
+            Common::Vect<unsigned> rs     { 24              };
+            Common::Vect<unsigned> v1     { 24, 0           };
+            Common::Vect<unsigned> v2     { 0,  24          };
             
             if (dirA.isValid())
             {
@@ -1137,7 +1137,7 @@ namespace Gimbal
     }
     
     
-    template <typename _PixT> void Detector::_correlate(Cell<dtHistCnt>&                    cell,
+    template <typename _PixT> void Detector::_correlate(DetectorCell&         cell,
                                                         const Pyramids<_PixT>&   aPt,
                                                         FilterLayer              aPType,
                                                         unsigned                 aLayer,
@@ -1147,7 +1147,7 @@ namespace Gimbal
         const Common::Vect<unsigned> size { cell.size          >>   aLayer            };
         const Common::Vect<unsigned> pos  { cell.position      >>   aLayer            };
         const Frame::Canvas<_PixT>&  curr { aPt.fm[_idxCurrent][    aLayer]           };
-        const unsigned               t    { Direction<dtHistCnt>::frame2vidx(_idx)        };
+        const unsigned               t    { DetectorDirection::frame2vidx(_idx)    };
         const unsigned               idx  { FLR_FAST < aPType     ? aPType : _idxPrev };
         const Frame::Canvas<_PixT>&  prev { aPt.fm[idx][            aLayer]           };
         Common::VectIt<int>          i    { aRb, aRe                                  };
@@ -1155,8 +1155,8 @@ namespace Gimbal
         const unsigned               did
         {
             FLR_FAST < aPType       ?
-            Cell<dtHistCnt>::ptype2dir(aPType) :
-            Cell<dtHistCnt>::ptype2dir(FLR_FAST)
+            DetectorCell::ptype2dir(aPType) :
+            DetectorCell::ptype2dir(FLR_FAST)
         };
         
         do

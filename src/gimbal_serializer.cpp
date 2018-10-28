@@ -8,6 +8,10 @@
 #include "common_exception.h"
 #include <cstring>
 
+#if defined(USE_COUT)
+#include <iostream>
+#endif
+
 
 #define VERSION_ID  'G', 'B', 'L', 'F', '0', '0', '0', '1'
 
@@ -52,8 +56,8 @@ namespace Gimbal
     }
     
     
-    void Serializer::write(const Cells<dtHistCnt>& aCels,
-                           const unsigned      aIdx)
+    void Serializer::write(const DetectorCells& aCels,
+                           const unsigned       aIdx)
     {
         /*
          * Search for cells which contains at least one valid
@@ -125,13 +129,57 @@ namespace Gimbal
         /*
          * Read and check head first
          */
+        std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "Open" << "\n";
         _file.open(_fileName.c_str(), std::ios::in | std::ios::binary);
-        SerializerHdr hdr;
-        _file.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+        SerializerHdr h;
+        _file.read(reinterpret_cast<char*>(&h), sizeof(h));
         
-        hdr.checkValidity();
+        h.checkValidity();
         
-        _dim = hdr.frameSize;
+        _dim = h.frameSize;
+        std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "Size " << _dim << "\n";
+        
+        
+        /*
+         * Now we shall read all blocks for each frame
+         */
+        while (!_file.eof())
+        {
+            /*
+             * Read and validate block header
+             */
+            SerializerBlockHdr bh;
+            _file.read(reinterpret_cast<char*>(&bh), sizeof(bh));
+            bh.checkValidity();
+            std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "BLOCK CNT " << bh.cnt << "\n";
+            
+            /*
+             * Create new cells element and append it to list
+             */
+            CorrectorCells  c;
+            cells.push_back(c);
+            
+            /*
+             * Use last append element as cell to be filled in.
+             * We should prepare block of memory to read all blocks.
+             */
+            CorrectorCells& cls = cells[cells.size() - 1];
+            cls.list.reserve(bh.cnt);
+            
+            for (unsigned i = 0; i < bh.cnt; ++i)
+            {
+                SerializerCell                      sc;
+                _file.read(reinterpret_cast<char*>(&sc), sizeof(sc));
+                sc.checkValidity();
+                std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "\t\tCELL " << sc.position << "\n";
+                
+                CorrectorCell cell;
+                sc(cell);
+                cls.list.push_back(cell);
+            }
+            
+            break;
+        }
     }
     
     
@@ -175,6 +223,92 @@ namespace Gimbal
                                     id[        5],
                                     id[        6],
                                     id[        7]);
+        }
+    }
+    
+    
+    SerializerBlockHdr::SerializerBlockHdr(unsigned aCnt)
+        :
+        id  { 'B', 'L'       },
+        cnt { uint16_t(aCnt) }
+    {
+    
+    }
+    
+    
+    SerializerBlockHdr::SerializerBlockHdr()
+        :
+        id  { 'X', 'X' },
+        cnt { 0U       }
+    {
+    
+    }
+    
+    
+    void SerializerBlockHdr::checkValidity() const
+    {
+        if (('B' != id[0]) || ('L' != id[1]))
+        {
+            throw Common::EXCEPTION("Block read mismatch!");
+        }
+    }
+    
+    
+    SerializerCell::SerializerCell(const DetectorCell& aCell,
+                                   unsigned               aIdx)
+        :
+        id       { 'C', 'L'       },
+        position { aCell.position }
+    {
+        for (unsigned i = 0; i < sizeof(direction) / sizeof(direction[0]); ++i)
+        {
+            auto& dst    = direction[i];
+            auto& src    = aCell.direction[i];
+            auto& velo   = src.velo[aIdx];
+            
+            dst.meas     = velo.meas;
+            dst.esti     = velo.esti;
+            dst.val      = velo.val;
+            dst.contrast = velo.contrast;
+            dst.dist     = velo.dist;
+            dst.valid    = src.valid;
+        }
+    }
+    
+    
+    SerializerCell::SerializerCell()
+        :
+        id       { 'X', 'X' },
+        position {          }
+    {
+    
+    }
+    
+    
+    void SerializerCell::checkValidity() const
+    {
+        if (('C' != id[0]) || ('L' != id[1]))
+        {
+            throw Common::EXCEPTION("Block read mismatch!");
+        }
+    }
+    
+    
+    void SerializerCell::operator()(CorrectorCell& aCell)
+    {
+        aCell.position = position;
+        
+        for (unsigned i = 0; i < sizeof(direction) / sizeof(direction[0]); ++i)
+        {
+            auto& dst = aCell.direction[i];
+            auto& src = direction[i];
+            
+            dst.meas     = src.meas;
+            dst.esti     = src.esti;
+            dst.val      = src.val;
+            dst.contrast = src.contrast;
+            dst.dist     = src.dist;
+            dst.valid    = src.valid;
         }
     }
 }

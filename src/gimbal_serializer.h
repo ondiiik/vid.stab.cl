@@ -51,13 +51,13 @@ namespace Gimbal
      */
     struct SerializerBlockHdr
     {
-        inline SerializerBlockHdr(unsigned aCnt)
-            :
-            id  { 'B', 'L'       },
-            cnt { uint16_t(aCnt) }
-        {
+        SerializerBlockHdr(unsigned aCnt);
+        SerializerBlockHdr();
         
-        }
+        /**
+         * @brief   Checks if head is valid
+         */
+        void checkValidity() const;
         
         const int8_t id[2];
         uint16_t cnt;
@@ -109,27 +109,27 @@ namespace Gimbal
         /**
          * @brief   Create serialized version of cell
          * @param   aCell   Cell to be serialized
+         * @param   aIdx    History index
          */
-        SerializerCell(const Cell<dtHistCnt>& aCell,
-                       unsigned           aIdx)
-            :
-            id       { 'C', 'L'       },
-            position { aCell.position }
-        {
-            for (unsigned i = 0; i < sizeof(direction) / sizeof(direction[0]); ++i)
-            {
-                auto& dst    = direction[i];
-                auto& src    = aCell.direction[i];
-                auto& velo   = src.velo[aIdx];
-                
-                dst.meas     = velo.meas;
-                dst.esti     = velo.esti;
-                dst.val      = velo.val;
-                dst.contrast = velo.contrast;
-                dst.dist     = velo.dist;
-                dst.valid    = src.valid;
-            }
-        }
+        SerializerCell(const DetectorCell& aCell,
+                       unsigned            aIdx);
+                       
+        /**
+         * @brief   Create serialized version of cell
+         */
+        SerializerCell();
+        
+        
+        /**
+         * @brief   Fill in corrector cell
+         * @param   aCell   Cell to be filled in
+         */
+        void operator()(CorrectorCell& aCell);
+        
+        
+        void checkValidity() const;
+        
+        
         
         /**
          * @brief   Identifier
@@ -182,8 +182,8 @@ namespace Gimbal
          * @param   aHdr    File header
          * @param   aIdx    Current index in time buffer
          */
-        void write(const Cells<dtHistCnt>& aCels,
-                   const unsigned      aIdx);
+        void write(const DetectorCells& aCels,
+                   const unsigned       aIdx);
                    
                    
     private:
@@ -211,9 +211,15 @@ namespace Gimbal
         void load();
         
         
+        /**
+         * @brief   Cells list for all frames
+         */
+        std::vector<CorrectorCells> cells;
+        
+        
     private:
-        const std::string      _fileName;
-        std::ifstream          _file;
-        Common::Vect<unsigned> _dim;
+        const std::string               _fileName;
+        std::ifstream                   _file;
+        Common::Vect<unsigned>          _dim;
     };
 }

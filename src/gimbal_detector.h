@@ -737,7 +737,7 @@ namespace Gimbal
          * @param aRb       Range begin for iterator
          * @param aRe       Range end for iterator
          */
-        template <typename _PixT> void _correlate(Cell<dtHistCnt>&             aCell,
+        template <typename _PixT> void _correlate(DetectorCell&             aCell,
                                                   const Pyramids<_PixT>&   aPt,
                                                   FilterLayer              aPType,
                                                   unsigned                 aLayer,
@@ -816,7 +816,7 @@ namespace Gimbal
         /**
          * @brief   Movement per-CPU cells list
          */
-        Cells<dtHistCnt> _cells;
+        DetectorCells _cells;
         
         /**
          * @brief   Range where searching for movements makes sense
