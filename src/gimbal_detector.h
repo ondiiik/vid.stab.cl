@@ -739,7 +739,7 @@ namespace Gimbal
          */
         template <typename _PixT> void _correlate(Cell&                    aCell,
                                                   const Pyramids<_PixT>&   aPt,
-                                                  unsigned                 aPType,
+                                                  FilterLayer              aPType,
                                                   unsigned                 aLayer,
                                                   const Common::Vect<int>& aRb,
                                                   const Common::Vect<int>& aRe);

@@ -219,12 +219,20 @@ namespace Gimbal
     /**
      * @brief   Detection cell
      */
-    struct Cell
+    class Cell
     {
-        static inline unsigned ptype2dir(unsigned aPType)
+    public:
+        static inline unsigned ptype2dir(FilterLayer aPType)
         {
             return aPType - FLR_FAST;
         }
+        
+        
+        inline Direction& operator[](FilterLayer aPType)
+        {
+            return direction[aPType];
+        }
+        
         
         /**
          * @brief   Position of center of cell
@@ -240,6 +248,7 @@ namespace Gimbal
          * @brief   Cell index in cells list
          */
         Common::Vect<unsigned> idx;
+        
         
         /**
          * @brief   Detected cell direction

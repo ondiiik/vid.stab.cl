@@ -581,9 +581,10 @@ namespace Gimbal
              */
             for (unsigned fidx = FLR_FAST; fidx < __FLR_CNT; ++ fidx)
             {
-                const unsigned did { Cell::ptype2dir(fidx) };
-                auto&          dir = c->direction[did];
-                auto&          vel = dir.velo[t];
+                const FilterLayer la  { FilterLayer(fidx)   };
+                const unsigned    did { Cell::ptype2dir(la) };
+                auto&             dir = c->direction[did];
+                auto&             vel = dir.velo[t];
                 
                 vel.contrast = q;
                 dir.init(f);
@@ -636,7 +637,8 @@ namespace Gimbal
             
             for (unsigned idx = FLR_FAST; idx < __FLR_CNT; ++idx)
             {
-                _correlate(cell, aPt, idx, layer, rb, re);
+                const FilterLayer     la { FilterLayer(idx) };
+                _correlate(cell, aPt, la, layer, rb, re);
             }
         }
     }
@@ -652,8 +654,9 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const unsigned t   { Direction::frame2vidx(_idx) };
-            const unsigned did { Cell::ptype2dir(idx)        };
+            const FilterLayer la  { FilterLayer(idx)             };
+            const unsigned    t   { Direction::frame2vidx(_idx) };
+            const unsigned    did { Cell::ptype2dir(la)         };
             
             for (auto& cell : _cells.list)
             {
@@ -681,8 +684,9 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const unsigned t0  { Direction::frame2vidx(_idx) };
-            const unsigned did { Cell::ptype2dir(idx)        };
+            const unsigned    t0  { Direction::frame2vidx(_idx) };
+            const FilterLayer la  { FilterLayer(idx)            };
+            const unsigned    did { Cell::ptype2dir(la)         };
             
             for (auto& cell : _cells.list)
             {
@@ -816,12 +820,13 @@ namespace Gimbal
                  * Get result of analyzes, so we can decide to re-measure again
                  * some cells.
                  */
-                auto&          cell = _cells.list[idx];
-                const unsigned t0   { Direction::frame2vidx(_idx)   };
-                const unsigned did  { Cell::ptype2dir(idx) };
-                auto&          dir  = cell.direction[did];
-                auto&          velo = dir.velo[t0];
-                auto&          v    = velo.val;
+                auto&             cell = _cells.list[idx];
+                const unsigned    t0   { Direction::frame2vidx(_idx) };
+                const FilterLayer la   { FilterLayer(idx)            };
+                const unsigned    did  { Cell::ptype2dir(la)         };
+                auto&             dir  = cell.direction[did];
+                auto&             velo = dir.velo[t0];
+                auto&             v    = velo.val;
                 
                 /*
                  * We re-measure only cells which needs it and analyzes was able
@@ -835,7 +840,7 @@ namespace Gimbal
                     const Common::Vect<int> rb    { v - vl2                                };
                     const Common::Vect<int> re    { v + vl2                                };
                     
-                    _correlate(cell, aPt, idx, layer, rb, re);
+                    _correlate(cell, aPt, la, layer, rb, re);
                     
                     /*
                      * We tried to re-measured movement, so now we can remove
@@ -862,8 +867,9 @@ namespace Gimbal
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    const unsigned did { Cell::ptype2dir(idx) };
-                    auto&          dir = cell.direction[did];
+                    const FilterLayer la  { FilterLayer(idx)    };
+                    const unsigned    did { Cell::ptype2dir(la) };
+                    auto&             dir = cell.direction[did];
                     
                     if (dir.isValid())
                     {
@@ -872,7 +878,7 @@ namespace Gimbal
                         const Common::Vect<int> rb  { (dir.velo[t].meas >> p) - 1 };
                         const Common::Vect<int> re  { (dir.velo[t].meas >> p) + 1 };
                         
-                        _correlate(cell, aPt, idx, p, rb, re);
+                        _correlate(cell, aPt, la, p, rb, re);
                     }
                 }
             }
@@ -893,14 +899,15 @@ namespace Gimbal
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    const unsigned did { Cell::ptype2dir(idx) };
-                    auto&          dir = cell.direction[did];
-                    const unsigned t   { Direction::frame2vidx(_idx) };
+                    const FilterLayer la  { FilterLayer(idx)            };
+                    const unsigned    did { Cell::ptype2dir(la)         };
+                    auto&             dir = cell.direction[did];
+                    const unsigned    t   { Direction::frame2vidx(_idx) };
                     
                     const Common::Vect<int> rb { (dir.velo[t].meas >> p) - 1 };
                     const Common::Vect<int> re { (dir.velo[t].meas >> p) + 1 };
                     
-                    _correlate(cell, aPt, idx, p, rb, re);
+                    _correlate(cell, aPt, la, p, rb, re);
                 }
             }
         }
@@ -1132,7 +1139,7 @@ namespace Gimbal
     
     template <typename _PixT> void Detector::_correlate(Cell&                    cell,
                                                         const Pyramids<_PixT>&   aPt,
-                                                        unsigned                 aPType,
+                                                        FilterLayer              aPType,
                                                         unsigned                 aLayer,
                                                         const Common::Vect<int>& aRb,
                                                         const Common::Vect<int>& aRe)
