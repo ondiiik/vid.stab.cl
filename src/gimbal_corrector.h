@@ -22,6 +22,9 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+#include "gimbal_serializer.h"
+
+
 
 
 #include "transformtype.h"
@@ -62,9 +65,18 @@ extern struct VSTransform vsLowPassTransforms(struct VSTransformData*   td,
                                               const struct VSTransform* trans);
 
 
+
+
+
+
+
+
+
+
+
 namespace Gimbal
 {
-    class VSTR
+    class Corrector
     {
     public:
         /**
@@ -73,12 +85,12 @@ namespace Gimbal
          * @param   aModName    Module name
          * @param   aTd         Parrent C instance used by external tools such as ffmpeg
          */
-        VSTR(const char*              aModName,
-             VSTransformData&         aTd);
-             
-             
-             
-        ~VSTR();
+        Corrector(const char*      aModName,
+                  VSTransformData& aTd);
+                  
+                  
+                  
+        ~Corrector();
         
         
         /**
@@ -119,33 +131,56 @@ namespace Gimbal
         
         int&                     initialized; // 1 if initialized and 2 if configured
         
-        
-        
-        
 #ifdef USE_OMP
         int                      numThreads;
 #endif
-
+        
         const Frame::Info        isrc;
         const Frame::Info        idst;
         
         Frame::Frame             fsrc;
         Frame::Frame             fdst;
         Frame::Frame             fdstB;
-
         
+        
+
+
+
+
+
+
+
+
     private:
+        Deserializer _ser;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         void _initVsTransform();
-
-
+        
+        
         /**
          * @brief Does the actual transformation in Packed space
          *
          * @param   aT  Private data structure of this filter
          */
         void _transformPacked(VSTransform& aT);
-
-
+        
+        
         /**
          * @brief Does the actual transformation in Planar space
          *
@@ -154,8 +189,8 @@ namespace Gimbal
          * @param   aT  Private data structure of this filter
          */
         void _transformPlanar(VSTransform& aT);
-
-
+        
+        
         /**
          * @brief   Lens transformation object
          */

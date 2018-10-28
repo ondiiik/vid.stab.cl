@@ -42,7 +42,7 @@
 
 
 
-#include "transform.h"
+#include "gimbal_corrector.h"
 #include "transform_internal.h"
 #include "transformtype_operations.h"
 
@@ -70,11 +70,11 @@ namespace
      * @param   aMd     Motion transform instance
      * @return  C++ representation of motion transform instance
      */
-    inline VSTR& VSTR2Inst(VSTransformData* aTd)
+    inline Corrector& VSTR2Inst(VSTransformData* aTd)
     {
         if (nullptr != aTd)
         {
-            VSTR* const td = (VSTR*)aTd->_inst;
+            Corrector* const td = (Corrector*)aTd->_inst;
             return *td;
         }
         else
@@ -318,8 +318,8 @@ namespace
 
 namespace Gimbal
 {
-    VSTR::VSTR(const char*              aModName,
-               VSTransformData&         aTd)
+    Corrector::Corrector(const char*      aModName,
+                         VSTransformData& aTd)
         :
         fiSrc       { aTd.fiSrc         },
         fiDest      { aTd.fiDest        },
@@ -338,26 +338,34 @@ namespace Gimbal
         fsrc        { aTd.src,     isrc },
         fdst        { aTd.dest,    idst },
         fdstB       { aTd.destbuf, idst },
+
+
+
+        _ser        { "/tmp/gimbal.gbl" },
+
+
+
+
         _lensTrn    {                   }
     {
         _initVsTransform();
     }
     
     
-    VSTR::~VSTR()
+    Corrector::~Corrector()
     {
     
     }
     
     
-    void VSTR::prepare(const VSFrame* aSrc,
-                       VSFrame*       aDest)
+    void Corrector::prepare(const VSFrame* aSrc,
+                            VSFrame*       aDest)
     {
         // we first copy the frame to td->src and then overwrite the destination
         // with the transformed version
         dest = *aDest;
         
-        Frame::Info        isrc { fiSrc  };
+        Frame::Info        isrc { fiSrc       };
         const Frame::Frame fsrc { *aSrc, isrc };
         
         if ((aSrc == aDest) || srcMalloced) // in place operation: we have to copy the src first
@@ -399,7 +407,7 @@ namespace Gimbal
     }
     
     
-    void VSTR::process(VSTransform& aT)
+    void Corrector::process(VSTransform& aT)
     {
         if (fiSrc.pFormat < PF_PACKED)
         {
@@ -412,7 +420,7 @@ namespace Gimbal
     }
     
     
-    void VSTR::finish()
+    void Corrector::finish()
     {
         if (conf.crop == VSKeepBorder)
         {
@@ -423,7 +431,7 @@ namespace Gimbal
     }
     
     
-    void VSTR::_initVsTransform()
+    void Corrector::_initVsTransform()
     {
 #ifdef USE_OMP
         numThreads = VS_MAX(omp_get_max_threads(), 1);
@@ -473,7 +481,7 @@ namespace Gimbal
     }
     
     
-    void VSTR::_transformPacked(VSTransform& aT)
+    void Corrector::_transformPacked(VSTransform& aT)
     {
         uint8_t* D_1   { src.data[0]               };
         uint8_t* D_2   { destbuf.data[0]           };
@@ -533,7 +541,7 @@ namespace Gimbal
     }
     
     
-    void VSTR::_transformPlanar(VSTransform& aTransform)
+    void Corrector::_transformPlanar(VSTransform& aTransform)
     {
         /*
          * Don't change anything if did not detected shakes
@@ -729,7 +737,7 @@ int vsTransformDataInit(VSTransformData*         aTd,
     
     try
     {
-        VSTR* td   = new VSTR(modName, *aTd);
+        Corrector* td   = new Corrector(modName, *aTd);
         aTd->_inst = td;
     }
     catch (std::exception& exc)
@@ -768,7 +776,7 @@ void vsTransformDataCleanup(struct VSTransformData* aTd)
     
     try
     {
-        VSTR*  td = &(VSTR2Inst(aTd));
+        Corrector*  td = &(VSTR2Inst(aTd));
         delete td;
         aTd->_inst = nullptr;
     }
@@ -795,7 +803,7 @@ int vsTransformPrepare(struct VSTransformData* aTd,
 {
     try
     {
-        VSTR td = VSTR2Inst(aTd);
+        Corrector& td = VSTR2Inst(aTd);
         td.prepare(aSrc, aDest);
     }
     catch (std::exception& exc)
@@ -822,7 +830,7 @@ int vsDoTransform(struct VSTransformData* aTd,
 {
     try
     {
-        VSTR td = VSTR2Inst(aTd);
+        Corrector& td = VSTR2Inst(aTd);
         td.process(aT);
     }
     catch (std::exception& exc)
@@ -848,7 +856,7 @@ int vsTransformFinish(struct VSTransformData* aTd)
 {
     try
     {
-        VSTR td = VSTR2Inst(aTd);
+        Corrector& td = VSTR2Inst(aTd);
         td.finish();
     }
     catch (std::exception& exc)
@@ -1238,7 +1246,7 @@ int vsPreprocessTransforms(struct VSTransformData*   td,
 //            ts[i].zoom += td->conf.zoom;
 //        }
 //    }
-    
+
     return VS_OK;
 }
 

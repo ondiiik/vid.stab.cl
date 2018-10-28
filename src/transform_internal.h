@@ -22,8 +22,7 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#include "transform.h"
-
+#include "gimbal_corrector.h"
 #include "transformfixedpoint.h"
 
 

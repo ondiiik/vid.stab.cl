@@ -76,6 +76,7 @@ set(SOURCES
     src/cl/opencl___blur_v.c
     src/frameinfo.cpp
     src/gimbal_detector.cpp
+    src/gimbal_corrector.cpp
     src/gimbal_motions.cpp
     src/gimbal_serializer.cpp
     src/libvidstab.cpp
@@ -83,7 +84,6 @@ set(SOURCES
     src/motiondetect_opt.cpp
     src/orc/motiondetectorc.c
     src/serialize.cpp
-    src/transform.cpp
     src/transformfixedpoint.cpp
     src/transformtype.cpp
     src/vs_transformation_barrel.cpp
@@ -101,6 +101,7 @@ set(HEADERS
     src/frame_pyramid.h
     src/frameinfo.h
     src/gimbal_detector.h
+    src/gimbal_corrector.h
     src/gimbal_motions.h
     src/gimbal_serializer.h
     src/libvidstab.h
@@ -109,7 +110,6 @@ set(HEADERS
     src/motiondetect_opt.h
     src/serialize.h
     src/sys_omp.h
-    src/transform.h
     src/transform_internal.h
     src/transformfixedpoint.h
     src/transformfloat.h

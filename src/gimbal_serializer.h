@@ -25,6 +25,11 @@ namespace Gimbal
         SerializerHdr(const Common::Vect<unsigned>& aDim);
         
         /**
+         * @brief   Construct serializer header
+         */
+        SerializerHdr();
+
+        /**
          * @brief   Version identifier
          */
         const int8_t id[8];
@@ -188,7 +193,17 @@ namespace Gimbal
     class Deserializer
     {
     public:
+        /**
+         * @brief   Construct deserializer
+         * @param   aFileName   File name from which serialized data shall be read
+         */
         Deserializer(const std::string& aFileName) noexcept;
+        
+        
+        /**
+         * @brief   Load serializer from file
+         */
+        void load();
         
         
     private:

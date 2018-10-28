@@ -117,6 +117,23 @@ namespace Gimbal
     }
     
     
+    void Deserializer::load()
+    {
+        _file.open(_fileName.c_str(), std::ios::in | std::ios::binary);
+        SerializerHdr hdr;
+        _file.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+    }
+    
+    
+    SerializerHdr::SerializerHdr()
+        :
+        id        { VERSION_ID },
+        frameSize {            }
+    {
+    
+    }
+    
+    
     SerializerHdr::SerializerHdr(const Common::Vect<unsigned>& aDim)
         :
         id        { VERSION_ID },
