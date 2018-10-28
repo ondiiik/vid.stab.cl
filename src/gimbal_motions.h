@@ -249,7 +249,6 @@ namespace Gimbal
          */
         Common::Vect<unsigned> idx;
         
-        
         /**
          * @brief   Detected cell direction
          */

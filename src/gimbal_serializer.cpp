@@ -52,13 +52,53 @@ namespace Gimbal
     void Serializer::write(const Cells&   aCels,
                            const unsigned aIdx)
     {
-        SerializerBlockHdr*                 hdr = new SerializerBlockHdr(aCels.list.size());
-        _file.write(reinterpret_cast<char*>(hdr), sizeof(*hdr));
+        /*
+         * Search for cells which contains at least one valid
+         * layer.
+         */
+        unsigned cnt { 0 };
         
         for (auto& cell : aCels.list)
         {
-            SerializerCell*                     cs = new SerializerCell(cell, aIdx);
-            _file.write(reinterpret_cast<char*>(cs), sizeof(*cs));
+            for (auto& i : cell.direction)
+            {
+                if (i.isValid())
+                {
+                    ++cnt;
+                    break;
+                }
+            }
+        }
+        
+        
+        /*
+         * Write header of frame
+         */
+        SerializerBlockHdr*                 hdr = new SerializerBlockHdr(cnt);
+        _file.write(reinterpret_cast<char*>(hdr), sizeof(*hdr));
+        
+        
+        /*
+         * Skip writing when there are no valid cells
+         */
+        if (0 != cnt)
+        {
+            /*
+             * Go through all cells and find all valid.
+             * They will be written. The rest will be skipped.
+             */
+            for (auto& cell : aCels.list)
+            {
+                for (auto& i : cell.direction)
+                {
+                    if (i.isValid())
+                    {
+                        SerializerCell*                     cs = new SerializerCell(cell, aIdx);
+                        _file.write(reinterpret_cast<char*>(cs), sizeof(*cs));
+                        break;
+                    }
+                }
+            }
         }
         
         _file.flush();
