@@ -77,6 +77,7 @@ set(SOURCES
     src/frameinfo.cpp
     src/gimbal_detector.cpp
     src/gimbal_motions.cpp
+    src/gimbal_serializer.cpp
     src/libvidstab.cpp
     src/localmotion2transform.cpp
     src/motiondetect_opt.cpp
@@ -101,6 +102,7 @@ set(HEADERS
     src/frameinfo.h
     src/gimbal_detector.h
     src/gimbal_motions.h
+    src/gimbal_serializer.h
     src/libvidstab.h
     src/localmotion2transform.h
     src/motiondetect_internal.h

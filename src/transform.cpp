@@ -1135,109 +1135,109 @@ int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans)
 int vsPreprocessTransforms(struct VSTransformData*   td,
                            struct VSTransformations* trans)
 {
-    // works inplace on trans
-    if (cameraPathOptimization(td, trans) != VS_OK)
-    {
-        return VS_ERROR;
-    }
-    struct VSTransform* ts = trans->ts;
-    /*  invert? */
-    if (td->conf.invert)
-    {
-        for (int i = 0; i < trans->len; i++)
-        {
-            ts[i] = mult_transform(&ts[i], -1);
-        }
-    }
-    
-    /* crop at maximal shift */
-    if (td->conf.maxShift != -1)
-    {
-        for (int i = 0; i < trans->len; i++)
-        {
-            ts[i].x     = VS_CLAMP(ts[i].x, -td->conf.maxShift, td->conf.maxShift);
-            ts[i].y     = VS_CLAMP(ts[i].y, -td->conf.maxShift, td->conf.maxShift);
-        }
-    }
-    
-    if (td->conf.maxAngle != - 1.0)
-    {
-        for (int i = 0; i < trans->len; i++)
-        {
-            ts[i].alpha = VS_CLAMP(ts[i].alpha, -td->conf.maxAngle, td->conf.maxAngle);
-        }
-    }
-    
-    /* Calc optimal zoom (1)
-     *  cheap algo is to only consider translations
-     *  uses cleaned max and min to eliminate 99% of transforms
-     */
-    if (td->conf.optZoom == 1 && trans->len > 1)
-    {
-        struct VSTransform min_t, max_t;
-        cleanmaxmin_xy_transform(ts, trans->len, 1, &min_t, &max_t);  // 99% of all transformations
-        // the zoom value only for x
-        double zx = 2 * VS_MAX(max_t.x, fabs(min_t.x)) / td->fiSrc.width;
-        // the zoom value only for y
-        double zy = 2 * VS_MAX(max_t.y, fabs(min_t.y)) / td->fiSrc.height;
-        td->conf.zoom += 100 * VS_MAX(zx, zy); // use maximum
-        td->conf.zoom = VS_CLAMP(td->conf.zoom, -60, 60);
-        vs_log_info(td->conf.modName, "Final zoom: %lf\n", td->conf.zoom);
-    }
-    /* Calc optimal zoom (2)
-     *  sliding average to zoom only as much as needed also using rotation angles
-     *  the baseline zoom is the mean required zoom + global zoom
-     *  in order to avoid too much zooming in and out
-     */
-    if (td->conf.optZoom == 2 && trans->len > 1)
-    {
-        double* zooms = (double*)vs_zalloc(sizeof(double) * trans->len);
-        int w = td->fiSrc.width;
-        int h = td->fiSrc.height;
-        double req;
-        double meanzoom;
-        for (int i = 0; i < trans->len; i++)
-        {
-            zooms[i] = transform_get_required_zoom(&ts[i], w, h);
-        }
-        
-        double prezoom = 0.;
-        double postzoom = 0.;
-        if (td->conf.zoom > 0.)
-        {
-            prezoom = td->conf.zoom;
-        }
-        else if (td->conf.zoom < 0.)
-        {
-            postzoom = td->conf.zoom;
-        }
-        
-        meanzoom = mean(zooms, trans->len) + prezoom; // add global zoom
-        // forward - propagation (to make the zooming smooth)
-        req = meanzoom;
-        for (int i = 0; i < trans->len; i++)
-        {
-            req = VS_MAX(req, zooms[i]);
-            ts[i].zoom = VS_MAX(ts[i].zoom, req);
-            req = VS_MAX(meanzoom, req - td->conf.zoomSpeed); // zoom-out each frame
-        }
-        // backward - propagation
-        req = meanzoom;
-        for (int i = trans->len - 1; i >= 0; i--)
-        {
-            req = VS_MAX(req, zooms[i]);
-            ts[i].zoom = VS_MAX(ts[i].zoom, req) + postzoom;
-            req = VS_MAX(meanzoom, req - td->conf.zoomSpeed);
-        }
-        vs_free(zooms);
-    }
-    else if (td->conf.zoom != 0)   /* apply global zoom */
-    {
-        for (int i = 0; i < trans->len; i++)
-        {
-            ts[i].zoom += td->conf.zoom;
-        }
-    }
+//    // works inplace on trans
+//    if (cameraPathOptimization(td, trans) != VS_OK)
+//    {
+//        return VS_ERROR;
+//    }
+//    struct VSTransform* ts = trans->ts;
+//    /*  invert? */
+//    if (td->conf.invert)
+//    {
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            ts[i] = mult_transform(&ts[i], -1);
+//        }
+//    }
+//
+//    /* crop at maximal shift */
+//    if (td->conf.maxShift != -1)
+//    {
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            ts[i].x     = VS_CLAMP(ts[i].x, -td->conf.maxShift, td->conf.maxShift);
+//            ts[i].y     = VS_CLAMP(ts[i].y, -td->conf.maxShift, td->conf.maxShift);
+//        }
+//    }
+//
+//    if (td->conf.maxAngle != - 1.0)
+//    {
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            ts[i].alpha = VS_CLAMP(ts[i].alpha, -td->conf.maxAngle, td->conf.maxAngle);
+//        }
+//    }
+//
+//    /* Calc optimal zoom (1)
+//     *  cheap algo is to only consider translations
+//     *  uses cleaned max and min to eliminate 99% of transforms
+//     */
+//    if (td->conf.optZoom == 1 && trans->len > 1)
+//    {
+//        struct VSTransform min_t, max_t;
+//        cleanmaxmin_xy_transform(ts, trans->len, 1, &min_t, &max_t);  // 99% of all transformations
+//        // the zoom value only for x
+//        double zx = 2 * VS_MAX(max_t.x, fabs(min_t.x)) / td->fiSrc.width;
+//        // the zoom value only for y
+//        double zy = 2 * VS_MAX(max_t.y, fabs(min_t.y)) / td->fiSrc.height;
+//        td->conf.zoom += 100 * VS_MAX(zx, zy); // use maximum
+//        td->conf.zoom = VS_CLAMP(td->conf.zoom, -60, 60);
+//        vs_log_info(td->conf.modName, "Final zoom: %lf\n", td->conf.zoom);
+//    }
+//    /* Calc optimal zoom (2)
+//     *  sliding average to zoom only as much as needed also using rotation angles
+//     *  the baseline zoom is the mean required zoom + global zoom
+//     *  in order to avoid too much zooming in and out
+//     */
+//    if (td->conf.optZoom == 2 && trans->len > 1)
+//    {
+//        double* zooms = (double*)vs_zalloc(sizeof(double) * trans->len);
+//        int w = td->fiSrc.width;
+//        int h = td->fiSrc.height;
+//        double req;
+//        double meanzoom;
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            zooms[i] = transform_get_required_zoom(&ts[i], w, h);
+//        }
+//
+//        double prezoom = 0.;
+//        double postzoom = 0.;
+//        if (td->conf.zoom > 0.)
+//        {
+//            prezoom = td->conf.zoom;
+//        }
+//        else if (td->conf.zoom < 0.)
+//        {
+//            postzoom = td->conf.zoom;
+//        }
+//
+//        meanzoom = mean(zooms, trans->len) + prezoom; // add global zoom
+//        // forward - propagation (to make the zooming smooth)
+//        req = meanzoom;
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            req = VS_MAX(req, zooms[i]);
+//            ts[i].zoom = VS_MAX(ts[i].zoom, req);
+//            req = VS_MAX(meanzoom, req - td->conf.zoomSpeed); // zoom-out each frame
+//        }
+//        // backward - propagation
+//        req = meanzoom;
+//        for (int i = trans->len - 1; i >= 0; i--)
+//        {
+//            req = VS_MAX(req, zooms[i]);
+//            ts[i].zoom = VS_MAX(ts[i].zoom, req) + postzoom;
+//            req = VS_MAX(meanzoom, req - td->conf.zoomSpeed);
+//        }
+//        vs_free(zooms);
+//    }
+//    else if (td->conf.zoom != 0)   /* apply global zoom */
+//    {
+//        for (int i = 0; i < trans->len; i++)
+//        {
+//            ts[i].zoom += td->conf.zoom;
+//        }
+//    }
     
     return VS_OK;
 }
