@@ -810,22 +810,14 @@ namespace Gimbal
          * @tparam  \_PixT  Pixel type
          */
         template <typename _PixT> inline void _next(Pyramids<_PixT>& aPt,
-                                                    VSFrame&         aFrame)
-        {
-            if (0 == _idx)
-            {
-                _nextPiramid(aPt, aFrame);
-            }
-            
-            _nextPiramid(aPt, aFrame);
-        }
+                                                    VSFrame&         aFrame);
         
         
         /**
          * @brief   Read new frame pyramid
          * @param   aFrame  New frame
          */
-        template <typename _PixT> void _nextPiramid(Pyramids<_PixT>& aPt,
+        template <typename _PixT> void _nextPyramid(Pyramids<_PixT>& aPt,
                                                     VSFrame&         aFrame);
                                                     
                                                     

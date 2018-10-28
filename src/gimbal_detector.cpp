@@ -54,8 +54,6 @@
 #include "common_exception.h"
 #include "common_dbg.h"
 
-#include "dbg_profiler.h"
-
 #include "cl/opencl.h"
 #include "cl/opencl___blur_h.h"
 #include "cl/opencl___blur_v.h"
@@ -116,27 +114,11 @@ namespace
     
     
     /**
-     * @brief   Slow filter B count of frames
-     *
-     * Filter used for filtering slow movements (shifted)
-     */
-    const unsigned _slowBCnt { _slowACnt / 2U };
-    
-    
-    /**
      * @brief   Slow filter A count of frames
      *
      * Filter used for filtering slow movements
      */
     const unsigned _staticACnt { 60U };
-    
-    
-    /**
-     * @brief   Slow filter B count of frames
-     *
-     * Filter used for filtering slow movements (shifted)
-     */
-    const unsigned _staticBCnt { _staticACnt / 2U };
     
     
     /**
@@ -482,34 +464,65 @@ namespace Gimbal
     }
     
     
-    template <typename _PixT> void Detector::_nextPiramid(Pyramids<_PixT>& aPt,
+    template <typename _PixT> inline void Detector::_next(Pyramids<_PixT>& aPt,
                                                           VSFrame&         aFrame)
     {
+        if (0 == _idx)
+        {
+            _nextPyramid(aPt, aFrame);
+        }
+        
+        _nextPyramid(aPt, aFrame);
+    }
+    
+    
+    template <typename _PixT> void Detector::_nextPyramid(Pyramids<_PixT>& aPt,
+                                                          VSFrame&         aFrame)
+    {
+        /*
+         * Select pyramid for fast filter. Pyramids are toggled to
+         * prevent from need to copy current to last.
+         */
         unsigned idx { _idx };
         _idxPrev     = _idx & 1;
         ++_idx;
         _idxCurrent  = _idx & 1;
         
+        /*
+         * Copy current frame to selected pyramid
+         */
         Frame::Canvas<_PixT> c { (_PixT*)aFrame.data[0], fi.dim() };
         aPt.fm[_idxCurrent]( c);
         
         
+        /*
+         * Now we shall update also slow filters. They are updated twice per defined
+         * count of frames (A and B variant).
+         */
         if (0 == (idx % _slowACnt))
         {
             aPt.fm[aPt.PTYPE_SLOW_A] = aPt.fm[_idxCurrent];
         }
         
-        if ((0 == idx) || (0 == ((idx + _slowBCnt) % _slowACnt)))
+        const unsigned slowBCnt { _slowACnt / 2U };
+        
+        if ((0 == idx) || (0 == ((idx + slowBCnt) % _slowACnt)))
         {
             aPt.fm[aPt.PTYPE_SLOW_B] = aPt.fm[_idxCurrent];
         }
         
+        
+        /*
+         * Same approach to static filters as for slow filters
+         */
         if (0 == (idx % _staticACnt))
         {
             aPt.fm[aPt.PTYPE_STATIC_A] = aPt.fm[_idxCurrent];
         }
         
-        if ((0 == idx) || (0 == ((idx + _staticBCnt) % _staticACnt)))
+        const unsigned staticBCnt { _staticACnt / 2U };
+        
+        if ((0 == idx) || (0 == ((idx + staticBCnt) % _staticACnt)))
         {
             aPt.fm[aPt.PTYPE_STATIC_B] = aPt.fm[_idxCurrent];
         }
