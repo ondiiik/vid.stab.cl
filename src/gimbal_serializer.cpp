@@ -129,7 +129,6 @@ namespace Gimbal
         /*
          * Read and check head first
          */
-        std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "Open" << "\n";
         _file.open(_fileName.c_str(), std::ios::in | std::ios::binary);
         SerializerHdr h;
         _file.read(reinterpret_cast<char*>(&h), sizeof(h));
@@ -137,7 +136,6 @@ namespace Gimbal
         h.checkValidity();
         
         _dim = h.frameSize;
-        std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "Size " << _dim << "\n";
         
         
         /*
@@ -150,8 +148,13 @@ namespace Gimbal
              */
             SerializerBlockHdr bh;
             _file.read(reinterpret_cast<char*>(&bh), sizeof(bh));
+            
+            if (_file.eof())
+            {
+                break;
+            }
+            
             bh.checkValidity();
-            std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "BLOCK CNT " << bh.cnt << "\n";
             
             /*
              * Create new cells element and append it to list
@@ -171,14 +174,11 @@ namespace Gimbal
                 SerializerCell                      sc;
                 _file.read(reinterpret_cast<char*>(&sc), sizeof(sc));
                 sc.checkValidity();
-                std::cout << __FUNCTION__ << ":" << __LINE__ << "\t>>\t" << "\t\tCELL " << sc.position << "\n";
                 
                 CorrectorCell cell;
                 sc(cell);
                 cls.list.push_back(cell);
             }
-            
-            break;
         }
     }
     
