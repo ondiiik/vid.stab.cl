@@ -78,19 +78,19 @@ namespace
     /**
      * @brief   Module name used by exceptions
      */
-    const char moduleName[] { "Detect" };
+    const char moduleName[] { "Detector" };
     
     
     /**
      * @brief   Minimal count of detection boxes in shortest direction
      */
-    const unsigned _cellsCnt { 16 };
+    const unsigned _cellsCnt { 16U };
     
     
     /**
      * @brief   Detection box size (for smallest pyramid layer)
      */
-    const unsigned _cellSize { 8 };
+    const unsigned _cellSize { 8U };
     
     
     /**
@@ -104,7 +104,7 @@ namespace
      *
      * Says how much contrast is considered to be used
      */
-    const unsigned _contrastThreshold { 2 };
+    const unsigned _contrastThreshold { 1U };
     
     
     /**
@@ -112,7 +112,7 @@ namespace
      *
      * Filter used for filtering slow movements
      */
-    const unsigned _slowACnt { 15 };
+    const unsigned _slowACnt { 15U };
     
     
     /**
@@ -120,7 +120,7 @@ namespace
      *
      * Filter used for filtering slow movements (shifted)
      */
-    const unsigned _slowBCnt { _slowACnt / 2 };
+    const unsigned _slowBCnt { _slowACnt / 2U };
     
     
     /**
@@ -128,7 +128,7 @@ namespace
      *
      * Filter used for filtering slow movements
      */
-    const unsigned _staticACnt { 60 };
+    const unsigned _staticACnt { 60U };
     
     
     /**
@@ -136,7 +136,7 @@ namespace
      *
      * Filter used for filtering slow movements (shifted)
      */
-    const unsigned _staticBCnt { _staticACnt / 2 };
+    const unsigned _staticBCnt { _staticACnt / 2U };
     
     
     /**
@@ -145,7 +145,7 @@ namespace
      * Divide frame according to its high on multiple parts.
      * This also defines border width.
      */
-    const unsigned _borderDiv { 8 };
+    const unsigned _borderDiv { 8U };
     
     
     /**
@@ -154,7 +154,7 @@ namespace
      * When average is calculated, then this is minimal amount
      * of neighbors to declare average as valid.
      */
-    const unsigned _minNeighbors { 6 };
+    const unsigned _minNeighbors { 6U };
     
     
     /**
@@ -164,13 +164,13 @@ namespace
      * means higher deviation, so detection tends to drop less
      * deviated measurements.
      */
-    const unsigned _devFactor { 2 };
+    const unsigned _devFactor { 4U };
     
     
     /**
      * @brief   Defines range for accurator
      */
-    const unsigned _accuratorDivider { 8 };
+    const unsigned _accuratorDivider { 8U };
     
     
     /**
@@ -190,6 +190,15 @@ namespace
      * detection is faster.
      */
     const bool _fast { false };
+    
+    
+    /**
+     * @brief   Flag activating visualization
+     *
+     * When this flag is true, then some detection information is
+     * drawn to obtained frame.
+     */
+    const bool _visu { true };
     
     
     
@@ -265,10 +274,10 @@ namespace Gimbal
         
 #if defined(USE_OPENCL)
         ,
-        _clDevice      {          },
-        _clContext     { nullptr  },
-        _clProgram     {          },
-        _clProgramName {          }
+        _clDevice      {         },
+        _clContext     { nullptr },
+        _clProgram     {         },
+        _clProgramName {         }
 #endif
     {
         /*
@@ -418,25 +427,58 @@ namespace Gimbal
     template <typename _PixT> void Detector::_process(Pyramids<_PixT>& aPt,
                                                       VSFrame&         aFrame)
     {
+        /*
+         * We shall move on next frame and select parts with sufficient
+         * contrast.
+         */
         _next(       aPt, aFrame);
         _select(     aPt);
         
+        /*
+         * Then we process first movement detection - dry run.
+         */
         _estimate(   aPt);
         _accurateAll(aPt);
         
+        /*
+         * We have 2 options:
+         *
+         * 1) FAST     - Where we use directly values from dry run as final.
+         *               This makes estimation much faster, but with some
+         *               faulty detected movements (lower detection quality).
+         *
+         * 2) ACCURATE - First dry run is analyzed and when big deviation
+         *               between neighbor cells is detected, then algorithm
+         *               try to fix or reject this results. This approach is
+         *               slow, but more accurate in estimation of movements.
+         */
         if (_fast)
         {
+            /*
+             * Just use dry run values.
+             */
             _measures(aPt);
         }
         else
         {
+            /*
+             * We analyze dry run results and makes corrections when required.
+             */
             _analyze(      aPt);
             _correct(      aPt);
             _accurateValid(aPt);
-//            _analyze(       aPt, aFrame );
         }
         
-        _visualize(aPt, aFrame);
+        /*
+         * We can visualize results or safe computation time by disabling it.
+         */
+        if (_visu)
+        {
+            /*
+             * At the end we want to visualize results.
+             */
+            _visualize(aPt, aFrame);
+        }
     }
     
     
@@ -586,8 +628,8 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const unsigned t   { Direction::frame2vidx(_idx)   };
-            const unsigned did { Cell::ptype2dir(aPt.PTYPE_SW) };
+            const unsigned t   { Direction::frame2vidx(_idx) };
+            const unsigned did { Cell::ptype2dir(idx)        };
             
             for (auto& cell : _cells.list)
             {
@@ -852,17 +894,15 @@ namespace Gimbal
         const unsigned         t2   { Direction::frame2vidx(_idx - 2)  };
         
         
+        /*
+         * First we shall draw estimations and overall cell states
+         */
         OMP_ALIAS(md, this)
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
                          (unsigned idx = 0; idx < e; ++idx))
         {
-            auto& i = _cells.list[idx];
-            
-            
-            /*
-             * Show fast filters - estimated
-             */
+            auto&                  i     = _cells.list[idx];
             const unsigned         did   { Cell::ptype2dir(aPt.PTYPE_SW) };
             auto&                  dir   = i.direction[did];
             unsigned               alpha { dir.isValid() ? 255U : _alpha };
@@ -886,52 +926,20 @@ namespace Gimbal
             }
             else
             {
-                if (!dir.isSet(Direction::DIR___CONTRAST))
+                if (dir.isSet(Direction::DIR___CONTRAST))
                 {
-                    if (dir.isSet(Direction::DIR___SURROUNDINGS))
-                    {
-                        Common::Vect<int> r1 { 24,  24 };
-                        Common::Vect<int> r2 { 24, -24 };
-                        
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
-                    }
+                    Common::Vect<int> r1 { 24,  24 };
+                    Common::Vect<int> r2 { 24, -24 };
                     
-                    if (dir.isSet(Direction::DIR___ESTI_DEV))
-                    {
-                        Common::Vect<int> r1 { 32, 0  };
-                        Common::Vect<int> r2 { 0,  32 };
-                        
-                        disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
-                        disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
-                    }
+                    disp.drawLine(pos + r1, pos - r1, 1, _PixT(0), alpha);
+                    disp.drawLine(pos + r2, pos - r2, 1, _PixT(0), alpha);
                 }
             }
-            
-            
-//            Common::Vect<unsigned> dst1  { dst  - i.direction[did].velo[t1].esti };
-//            Common::Vect<unsigned> dst2  { dst1 - i.direction[did].velo[t2].esti };
-//            Common::Vect<unsigned> dst3a { dst2                                  };
-//
-//            for (unsigned idx = 3; idx < Direction::hcnt; ++idx)
-//            {
-//                const unsigned                                                      ta    { Direction::frame2vidx(_idx - idx)      };
-//                Common::Vect<unsigned>        dst3b { dst3a - i.direction[did].velo[ta].esti };
-//                disp.drawLine(         dst3a, dst3b, 1,  _PixT(100));
-//                dst3a                       = dst3b;
-//            }
-//
-//            disp.drawLine(dst1, dst2, 2,  _PixT(80), alpha);
-//            disp.drawLine(dst,  dst1, 3,  _PixT(50), alpha);
-//            disp.drawLine(pos,  dst,  4,  _PixT(0),  alpha);
-//
-//            disp.drawRectangle( pos,  rs, _PixT(0),  alpha);
-//            disp.drawRectangle( dst,  rs, _PixT(0),  alpha);
         }
         
         
         /*
-         * Show fast filters - measured
+         * Then we shall draw valid measured values
          */
         OMP_PARALLEL_FOR(_threadsCnt,
                          omp parallel for shared(md),
