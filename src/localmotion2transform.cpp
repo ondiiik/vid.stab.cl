@@ -38,41 +38,6 @@ int vsLocalmotions2Transforms(struct VSTransformData*   td,
                               const VSManyLocalMotions* motionsC,
                               struct VSTransformations* trans )
 {
-    const Gimbal::LmLists motions { *const_cast<VSManyLocalMotions*>(motionsC) };
-    int                    len     { motions.size()                             };
-    
-    assert(trans->len == 0 && trans->ts == 0);
-    trans->ts = (VSTransform*)vs_malloc(sizeof(struct VSTransform) * len );
-    /* long start= timeOfDayinMS(); */
-    FILE* f = 0;
-    if (td->conf.storeTransforms)
-    {
-        f = fopen("global_motions.trf", "w");
-    }
-    
-    if (td->conf.simpleMotionCalculation == 0)
-    {
-        for (int i = 0; i < motions.size(); i++)
-        {
-            trans->ts[i] = vsMotionsToTransform(td, VSMLMGet(motionsC, i), f);
-        }
-    }
-    else
-    {
-        for (int i = 0; i < motions.size(); i++)
-        {
-            trans->ts[i] = vsSimpleMotionsToTransform(td->fiSrc, td->conf.modName, VSMLMGet(motionsC, i));
-        }
-    }
-    trans->len = len;
-    
-    /* long end = timeOfDayinMS(); */
-    /* vs_log_info(td->conf.modName, "Localmotions2Transform (%i) with %i frames took %i ms\n", */
-    /*             td->conf.simpleMotionCalculation, len, end-start); */
-    if (f)
-    {
-        fclose(f);
-    }
     return VS_OK;
 }
 

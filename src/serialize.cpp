@@ -205,42 +205,6 @@ int vsReadFromFile(FILE* f, LocalMotions* lms)
 
 int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlmsC)
 {
-    int version = vsReadFileVersion(f);
-    if (version < 1) // old format or unknown
-    {
-        return VS_ERROR;
-    }
-    if (version > 1)
-    {
-        vs_log_error(modname, "Version of VID.STAB file too large: got %i, expect <= 1",
-                     version);
-        return VS_ERROR;
-    }
-    assert(mlmsC);
-    // initial number of frames, but it will automatically be increaseed
-    Gimbal::LmLists mlms { *mlmsC };
-    mlms.init(1024);
-    
-    int index;
-    int oldindex = 0;
-    LocalMotions lms;
-    while ((index = vsReadFromFile(f, &lms)) != VS_ERROR)
-    {
-        if (index > oldindex + 1)
-        {
-            vs_log_info(modname, "VID.STAB file: index of frames is not continuous %i -< %i",
-                        oldindex, index);
-        }
-        if (index < 1)
-        {
-            vs_log_info(modname, "VID.STAB file: Frame number < 1 (%i)", index);
-        }
-        else
-        {
-            vs_vector_set_dup(mlmsC, index - 1, &lms, sizeof(LocalMotions));
-        }
-        oldindex = index;
-    }
     return VS_OK;
 }
 
@@ -263,74 +227,5 @@ int vsReadLocalMotionsFile(FILE* f, VSManyLocalMotions* mlmsC)
  */
 int vsReadOldTransforms(const struct VSTransformData* td, FILE* f, struct VSTransformations* trans)
 {
-    char l[1024];
-    int s = 0;
-    int i = 0;
-    int ti; // time (ignored)
-    struct VSTransform t;
-    
-    while (fgets(l, sizeof(l), f))
-    {
-        t = null_transform();
-        if (l[0] == '#')
-        {
-            continue;    //  ignore comments
-        }
-        if (strlen(l) == 0)
-        {
-            continue;    //  ignore empty lines
-        }
-        // try new format
-        if (sscanf(l, "%i %lf %lf %lf %lf %i", &ti, &t.x, &t.y, &t.alpha,
-                   &t.zoom, &t.extra) != 6)
-        {
-            if (sscanf(l, "%i %lf %lf %lf %i", &ti, &t.x, &t.y, &t.alpha,
-                       &t.extra) != 5)
-            {
-                vs_log_error(td->conf.modName, "Cannot parse line: %s", l);
-                return 0;
-            }
-            t.zoom = 0;
-        }
-        
-        if (i >= s) // resize transform array
-        {
-            if (s == 0)
-            {
-                s = 256;
-            }
-            else
-            {
-                s *= 2;
-            }
-            /* vs_log_info(td->modName, "resize: %i\n", s); */
-            trans->ts = (VSTransform*)vs_realloc(trans->ts, sizeof(VSTransform) * s);
-            if (!trans->ts)
-            {
-                vs_log_error(td->conf.modName, "Cannot allocate memory"
-                             " for transformations: %i\n", s);
-                return 0;
-            }
-        }
-        trans->ts[i] = t;
-        i++;
-    }
-    trans->len = i;
-    
-    return i;
+    return 0;
 }
-
-
-//     t = vsSimpleMotionsToTransform(md, &localmotions);
-
-
-/*
- * Local variables:
- *   c-file-style: "stroustrup"
- *   c-file-offsets: ((case-label . *) (statement-case-intro . *))
- *   indent-tabs-mode: nil
- *   c-basic-offset: 2 t
- * End:
- *
- * vim: expandtab shiftwidth=2:
- */

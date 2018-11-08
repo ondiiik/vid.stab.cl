@@ -73,122 +73,79 @@ extern struct VSTransform vsLowPassTransforms(struct VSTransformData*   td,
 
 
 
+#include "frame_canvas.h"
+
+
+
+
 
 namespace Gimbal
 {
+    struct CorrectionItem
+    {
+        Common::Vect<int> ofs;
+        float             angle;
+        unsigned          cnt;
+    };
+
+
+    struct CorrectorSet
+    {
+        CorrectorSet()
+            :
+            items { }
+        {
+        
+        }
+        
+        CorrectionItem items[__FLR_CNT - FLR_FAST];
+    };
+    
+    
     class Corrector
     {
     public:
         /**
-         * @brief   Construct data structure for motion detection part of transforming
-         *
-         * @param   aModName    Module name
-         * @param   aTd         Parrent C instance used by external tools such as ffmpeg
+         * @brief   Construct image corrector object
          */
-        Corrector(const char*      aModName,
-                  VSTransformData& aTd);
-                  
-                  
-                  
+        Corrector();
+        
+        
+        /**
+         * @brief   Destroy image corrector object
+         */
         ~Corrector();
         
         
         /**
-         * @brief   Prepare transformation frame
-         * @param   src     Source frame
-         * @param   dest    Destination frame
+         * @brief   Process frame correction
          */
-        void prepare(const VSFrame* src,
-                     VSFrame*       dest);
-                     
-                     
-        /**
-         * @brief   Process frame transform
-         * @param   aT  REquested transformation
-         */
-        void process(VSTransform& aT);
+        void operator()();
         
         
-        /**
-         * @brief   Finish transformation step
-         */
-        void finish();
-        
-        
-        const VSFrameInfo&       fiSrc;
-        const VSFrameInfo&       fiDest;
-        
-        VSFrame&                 src;           // copy of the current frame buffer
-        VSFrame&                 destbuf;       // pointer to an additional buffer or
-        // to the destination buffer (depending on crop)
-        VSFrame&                 dest;          // pointer to the destination buffer
-        short&                   srcMalloced;   // 1 if the source buffer was internally malloced
-        
-        vsInterpolateFun&        interpolate;   // pointer to interpolation function
-        
-        /* Options */
-        VSTransformConfig&       conf;
-        
-        int&                     initialized; // 1 if initialized and 2 if configured
-        
-#ifdef USE_OMP
-        int                      numThreads;
-#endif
-        
-        const Frame::Info        isrc;
-        const Frame::Info        idst;
-        
-        Frame::Frame             fsrc;
-        Frame::Frame             fdst;
-        Frame::Frame             fdstB;
-        
-        
-
-
-
-
-
-
-
-
     private:
+        /**
+         * @brief   Preprocess detected data
+         */
+        void _preprocess();
+        
+        
+        /**
+         * @brief   Calculates motions from detected data
+         */
+        void _preprocessCalcMotions();
+
+
+        /**
+         * @brief   Deserializer object
+         */
         Deserializer _ser;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        void _initVsTransform();
         
         
         /**
-         * @brief Does the actual transformation in Packed space
-         *
-         * @param   aT  Private data structure of this filter
+         * @brief   Corrector item
          */
-        void _transformPacked(VSTransform& aT);
-        
-        
-        /**
-         * @brief Does the actual transformation in Planar space
-         *
-         * applies current transformation to frame
-         *
-         * @param   aT  Private data structure of this filter
-         */
-        void _transformPlanar(VSTransform& aT);
+        std::vector<CorrectorSet> _cor;
         
         
         /**

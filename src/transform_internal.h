@@ -31,13 +31,6 @@ extern "C" {
 #endif
 
 
-/** performs the smoothing of the camera path and modifies the transforms
-    to compensate for the jiggle
-    */
-int cameraPathOptimization(struct VSTransformData* td, struct VSTransformations* trans);
-
-int cameraPathAvg(struct VSTransformData* td, struct VSTransformations* trans);
-int cameraPathGaussian(struct VSTransformData* td, struct VSTransformations* trans);
 int cameraPathOptimalL1(struct VSTransformData* td, struct VSTransformations* trans);
 
 

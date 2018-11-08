@@ -263,7 +263,7 @@ namespace Gimbal
     
     
     SerializerCell::SerializerCell(const DetectorCell& aCell,
-                                   unsigned               aIdx)
+                                   unsigned            aIdx)
         :
         id       { 'C', 'L'       },
         position { aCell.position }

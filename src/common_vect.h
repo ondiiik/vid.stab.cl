@@ -12,6 +12,18 @@
 
 namespace Common
 {
+    template <typename _Tp> inline _Tp rad2deg(float aRad)
+    {
+        return _Tp(aRad * 180 / M_PI);
+    }
+    
+    
+    template <typename _Tp> inline _Tp rad2deg(float aRad, _Tp aMul)
+    {
+        return _Tp(aRad * 180 / M_PI * aMul);
+    }
+    
+    
     template <typename _Tp> struct VectPolar
     {
         _Tp   r;
@@ -585,7 +597,7 @@ namespace Common
 #include <iostream>
 
 
-template <typename _Tp> std::ostream& operator<<(std::ostream& aThis, Common::Vect<_Tp>& aVect)
+template <typename _Tp> std::ostream& operator<<(std::ostream& aThis, const Common::Vect<_Tp>& aVect)
 {
     return aThis << '[' << aVect.x << " x " << aVect.y << ']';
 }

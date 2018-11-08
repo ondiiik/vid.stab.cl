@@ -89,7 +89,7 @@ namespace Gimbal
          */
         DetectorDirection()
             :
-            velo  {                        },
+            velo  {                                },
             valid { DetectorDirection::DIR___VALID }
         {
         
@@ -272,6 +272,17 @@ namespace Gimbal
      */
     struct CorrectorDirVal
     {
+        /**
+         * @brief   Check if flag is set
+         * @param   aFlags  Flag to be checked
+         * @return  Result
+         */
+        inline bool isValid() const
+        {
+            return valid == DetectorDirection::DIR___VALID;
+        }
+
+
         /**
          * @brief   Measured value
          */

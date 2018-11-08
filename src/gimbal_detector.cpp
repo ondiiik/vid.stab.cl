@@ -545,7 +545,7 @@ namespace Gimbal
         Common::Vect<unsigned>       begin  { 0                                          };
         Common::Vect<unsigned>       end    { (canvas.dim() - _cellSize / 2) / _cellSize };
         Common::Vect<unsigned>       rect   { _cellSize                                  };
-        const unsigned               t      { DetectorDirection::frame2vidx(_idx)         };
+        const unsigned               t      { DetectorDirection::frame2vidx(_idx)        };
         
         
         /*
@@ -563,7 +563,7 @@ namespace Gimbal
              */
             Common::Vect<unsigned> pos { i()* _cellSize                     };
             unsigned               q   { _selectContrast(canvas, pos, rect) };
-            unsigned               f   { DetectorDirection::DIR___VALID      };
+            unsigned               f   { DetectorDirection::DIR___VALID     };
             
             if (_contrastThreshold <= q)
             {
@@ -631,7 +631,7 @@ namespace Gimbal
                          (unsigned idx = 0; idx < _cells.list.size(); ++idx))
         {
             auto&                   cell  = _cells.list[idx];
-            unsigned                layer { aPt.fm[_idxCurrent].size() - 1 };
+            unsigned                layer { aPt.fm[_idxCurrent].size()   - 1   };
             const Common::Vect<int> rb    { - int(_detectRange >> (layer + 1)) };
             const Common::Vect<int> re    {   int(_detectRange >> (layer + 1)) };
             
@@ -654,7 +654,7 @@ namespace Gimbal
             /*
              * Process all cells in current filter
              */
-            const FilterLayer la  { FilterLayer(idx)                   };
+            const FilterLayer la  { FilterLayer(idx)                    };
             const unsigned    t   { DetectorDirection::frame2vidx(_idx) };
             const unsigned    did { DetectorCell::ptype2dir(la)         };
             
@@ -873,7 +873,7 @@ namespace Gimbal
                     
                     if (dir.isValid())
                     {
-                        const unsigned t   { DetectorDirection::frame2vidx(_idx) };
+                        const unsigned t   { DetectorDirection::frame2vidx(_idx)  };
                         
                         const Common::Vect<int> rb  { (dir.velo[t].meas >> p) - 1 };
                         const Common::Vect<int> re  { (dir.velo[t].meas >> p) + 1 };
@@ -899,7 +899,7 @@ namespace Gimbal
             {
                 for (unsigned p = aPt.fm[_idxCurrent].size() - 2; p < 0x7FFFU; --p)
                 {
-                    const FilterLayer la  { FilterLayer(idx)                       };
+                    const FilterLayer la  { FilterLayer(idx)                    };
                     const unsigned    did { DetectorCell::ptype2dir(la)         };
                     auto&             dir = cell.direction[did];
                     const unsigned    t   { DetectorDirection::frame2vidx(_idx) };
@@ -934,9 +934,9 @@ namespace Gimbal
     template <typename _PixT> void Detector::_visualizeFast(Pyramids<_PixT>&      aPt,
                                                             Frame::Canvas<_PixT>& aDisp)
     {
-        const unsigned         e  { unsigned(_cells.list.size())               };
+        const unsigned         e  { unsigned(_cells.list.size())            };
         const unsigned         t0 { DetectorDirection::frame2vidx(_idx)     };
-        Common::Vect<unsigned> rs { 16                                         };
+        Common::Vect<unsigned> rs { 16                                      };
         const unsigned         t1 { DetectorDirection::frame2vidx(_idx - 1) };
         const unsigned         t2 { DetectorDirection::frame2vidx(_idx - 2) };
         
@@ -952,10 +952,10 @@ namespace Gimbal
             auto&                  cell  = _cells.list[idx];
             const unsigned         did   { DetectorCell::ptype2dir(FLR_FAST) };
             auto&                  dir   = cell.direction[did];
-            unsigned               alpha { dir.isValid() ? 255U : _alpha };
-            Common::Vect<unsigned> pos   { cell.position                 };
+            unsigned               alpha { dir.isValid() ? 255U : _alpha     };
+            Common::Vect<unsigned> pos   { cell.position                     };
             auto&                  vel0  = dir.velo[t0];
-            Common::Vect<unsigned> dst   { pos - vel0.esti               };
+            Common::Vect<unsigned> dst   { pos - vel0.esti                   };
             
             
             if (!dir.isSet(DetectorDirection::DIR___SURROUNDINGS))
@@ -999,7 +999,7 @@ namespace Gimbal
              * Show fast filters - valid
              */
             {
-                const unsigned         did   { DetectorCell::ptype2dir(FLR_FAST)    };
+                const unsigned         did   { DetectorCell::ptype2dir(FLR_FAST)       };
                 auto&                  dir   = cell.direction[did];
                 unsigned               alpha { dir.isValid() ? 255U : _alpha           };
                 Common::Vect<unsigned> pos   { cell.position                           };
@@ -2722,14 +2722,14 @@ void vsMotionDetectGetConfig(VSMotionDetectConfig* aConf,
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "%s\n", exc.what());
         assert(false);
     }
     catch (...)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "Unknown failure type!\n");
         assert(false);
     }
 }
@@ -2744,14 +2744,14 @@ const VSFrameInfo* vsMotionDetectGetFrameInfo(const VSMotionDetect* aMd)
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "%s\n", exc.what());
         assert(false);
     }
     catch (...)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "Unknown failure type!\n");
         assert(false);
     }
     
@@ -2902,14 +2902,14 @@ int vsWriteToFile(const VSMotionDetect* aMd,
     }
     catch (std::exception& exc)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "%s\n", exc.what());
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "%s\n", exc.what());
         return VS_ERROR;
     }
     catch (...)
     {
-        vs_log_error("vidstabdetect", "[filter] Failed!\n");
-        vs_log_error("vidstabdetect", "Unknown failure type!\n");
+        vs_log_error("gimbal-detector", "[filter] Failed!\n");
+        vs_log_error("gimbal-detector", "Unknown failure type!\n");
         return VS_ERROR;
     }
     
