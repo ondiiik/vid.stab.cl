@@ -86,7 +86,7 @@ set(SOURCES
     src/serialize.cpp
     src/transformfixedpoint.cpp
     src/transformtype.cpp
-    src/vs_transformation_barrel.cpp
+    src/gimbal_barrel.cpp
     src/vs_vector.cpp)
 
 set(HEADERS
@@ -117,7 +117,7 @@ set(HEADERS
     src/transformtype_operations.h
     src/vidstabdefines.h
     src/vs_transformation.h
-    src/vs_transformation_barrel.h
+    src/gimbal_barrel.h
     src/vs_vector.h)
 
 

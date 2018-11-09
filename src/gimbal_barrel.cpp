@@ -4,17 +4,17 @@
  *  Created on: 2. 10. 2018
  *      Author: ondiiik
  */
-#include "vs_transformation_barrel.h"
+#include "gimbal_barrel.h"
 #include <iostream> // DEBUG
 
 
 namespace Gimbal
 {
-    TransformationBarrel::TransformationBarrel(float aK0,
-                                               float aK1,
-                                               float aK2,
-                                               int   aWidth,
-                                               int   aHeight) noexcept
+    Barrel::Barrel(float aK0,
+                   float aK1,
+                   float aK2,
+                   int   aWidth,
+                   int   aHeight) noexcept
         :
         _center
     {
@@ -28,34 +28,34 @@ namespace Gimbal
     }
     
     
-    TransformationBarrel::~TransformationBarrel() noexcept
+    Barrel::~Barrel() noexcept
     {
     
     }
     
     
-    void TransformationBarrel::to(Vect&       aDst,
-                                  const Vect& aSrc,
-                                  float       aRatio) noexcept
+    void Barrel::to(Common::Vect<float>&       aDst,
+                    const Common::Vect<float>& aSrc,
+                    float                      aRatio) noexcept
     {
         /*
          * Conversion from linear space is simple by filling in
          * equation variables
          */
-        Vect  center = _center / aRatio;
-        Vect  src    = aSrc - center;
-        src         *= aRatio;
-        float rq     = src.qsize();
-        float acc    = 1.0F + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
-        aDst         = (src / acc);
-        aDst        /= aRatio;
-        aDst        += center;
+        Common::Vect<float> center = _center / aRatio;
+        Common::Vect<float> src    = aSrc - center;
+        src                       *= aRatio;
+        float rq                   = src.qsize();
+        float acc                  = 1.0F + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
+        aDst                       = (src / acc);
+        aDst                      /= aRatio;
+        aDst                      += center;
     }
     
     
-    void TransformationBarrel::from(Vect&       aDst,
-                                    const Vect& aSrc,
-                                    float       aRatio) noexcept
+    void Barrel::from(Common::Vect<float>&       aDst,
+                      const Common::Vect<float>& aSrc,
+                      float                      aRatio) noexcept
     {
         /*
          * To get back transformation, we have to run equation resolver.
@@ -63,11 +63,11 @@ namespace Gimbal
          * result. The best estimation is to use last result, if calculated
          * vector was somewhere close. Otherwise we have to take a guess.
          */
-        Vect  center    { _center / aRatio                              };
-        Vect  src       { (aSrc - center) * aRatio                      };
-        float rq        { src.qsize()                                   };
-        float acc       { 1.0F + rq* (_k[0] + rq * (_k[1] + rq* _k[2])) };
-        Vect  estimated { src * acc                                     };
+        Common::Vect<float> center    { _center / aRatio                              };
+        Common::Vect<float> src       { (aSrc - center)* aRatio                       };
+        float rq                      { src.qsize()                                   };
+        float acc                     { 1.0F + rq* (_k[0] + rq * (_k[1] + rq* _k[2])) };
+        Common::Vect<float> estimated { src * acc                                     };
         
         
         /*
@@ -83,7 +83,7 @@ namespace Gimbal
              */
             rq         = estimated.qsize();
             acc        = 1 + rq * (_k[0] + rq * (_k[1] + rq * _k[2]));
-            Vect reality { estimated / acc };
+            Common::Vect<float> reality { estimated / acc };
             estimated += (src - reality);
             
             

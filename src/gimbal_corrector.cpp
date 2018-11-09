@@ -22,22 +22,6 @@
  *
  */
 #include <iostream>
-#define iToFp8(v)  ((v)<<8)
-#define fToFp8(v)  ((int32_t)((v)*((float)0xFF)))
-#define iToFp16(v) ((v)<<16)
-#define fToFp16(v) ((int32_t)((v)*((double)0xFFFF)))
-#define fp16To8(v) ((v)>>8)
-#define fp24To8(v) ((v)>>16)
-
-#define fp8ToI(v)  ((v)>>8)
-#define fp16ToI(v) ((v)>>16)
-#define fp8ToF(v)  ((v)/((double)(1<<8)))
-#define fp16ToF(v) ((v)/((double)(1<<16)))
-
-#define fp8_0_5 (1<<7)
-#define fp8ToIRound(v) (((v) + fp8_0_5) >> 7)
-#define fp16_0_5 (1<<15)
-#define fp16ToIRound(v) (((v) + fp16_0_5) >> 16)
 
 
 
@@ -55,17 +39,11 @@
 
 
 
-#include "vs_transformation_barrel.h"
-
-
-
-
-
-
 #include "sys_omp.h"
 #include <math.h>
 #include <libgen.h>
 #include <string.h>
+#include "gimbal_barrel.h"
 
 
 
@@ -106,11 +84,12 @@ namespace Gimbal
 {
     Corrector::Corrector()
         :
-        _ser        { "/tmp/gimbal.gbl" },
-        _cor        {                   },
-        _lensTrn    {                   }
+        _serialized { "/tmp/gimbal.gbl" },
+        _corrector  {                   },
+        _barrel     {                   }
     {
-        _ser.load();
+        _serialized.load();
+        _barrelInit();
         _preprocess();
     }
     
@@ -127,20 +106,29 @@ namespace Gimbal
     }
     
     
+    void Corrector::_barrelInit()
+    {
+        Common::Vect<float> src;
+        Common::Vect<float> dst;
+        
+        _barrel.from(dst, src, 1);
+    }
+    
+    
     void Corrector::_preprocess()
     {
-        std::cout << "Pre-process " << _ser.cells.size() << ":\n";
+        std::cout << "Pre-process " << _serialized.cells.size() << ":\n";
         _preprocessCalcMotions();
     }
     
     
     void Corrector::_preprocessCalcMotions()
     {
-        _cor.reserve(_ser.cells.size());
+        _corrector.reserve(_serialized.cells.size());
         
         unsigned n { 1 };
         
-        for (const auto& det : _ser.cells)
+        for (const auto& det : _serialized.cells)
         {
             std::cout << n % slowACnt << ";" << (n + slowACnt / 2U) % slowACnt << ";" << n % staticACnt << ";" << (n + staticACnt / 2U) % staticACnt << ";";
             
@@ -175,7 +163,7 @@ namespace Gimbal
                 std::cout << ci.cnt << ";" << ci.ofs.x << ";" << ci.ofs.y << ";" << Common::rad2deg<float>(ci.angle, 10) << ";";
             }
             
-            _cor.push_back(cs);
+            _corrector.push_back(cs);
             ++n;
             
             std::cout << std::endl;

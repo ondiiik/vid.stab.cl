@@ -31,7 +31,7 @@
 #include "frameinfo.h"
 #include "vidstabdefines.h"
 #include "common_exception.h"
-#include "vs_transformation_barrel.h"
+#include "gimbal_barrel.h"
 #include <cmath>
 #include <libgen.h>
 #include <cassert>
@@ -125,6 +125,12 @@ namespace Gimbal
         
     private:
         /**
+         * @brief   Initialize barrel distortion lookup table
+         */
+        void _barrelInit();
+
+
+        /**
          * @brief   Preprocess detected data
          */
         void _preprocess();
@@ -139,18 +145,18 @@ namespace Gimbal
         /**
          * @brief   Deserializer object
          */
-        Deserializer _ser;
+        Deserializer _serialized;
         
         
         /**
          * @brief   Corrector item
          */
-        std::vector<CorrectorSet> _cor;
+        std::vector<CorrectorSet> _corrector;
         
         
         /**
          * @brief   Lens transformation object
          */
-        TransformationBarrel _lensTrn;
+        Barrel _barrel;
     };
 }

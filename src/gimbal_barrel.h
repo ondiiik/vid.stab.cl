@@ -13,29 +13,23 @@
 
 namespace Gimbal
 {
-    class TransformationBarrel
+    class Barrel
     {
     public:
         /**
-         * @brief   Transformation vector type
+         * @brief   Construct transformation to barrel distortion
          */
-        typedef Common::Vect<float> Vect;
-
-
+        Barrel(float aK0     = 8e-08,
+               float aK1     = -3.8e-15,
+               float aK2     = 9e-23,
+               int   aWidth  = 3840,
+               int   aHeight = 2160) noexcept;
+               
+               
         /**
          * @brief   Construct transformation to barrel distortion
          */
-        TransformationBarrel(float aK0     = 8e-08,
-                             float aK1     = -3.8e-15,
-                             float aK2     = 9e-23,
-                             int   aWidth  = 3840,
-                             int   aHeight = 2160) noexcept;
-                             
-                             
-        /**
-         * @brief   Construct transformation to barrel distortion
-         */
-        virtual ~TransformationBarrel() noexcept;
+        virtual ~Barrel() noexcept;
         
         
         /**
@@ -46,12 +40,13 @@ namespace Gimbal
          *
          * @param   aDst    Destination transformation
          * @param   aSrc    Source transformation
+         * @param   aRatio  How many-times is final vector smaller
          */
-        void to(Vect&       aDst,
-                const Vect& aSrc,
-                float       aRatio) noexcept;
-        
-        
+        void to(Common::Vect<float>&       aDst,
+                const Common::Vect<float>& aSrc,
+                float                      aRatio) noexcept;
+                
+                
         /**
          * @brief   Transform from transformation
          *
@@ -60,12 +55,13 @@ namespace Gimbal
          *
          * @param   aDst    Source transformation
          * @param   aSrc    Destination transformation
+         * @param   aRatio  How many-times is final vector smaller
          */
-        void from(Vect&       aDst,
-                  const Vect& aSrc,
-                  float       aRatio) noexcept;
-        
-        
+        void from(Common::Vect<float>&       aDst,
+                  const Common::Vect<float>& aSrc,
+                  float                      aRatio) noexcept;
+                  
+                  
     private:
         /**
          * @brief   Barrel distortion equation coefficients
@@ -78,6 +74,6 @@ namespace Gimbal
          *
          * Defines size where coefficients was calculated
          */
-        Vect _center;
+        Common::Vect<float> _center;
     };
 }
