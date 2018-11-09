@@ -18,6 +18,22 @@ namespace Gimbal
     
     
     /**
+     * @brief   Slow filter A count of frames
+     *
+     * Filter used for filtering slow movements
+     */
+    static const unsigned slowACnt { 15U };
+    
+    
+    /**
+     * @brief   Slow filter A count of frames
+     *
+     * Filter used for filtering slow movements
+     */
+    static const unsigned staticACnt { 60U };
+    
+    
+    /**
      * @brief   Defines filter layer index
      *
      * There is several filters layers for various purposes used
@@ -281,8 +297,8 @@ namespace Gimbal
         {
             return valid == DetectorDirection::DIR___VALID;
         }
-
-
+        
+        
         /**
          * @brief   Measured value
          */
@@ -330,8 +346,8 @@ namespace Gimbal
          */
         CorrectorDirVal direction[__FLR_CNT - FLR_FAST];
     };
-
-
+    
+    
     /**
      * @brief   Correction cell
      */

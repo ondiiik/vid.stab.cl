@@ -138,10 +138,13 @@ namespace Gimbal
     {
         _cor.reserve(_ser.cells.size());
         
+        unsigned n { 1 };
+        
         for (const auto& det : _ser.cells)
         {
-            CorrectorSet cs;
+            std::cout << n % slowACnt << "\t" << (n + slowACnt / 2U) % slowACnt << "\t" << n % staticACnt << "\t" << (n + staticACnt / 2U) % staticACnt << "\t";
             
+            CorrectorSet cs;
             
             unsigned i { 0 };
             
@@ -173,7 +176,7 @@ namespace Gimbal
             }
             
             _cor.push_back(cs);
-            ++i;
+            ++n;
             
             std::cout << std::endl;
         }

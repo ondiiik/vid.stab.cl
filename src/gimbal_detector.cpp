@@ -106,22 +106,6 @@ namespace
     
     
     /**
-     * @brief   Slow filter A count of frames
-     *
-     * Filter used for filtering slow movements
-     */
-    const unsigned _slowACnt { 15U };
-    
-    
-    /**
-     * @brief   Slow filter A count of frames
-     *
-     * Filter used for filtering slow movements
-     */
-    const unsigned _staticACnt { 60U };
-    
-    
-    /**
      * @brief   Border detection divider
      *
      * Divide frame according to its high on multiple parts.
@@ -508,14 +492,14 @@ namespace Gimbal
          * Now we shall update also slow filters. They are updated twice per defined
          * count of frames (A and B variant).
          */
-        if (0 == (idx % _slowACnt))
+        if (0 == (idx % slowACnt))
         {
             aPt.fm[FLR_SLOW_A] = aPt.fm[_idxCurrent];
         }
         
-        const unsigned slowBCnt { _slowACnt / 2U };
+        const unsigned slowBCnt { slowACnt / 2U };
         
-        if ((0 == idx) || (0 == ((idx + slowBCnt) % _slowACnt)))
+        if ((0 == idx) || (0 == ((idx + slowBCnt) % slowACnt)))
         {
             aPt.fm[FLR_SLOW_B] = aPt.fm[_idxCurrent];
         }
@@ -524,14 +508,14 @@ namespace Gimbal
         /*
          * Same approach to static filters as for slow filters
          */
-        if (0 == (idx % _staticACnt))
+        if (0 == (idx % staticACnt))
         {
             aPt.fm[FLR_STATIC_A] = aPt.fm[_idxCurrent];
         }
         
-        const unsigned staticBCnt { _staticACnt / 2U };
+        const unsigned staticBCnt { staticACnt / 2U };
         
-        if ((0 == idx) || (0 == ((idx + staticBCnt) % _staticACnt)))
+        if ((0 == idx) || (0 == ((idx + staticBCnt) % staticACnt)))
         {
             aPt.fm[FLR_STATIC_B] = aPt.fm[_idxCurrent];
         }
