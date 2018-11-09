@@ -25,6 +25,14 @@ namespace Common
         }
         
         
+        inline Average& operator=(const _Tp& aVal) noexcept
+        {
+            _acc = _AccTp(aVal);
+            _cnt = 1U;
+            return *this;
+        }
+
+
         inline Average& operator+=(const _Tp& aVal) noexcept
         {
             _acc += _AccTp(aVal);

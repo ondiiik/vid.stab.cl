@@ -1137,7 +1137,7 @@ namespace Gimbal
     }
     
     
-    template <typename _PixT> void Detector::_correlate(DetectorCell&         cell,
+    template <typename _PixT> void Detector::_correlate(DetectorCell&            cell,
                                                         const Pyramids<_PixT>&   aPt,
                                                         FilterLayer              aPType,
                                                         unsigned                 aLayer,
@@ -1159,18 +1159,25 @@ namespace Gimbal
             DetectorCell::ptype2dir(FLR_FAST)
         };
         
+        Common::Average<Common::Vect<int> > avg;
+        
         do
         {
             unsigned crl { _correlateShot(curr, prev, pos, pos + i(), size, min) };
             
             if (min > crl)
             {
-                min                              = crl;
-                cell.direction[did].velo[t].meas = i();
+                avg = i();
+                min = crl;
+            }
+            else if (min == crl)
+            {
+                avg += i();
             }
         }
         while (i.next());
         
+        cell.direction[did].velo[t].meas  = avg();
         cell.direction[did].velo[t].meas *= (1U << aLayer);
     }
     

@@ -83,9 +83,9 @@ namespace Gimbal
 {
     struct CorrectionItem
     {
-        Common::Vect<int> ofs;
-        float             angle;
-        unsigned          cnt;
+        Common::Vect<float> ofs;
+        float               angle;
+        unsigned            cnt;
     };
 
 
