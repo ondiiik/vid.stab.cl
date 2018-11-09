@@ -87,7 +87,8 @@ namespace Gimbal
         _serialized { "/tmp/gimbal.gbl" },
         _corrector  {                   },
         _barrel     {                   },
-        _debarr   {                   }
+        _debarr     {                   },
+        _debarr2    {                   }
     {
         _serialized.load();
         _barrelInit();
@@ -108,10 +109,19 @@ namespace Gimbal
     
     
     void Corrector::_debarrel(Common::Vect<float>&          aDst,
-                              const Common::Vect<unsigned>& aSrc) const
+                              const Common::Vect<unsigned>& aSrc,
+                              unsigned                      aRatio) const
     {
         auto& dim { _serialized.dim() };
-        aDst = _debarr[dim.x * aSrc.y + aSrc.x];
+        
+        if (aRatio == 1)
+        {
+            aDst = _debarr[dim.x * aSrc.y + aSrc.x];
+        }
+        else
+        {
+            aDst = _debarr2[dim.x * aSrc.y / 2 + aSrc.x];
+        }
     }
     
     
@@ -129,6 +139,20 @@ namespace Gimbal
                 Common::Vect<float> dst;
                 
                 _barrel.from(dst, src, 1);
+                _debarr.push_back(dst);
+            }
+        }
+        
+        dim /= 2;
+        
+        for (unsigned y = 0, ey = dim.y; y < ey; ++y)
+        {
+            for (unsigned x = 0, ex = dim.x; x < ex; ++x)
+            {
+                Common::Vect<float> src { x, y };
+                Common::Vect<float> dst;
+                
+                _barrel.from(dst, src, 2);
                 _debarr.push_back(dst);
             }
         }
@@ -169,10 +193,10 @@ namespace Gimbal
                     {
                     
                         Common::Vect<float>    dst1;
-                        _debarrel(             dst1,  cell.position);
+                        _debarrel(             dst1,  cell.position, 1);
                         Common::Vect<float>    dst2;
                         Common::Vect<unsigned> src2 { cell.position + dir.val };
-                        _debarrel(             dst2,  src2);
+                        _debarrel(             dst2,  src2, 1);
                         avgOffset +=           dst2 - dst1;
                         
                         auto p1 { Common::VectPolar<int>(cell.position) };

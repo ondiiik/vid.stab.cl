@@ -146,9 +146,11 @@ namespace Gimbal
          * @brief   Convert from barrel space
          * @param   aDst    Destination coordinates
          * @param   aSrc    Source coordinates
+         * @brief   aRatio  De-barrel ratio (1 or 2)
          */
         void _debarrel(Common::Vect<float>&          aDst,
-                       const Common::Vect<unsigned>& aSrc) const;
+                       const Common::Vect<unsigned>& aSrc,
+                       unsigned                      aRatio) const;
 
 
         /**
@@ -173,5 +175,11 @@ namespace Gimbal
          * @brief   Reverse barrel distortion lookup table
          */
         std::vector<Common::Vect<float> > _debarr;
+
+
+        /**
+         * @brief   Reverse barrel distortion lookup table for half size
+         */
+        std::vector<Common::Vect<float> > _debarr2;
     };
 }
