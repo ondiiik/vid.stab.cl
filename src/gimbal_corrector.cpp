@@ -142,7 +142,7 @@ namespace Gimbal
         
         for (const auto& det : _ser.cells)
         {
-            std::cout << n % slowACnt << "\t" << (n + slowACnt / 2U) % slowACnt << "\t" << n % staticACnt << "\t" << (n + staticACnt / 2U) % staticACnt << "\t";
+            std::cout << n % slowACnt << ";" << (n + slowACnt / 2U) % slowACnt << ";" << n % staticACnt << ";" << (n + staticACnt / 2U) % staticACnt << ";";
             
             CorrectorSet cs;
             
@@ -172,7 +172,7 @@ namespace Gimbal
                 ci.cnt   = avgOffset.cnt();
                 ++i;
                 
-                std::cout << ci.cnt << "\t" << ci.ofs.x << "\t" << ci.ofs.y << "\t" << Common::rad2deg<float>(ci.angle, 10) << "\t";
+                std::cout << ci.cnt << ";" << ci.ofs.x << ";" << ci.ofs.y << ";" << Common::rad2deg<float>(ci.angle, 10) << ";";
             }
             
             _cor.push_back(cs);

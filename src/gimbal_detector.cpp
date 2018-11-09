@@ -489,19 +489,30 @@ namespace Gimbal
         
         
         /*
+         * For first frame we shall use current frame
+         */
+        unsigned idc { _idxPrev };
+        
+        if (0 == idx)
+        {
+            idc = _idxCurrent;
+        }
+        
+        
+        /*
          * Now we shall update also slow filters. They are updated twice per defined
          * count of frames (A and B variant).
          */
         if (0 == (idx % slowACnt))
         {
-            aPt.fm[FLR_SLOW_A] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_SLOW_A] = aPt.fm[idc];
         }
         
         const unsigned slowBCnt { slowACnt / 2U };
         
         if ((0 == idx) || (0 == ((idx + slowBCnt) % slowACnt)))
         {
-            aPt.fm[FLR_SLOW_B] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_SLOW_B] = aPt.fm[idc];
         }
         
         
@@ -510,14 +521,14 @@ namespace Gimbal
          */
         if (0 == (idx % staticACnt))
         {
-            aPt.fm[FLR_STATIC_A] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_STATIC_A] = aPt.fm[idc];
         }
         
         const unsigned staticBCnt { staticACnt / 2U };
         
         if ((0 == idx) || (0 == ((idx + staticBCnt) % staticACnt)))
         {
-            aPt.fm[FLR_STATIC_B] = aPt.fm[_idxCurrent];
+            aPt.fm[FLR_STATIC_B] = aPt.fm[idc];
         }
     }
     
