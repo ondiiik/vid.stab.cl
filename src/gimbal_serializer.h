@@ -212,6 +212,16 @@ namespace Gimbal
         
         
         /**
+         * @brief   Get transformation dimension
+         * @return  Transformation dimension
+         */
+        const Common::Vect<unsigned>& dim() const
+        {
+            return _dim;
+        }
+        
+        
+        /**
          * @brief   Cells list for all frames
          */
         std::vector<CorrectorCells> cells;

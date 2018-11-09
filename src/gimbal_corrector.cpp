@@ -86,7 +86,8 @@ namespace Gimbal
         :
         _serialized { "/tmp/gimbal.gbl" },
         _corrector  {                   },
-        _barrel     {                   }
+        _barrel     {                   },
+        _debarr   {                   }
     {
         _serialized.load();
         _barrelInit();
@@ -106,12 +107,31 @@ namespace Gimbal
     }
     
     
+    void Corrector::_debarrel(Common::Vect<float>&          aDst,
+                              const Common::Vect<unsigned>& aSrc) const
+    {
+        auto& dim { _serialized.dim() };
+        aDst = _debarr[dim.x * aSrc.y + aSrc.x];
+    }
+    
+    
     void Corrector::_barrelInit()
     {
-        Common::Vect<float> src;
-        Common::Vect<float> dst;
+        auto dim { _serialized.dim() };
         
-        _barrel.from(dst, src, 1);
+        std::cout << "Calculates de-barrel for " << dim << "...\n";
+        
+        for (unsigned y = 0, ey = dim.y; y < ey; ++y)
+        {
+            for (unsigned x = 0, ex = dim.x; x < ex; ++x)
+            {
+                Common::Vect<float> src { x, y };
+                Common::Vect<float> dst;
+                
+                _barrel.from(dst, src, 1);
+                _debarr.push_back(dst);
+            }
+        }
     }
     
     
@@ -147,10 +167,16 @@ namespace Gimbal
                     
                     if (dir.isValid())
                     {
-                        avgOffset += dir.val;
+                    
+                        Common::Vect<float>    dst1;
+                        _debarrel(             dst1,  cell.position);
+                        Common::Vect<float>    dst2;
+                        Common::Vect<unsigned> src2 { cell.position + dir.val };
+                        _debarrel(             dst2,  src2);
+                        avgOffset +=           dst2 - dst1;
                         
-                        auto p1 { Common::VectPolar<int>(cell.position)           };
-                        auto p2 { Common::VectPolar<int>(cell.position + dir.val) };
+                        auto p1 { Common::VectPolar<int>(cell.position) };
+                        auto p2 { Common::VectPolar<int>(src2)          };
                         avgAngle += (p1.a - p2.a);
                     }
                 }

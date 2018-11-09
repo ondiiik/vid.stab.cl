@@ -87,8 +87,8 @@ namespace Gimbal
         float               angle;
         unsigned            cnt;
     };
-
-
+    
+    
     struct CorrectorSet
     {
         CorrectorSet()
@@ -128,8 +128,8 @@ namespace Gimbal
          * @brief   Initialize barrel distortion lookup table
          */
         void _barrelInit();
-
-
+        
+        
         /**
          * @brief   Preprocess detected data
          */
@@ -140,6 +140,15 @@ namespace Gimbal
          * @brief   Calculates motions from detected data
          */
         void _preprocessCalcMotions();
+        
+        
+        /**
+         * @brief   Convert from barrel space
+         * @param   aDst    Destination coordinates
+         * @param   aSrc    Source coordinates
+         */
+        void _debarrel(Common::Vect<float>&          aDst,
+                       const Common::Vect<unsigned>& aSrc) const;
 
 
         /**
@@ -158,5 +167,11 @@ namespace Gimbal
          * @brief   Lens transformation object
          */
         Barrel _barrel;
+        
+        
+        /**
+         * @brief   Reverse barrel distortion lookup table
+         */
+        std::vector<Common::Vect<float> > _debarr;
     };
 }
