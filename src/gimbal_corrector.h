@@ -30,8 +30,6 @@
 #include "transformtype.h"
 #include "frameinfo.h"
 #include "vidstabdefines.h"
-#include "common_exception.h"
-#include "gimbal_barrel.h"
 #include <cmath>
 #include <libgen.h>
 #include <cassert>
@@ -73,7 +71,10 @@ extern struct VSTransform vsLowPassTransforms(struct VSTransformData*   td,
 
 
 
+#include "gimbal_barrel.h"
 #include "frame_canvas.h"
+#include "common_exception.h"
+#include "common_average.h"
 
 
 
@@ -138,11 +139,31 @@ namespace Gimbal
         
         
         /**
-         * @brief   Calculates motions from detected data
+         * @brief   Update offset from cell
+         * @param   aCell       Cell to be used for update
+         * @param   aIdx        Layer index
+         * @param   aAvgOffset  Average offset object
+         * @param   aAvgCenter  Average center object
          */
-        void _preprocessCalcMotions();
-        
-        
+        void _preprocessOffset(const CorrectorCell&                   aCell,
+                               unsigned                               aIdx,
+                               Common::Average<Common::Vect<float> >& aAvgOffset,
+                               Common::Average<Common::Vect<float> >& aAvgCenter);
+                               
+                               
+        /**
+         * @brief   Update angle from cell
+         * @param   aCell       Cell to be used for update
+         * @param   aIdx        Layer index
+         * @param   aAvgAngle   Average angle object
+         * @param   aCenter     Center point
+         */
+        void _preprocessAngle(const CorrectorCell&       aCell,
+                              unsigned                   aIdx,
+                              Common::Average<float>&    aAvgAngle,
+                              const Common::Vect<float>& aCenter);
+                              
+                              
         /**
          * @brief   Convert from barrel space
          * @param   aDst    Destination coordinates
@@ -153,8 +174,8 @@ namespace Gimbal
          */
         bool _debarrel(Common::Vect<float>&          aDst,
                        const Common::Vect<unsigned>& aSrc) const;
-        
-        
+                       
+                       
         /**
          * @brief   Deserializer object
          */

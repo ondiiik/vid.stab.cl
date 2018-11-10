@@ -137,12 +137,7 @@ namespace Gimbal
     void Corrector::_preprocess()
     {
         std::cout << "Pre-process " << _serialized.cells.size() << " frames ...\n";
-        _preprocessCalcMotions();
-    }
-    
-    
-    void Corrector::_preprocessCalcMotions()
-    {
+        
         _corrector.reserve(_serialized.cells.size());
         
         unsigned n      { 1                     };
@@ -183,45 +178,7 @@ namespace Gimbal
                 
                 for (auto& cell : det.list)
                 {
-                    const auto& dir = cell.direction[i];
-                    
-                    /*
-                     * Only valid cells are interesting to us
-                     */
-                    if (dir.isValid())
-                    {
-                        /*
-                         * Recalculate movement according to barrel distortion reverse
-                         * transformation to get linear results related to center of
-                         * image.
-                         */
-                        Common::Vect<int>   src1 { cell.position };
-                        Common::Vect<float> dst1;
-                        
-                        if (!_debarrel(dst1, src1))
-                        {
-                            continue;
-                        }
-                        
-                        Common::Vect<float> dst2;
-                        Common::Vect<int>   src2 { src1 + dir.val };
-                        
-                        if (!_debarrel(dst2, src2))
-                        {
-                            continue;
-                        }
-                        
-                        
-                        /*
-                         * For angle we will need to have center point
-                         */
-                        avgCenter += src1;
-                        
-                        /*
-                         * Use average direction of movement
-                         */
-                        avgOffset += dst2 - dst1;
-                    }
+                    _preprocessOffset(cell, i, avgOffset, avgCenter);
                 }
                 
                 if (0 == avgCenter.cnt())
@@ -243,43 +200,7 @@ namespace Gimbal
                 
                 for (auto& cell : det.list)
                 {
-                    const auto& dir = cell.direction[i];
-                    
-                    /*
-                     * Only valid cells are interesting to us
-                     */
-                    if (dir.isValid())
-                    {
-                        /*
-                         * Recalculate movement according to barrel distortion reverse
-                         * transformation to get linear results related to center of
-                         * image.
-                         */
-                        Common::Vect<int>   src1 { cell.position };
-                        Common::Vect<float> dst1;
-                        
-                        if (!_debarrel(dst1, src1))
-                        {
-                            continue;
-                        }
-                        
-                        dst1 -= ci.center;
-                        
-                        
-                        Common::Vect<float> dst2;
-                        Common::Vect<int>   src2 { src1 + dir.val };
-                        
-                        if (!_debarrel(dst2, src2))
-                        {
-                            continue;
-                        }
-                        
-                        dst2 -= ci.center;
-                        
-                        auto p1 { Common::VectPolar<int>(cell.position) };
-                        auto p2 { Common::VectPolar<int>(src2)          };
-                        avgAngle += (p1.a - p2.a);
-                    }
+                    _preprocessAngle(cell, i, avgAngle, ci.center);
                 }
                 
                 
@@ -309,6 +230,104 @@ namespace Gimbal
             
             of << std::endl;
         }
+    }
+    
+    
+    void Corrector::_preprocessOffset(const CorrectorCell&                   aCell,
+                                      unsigned                               aIdx,
+                                      Common::Average<Common::Vect<float> >& aAvgOffset,
+                                      Common::Average<Common::Vect<float> >& aAvgCenter)
+    {
+        const auto& dir = aCell.direction[aIdx];
+        
+        /*
+         * Only valid cells are interesting to us
+         */
+        if (!dir.isValid())
+        {
+            return;
+        }
+        
+        
+        /*
+         * Recalculate movement according to barrel distortion reverse
+         * transformation to get linear results related to center of
+         * image.
+         */
+        Common::Vect<int>   src1 { aCell.position };
+        Common::Vect<float> dst1;
+        
+        if (!_debarrel(dst1, src1))
+        {
+            return;
+        }
+        
+        Common::Vect<float> dst2;
+        Common::Vect<int>   src2 { src1 + dir.val };
+        
+        if (!_debarrel(dst2, src2))
+        {
+            return;
+        }
+        
+        
+        /*
+         * For angle we will need to have center point
+         */
+        aAvgCenter += src1;
+        
+        /*
+         * Use average direction of movement
+         */
+        aAvgOffset += dst2 - dst1;
+    }
+    
+    
+    void Corrector::_preprocessAngle(const CorrectorCell&       aCell,
+                                     unsigned                   aIdx,
+                                     Common::Average<float>&    aAvgAngle,
+                                     const Common::Vect<float>& aCenter)
+    {
+        const auto& dir = aCell.direction[aIdx];
+        
+        /*
+         * Only valid cells are interesting to us
+         */
+        if (!dir.isValid())
+        {
+            return;
+        }
+        
+        
+        /*
+         * Recalculate movement according to barrel distortion reverse
+         * transformation to get linear results related to center of
+         * image.
+         */
+        Common::Vect<int>   src1 { aCell.position };
+        Common::Vect<float> dst1;
+        
+        if (!_debarrel(dst1, src1))
+        {
+            return;
+        }
+        
+        dst1 -= aCenter;
+        
+        
+        Common::Vect<float> dst2;
+        Common::Vect<int>   src2 { src1 + dir.val };
+        
+        if (!_debarrel(dst2, src2))
+        {
+            return;
+        }
+        
+        dst2 -= aCenter;
+        
+        auto p1 { Common::VectPolar<int>(aCell.position) };
+        auto p2 { Common::VectPolar<int>(src2)           };
+        aAvgAngle += (p1.a - p2.a);
     }
     
     
