@@ -22,6 +22,7 @@
  *
  */
 #include <iostream>
+#include <fstream>
 
 
 
@@ -57,6 +58,12 @@ namespace
     
     
     /**
+     * @brief   Contrast weight factor
+     */
+    const unsigned contrastFct { 8U };
+    
+    
+    /**
      * @brief   Convert motion transform instance to C++ representation
      * @param   aMd     Motion transform instance
      * @return  C++ representation of motion transform instance
@@ -87,8 +94,7 @@ namespace Gimbal
         _serialized { "/tmp/gimbal.gbl" },
         _corrector  {                   },
         _barrel     {                   },
-        _debarr     {                   },
-        _debarr2    {                   }
+        _debarr     {                   }
     {
         _serialized.load();
         _barrelInit();
@@ -105,23 +111,6 @@ namespace Gimbal
     void Corrector::operator()()
     {
     
-    }
-    
-    
-    void Corrector::_debarrel(Common::Vect<float>&          aDst,
-                              const Common::Vect<unsigned>& aSrc,
-                              unsigned                      aRatio) const
-    {
-        auto& dim { _serialized.dim() };
-        
-        if (aRatio == 1)
-        {
-            aDst = _debarr[dim.x * aSrc.y + aSrc.x];
-        }
-        else
-        {
-            aDst = _debarr2[dim.x * aSrc.y / 2 + aSrc.x];
-        }
     }
     
     
@@ -142,26 +131,12 @@ namespace Gimbal
                 _debarr.push_back(dst);
             }
         }
-        
-        dim /= 2;
-        
-        for (unsigned y = 0, ey = dim.y; y < ey; ++y)
-        {
-            for (unsigned x = 0, ex = dim.x; x < ex; ++x)
-            {
-                Common::Vect<float> src { x, y };
-                Common::Vect<float> dst;
-                
-                _barrel.from(dst, src, 2);
-                _debarr.push_back(dst);
-            }
-        }
     }
     
     
     void Corrector::_preprocess()
     {
-        std::cout << "Pre-process " << _serialized.cells.size() << ":\n";
+        std::cout << "Pre-process " << _serialized.cells.size() << " frames ...\n";
         _preprocessCalcMotions();
     }
     
@@ -170,34 +145,136 @@ namespace Gimbal
     {
         _corrector.reserve(_serialized.cells.size());
         
-        unsigned n { 1 };
+        unsigned n      { 1                     };
+        auto     center { _serialized.dim() / 2 };
         
-        for (const auto& det : _serialized.cells)
+        std::ofstream of;
+        of.open ("corrector.csv");
+        of << "i" << slowACnt << "a;" << "i" << slowACnt << "b;" << "i" << staticACnt << "a;" << "i" << staticACnt
+           << "b;n;x;y;a;"
+           << "n" << slowACnt   << "a;" << "x" << slowACnt   << "a;" << "y" << slowACnt   << "a;" << "a" << slowACnt   << "a;"
+           << "n" << slowACnt   << "b;" << "x" << slowACnt   << "b;" << "y" << slowACnt   << "b;" << "a" << slowACnt   << "b;"
+           << "n" << staticACnt << "a;" << "x" << staticACnt << "a;" << "y" << staticACnt << "a;" << "a" << staticACnt << "a;"
+           << "n" << staticACnt << "b;" << "x" << staticACnt << "b;" << "y" << staticACnt << "b;" << "a" << staticACnt << "b;"
+           << "\n";
+           
+           
+        /*
+         * Iterate over all cells
+         */
+        for (auto& det : _serialized.cells)
         {
-            std::cout << n % slowACnt << ";" << (n + slowACnt / 2U) % slowACnt << ";" << n % staticACnt << ";" << (n + staticACnt / 2U) % staticACnt << ";";
+            of << n % slowACnt << ";" << (n + slowACnt / 2U) % slowACnt << ";" << n % staticACnt << ";" << (n + staticACnt / 2U) % staticACnt << ";";
             
             CorrectorSet cs;
+            unsigned     i { 0 };
             
-            unsigned i { 0 };
-            
+            /*
+             * Iterate over all layers
+             */
             for (auto& ci : cs.items)
             {
+                /*
+                 * Iterate over all cells first to get average of movement direction
+                 * and rotation center
+                 */
                 Common::Average<Common::Vect<float> > avgOffset;
-                Common::Average<float>                avgAngle;
+                Common::Average<Common::Vect<float> > avgCenter;
                 
-                for (const auto& cell : det.list)
+                for (auto& cell : det.list)
                 {
                     const auto& dir = cell.direction[i];
                     
+                    /*
+                     * Only valid cells are interesting to us
+                     */
                     if (dir.isValid())
                     {
+                        /*
+                         * Recalculate movement according to barrel distortion reverse
+                         * transformation to get linear results related to center of
+                         * image.
+                         */
+                        Common::Vect<int>   src1 { cell.position };
+                        Common::Vect<float> dst1;
+                        
+                        if (!_debarrel(dst1, src1))
+                        {
+                            continue;
+                        }
+                        
+                        Common::Vect<float> dst2;
+                        Common::Vect<int>   src2 { src1 + dir.val };
+                        
+                        if (!_debarrel(dst2, src2))
+                        {
+                            continue;
+                        }
+                        
+                        
+                        /*
+                         * For angle we will need to have center point
+                         */
+                        avgCenter += src1;
+                        
+                        /*
+                         * Use average direction of movement
+                         */
+                        avgOffset += dst2 - dst1;
+                    }
+                }
+                
+                if (0 == avgCenter.cnt())
+                {
+                    ci.cnt = 0;
+                    ++i;
+                    continue;
+                }
+                
+                ci.cnt    = avgCenter.cnt();
+                ci.center = avgCenter();
+                ci.ofs    = avgOffset();
+                
+                
+                /*
+                 * Iterate over all cells second to get rotation angle
+                 */
+                Common::Average<float> avgAngle;
+                
+                for (auto& cell : det.list)
+                {
+                    const auto& dir = cell.direction[i];
                     
-                        Common::Vect<float>    dst1;
-                        _debarrel(             dst1,  cell.position, 1);
-                        Common::Vect<float>    dst2;
-                        Common::Vect<unsigned> src2 { cell.position + dir.val };
-                        _debarrel(             dst2,  src2, 1);
-                        avgOffset +=           dst2 - dst1;
+                    /*
+                     * Only valid cells are interesting to us
+                     */
+                    if (dir.isValid())
+                    {
+                        /*
+                         * Recalculate movement according to barrel distortion reverse
+                         * transformation to get linear results related to center of
+                         * image.
+                         */
+                        Common::Vect<int>   src1 { cell.position };
+                        Common::Vect<float> dst1;
+                        
+                        if (!_debarrel(dst1, src1))
+                        {
+                            continue;
+                        }
+                        
+                        dst1 -= ci.center;
+                        
+                        
+                        Common::Vect<float> dst2;
+                        Common::Vect<int>   src2 { src1 + dir.val };
+                        
+                        if (!_debarrel(dst2, src2))
+                        {
+                            continue;
+                        }
+                        
+                        dst2 -= ci.center;
                         
                         auto p1 { Common::VectPolar<int>(cell.position) };
                         auto p2 { Common::VectPolar<int>(src2)          };
@@ -205,18 +282,50 @@ namespace Gimbal
                     }
                 }
                 
-                ci.ofs   = avgOffset();
-                ci.angle = avgAngle();
-                ci.cnt   = avgOffset.cnt();
-                ++i;
                 
-                std::cout << ci.cnt << ";" << ci.ofs.x << ";" << ci.ofs.y << ";" << Common::rad2deg<float>(ci.angle, 10) << ";";
+                /*
+                 * Angle is last missing
+                 */
+                if (0 != avgAngle.cnt())
+                {
+                    if (ci.cnt > avgAngle.cnt())
+                    {
+                        ci.cnt = avgAngle.cnt();
+                    }
+                    
+                    ci.angle = avgAngle();
+                }
+                else
+                {
+                    ci.cnt = 0;
+                }
+                
+                of << ci.cnt << ";" << ci.ofs.x << ";" << ci.ofs.y << ";" << Common::rad2deg<float>(ci.angle, 10) << ";";
+                ++i;
             }
             
             _corrector.push_back(cs);
             ++n;
             
-            std::cout << std::endl;
+            of << std::endl;
+        }
+    }
+    
+    
+    bool Corrector::_debarrel(Common::Vect<float>&          aDst,
+                              const Common::Vect<unsigned>& aSrc) const
+    {
+        auto& dim { _serialized.dim() };
+        
+        if ((aSrc.x < dim.x) && (aSrc.y < dim.y))
+        {
+            aDst = _debarr[dim.x * aSrc.y + aSrc.x];
+            return true;
+        }
+        else
+        {
+            aDst = aSrc;
+            return false;
         }
     }
 }

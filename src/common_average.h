@@ -31,8 +31,8 @@ namespace Common
             _cnt = 1U;
             return *this;
         }
-
-
+        
+        
         inline Average& operator+=(const _Tp& aVal) noexcept
         {
             _acc += _AccTp(aVal);
@@ -51,7 +51,7 @@ namespace Common
             }
             else
             {
-                throw EXCEPTION_M("AVG", "Can not got to negative count!");
+                throw EXCEPTION_M(AVG, "Can not got to negative count!");
             }
         }
         
@@ -64,7 +64,32 @@ namespace Common
             }
             else
             {
-                throw EXCEPTION_M("AVG", "Can not got to negative count!");
+                throw EXCEPTION_M(AVG, "No samples to calculate average!");
+            }
+        }
+        
+        
+        inline Average& add(const _Tp& aVal,
+                            unsigned   aWeight) noexcept
+        {
+            _acc += _AccTp(aVal * aWeight);
+            _cnt += aWeight;
+            return *this;
+        }
+        
+        
+        inline Average& sub(const _Tp& aVal,
+                            unsigned   aWeight)
+        {
+            if (aWeight <= _cnt)
+            {
+                _acc -= _AccTp(aVal * aWeight);
+                _cnt -= aWeight;
+                return *this;
+            }
+            else
+            {
+                throw EXCEPTION_M(AVG, "Can not got to negative count!");
             }
         }
         

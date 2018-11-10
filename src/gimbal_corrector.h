@@ -83,6 +83,7 @@ namespace Gimbal
 {
     struct CorrectionItem
     {
+        Common::Vect<float> center;
         Common::Vect<float> ofs;
         float               angle;
         unsigned            cnt;
@@ -146,13 +147,14 @@ namespace Gimbal
          * @brief   Convert from barrel space
          * @param   aDst    Destination coordinates
          * @param   aSrc    Source coordinates
-         * @brief   aRatio  De-barrel ratio (1 or 2)
+         * @return  Success flag
+         * @retval  true    Transformed successfully
+         * @retval  false   Transformation failed
          */
-        void _debarrel(Common::Vect<float>&          aDst,
-                       const Common::Vect<unsigned>& aSrc,
-                       unsigned                      aRatio) const;
-
-
+        bool _debarrel(Common::Vect<float>&          aDst,
+                       const Common::Vect<unsigned>& aSrc) const;
+        
+        
         /**
          * @brief   Deserializer object
          */
@@ -175,11 +177,5 @@ namespace Gimbal
          * @brief   Reverse barrel distortion lookup table
          */
         std::vector<Common::Vect<float> > _debarr;
-
-
-        /**
-         * @brief   Reverse barrel distortion lookup table for half size
-         */
-        std::vector<Common::Vect<float> > _debarr2;
     };
 }
