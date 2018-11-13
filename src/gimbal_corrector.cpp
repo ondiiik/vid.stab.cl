@@ -27,11 +27,16 @@
 
 
 
-#include "gimbal_corrector.h"
 #include "transform_internal.h"
 #include "transformtype_operations.h"
 
 #include "transformfixedpoint.h"
+
+
+
+#include "gimbal_corrector.h"
+#include "gimbal_motions.h"
+#include "gimbal_barrel.h"
 
 #include "common_exception.h"
 #include "common_average.h"
@@ -44,7 +49,6 @@
 #include <math.h>
 #include <libgen.h>
 #include <string.h>
-#include "gimbal_barrel.h"
 
 
 
@@ -98,7 +102,11 @@ namespace Gimbal
     {
         _serialized.load();
         _barrelInit();
-        _preprocess();
+        
+        std::cout << "Pre-process " << _serialized.cells.size() << " frames ...\n";
+        
+        _preprocessMeasured();
+        _preprocessAbsolute();
     }
     
     
@@ -134,17 +142,21 @@ namespace Gimbal
     }
     
     
-    void Corrector::_preprocess()
+    void Corrector::_preprocessMeasured()
     {
-        std::cout << "Pre-process " << _serialized.cells.size() << " frames ...\n";
+        std::cout << "\tMeasured data ...\n";
         
         _corrector.reserve(_serialized.cells.size());
         
         unsigned n      { 1                     };
         auto     center { _serialized.dim() / 2 };
         
+        /*
+         * Print some information about detection into CSV file. Lets start
+         * by preparing of CSV head.
+         */
         std::ofstream of;
-        of.open ("corrector.csv");
+        of.open ("corrector_rel.csv");
         of << "i" << slowACnt << "a;" << "i" << slowACnt << "b;" << "i" << staticACnt << "a;" << "i" << staticACnt
            << "b;n;x;y;a;"
            << "n" << slowACnt   << "a;" << "x" << slowACnt   << "a;" << "y" << slowACnt   << "a;" << "a" << slowACnt   << "a;"
@@ -155,7 +167,8 @@ namespace Gimbal
            
            
         /*
-         * Iterate over all cells
+         * Iterate over all cells to calculate basic values such as overall
+         * translation and rotation.
          */
         for (auto& det : _serialized.cells)
         {
@@ -165,13 +178,12 @@ namespace Gimbal
             unsigned     i { 0 };
             
             /*
-             * Iterate over all layers
+             * We shall calculate translation and rotation for all timing layers.
              */
             for (auto& ci : cs.items)
             {
                 /*
-                 * Iterate over all cells first to get average of movement direction
-                 * and rotation center
+                 * We try to get average translation and rotation origin
                  */
                 Common::Average<Common::Vect<float> > avgOffset;
                 Common::Average<Common::Vect<float> > avgCenter;
@@ -183,53 +195,114 @@ namespace Gimbal
                 
                 if (0 == avgCenter.cnt())
                 {
-                    ci.cnt = 0;
+                    ci.detected.cnt = 0;
                     ++i;
                     continue;
                 }
                 
-                ci.cnt    = avgCenter.cnt();
-                ci.center = avgCenter();
-                ci.ofs    = avgOffset();
+                ci.detected.cnt    = avgCenter.cnt();
+                ci.detected.center = avgCenter();
+                ci.detected.ofs    = avgOffset();
                 
                 
                 /*
-                 * Iterate over all cells second to get rotation angle
+                 * Since we have rotation origin, we can try to get rotation
+                 * direction.
                  */
                 Common::Average<float> avgAngle;
                 
                 for (auto& cell : det.list)
                 {
-                    _preprocessAngle(cell, i, avgAngle, ci.center);
+                    _preprocessAngle(cell, i, avgAngle, ci.detected.center);
                 }
                 
                 
-                /*
-                 * Angle is last missing
-                 */
                 if (0 != avgAngle.cnt())
                 {
-                    if (ci.cnt > avgAngle.cnt())
+                    if (ci.detected.cnt > avgAngle.cnt())
                     {
-                        ci.cnt = avgAngle.cnt();
+                        ci.detected.cnt = avgAngle.cnt();
                     }
                     
-                    ci.angle = avgAngle();
+                    ci.detected.angle = avgAngle();
                 }
                 else
                 {
-                    ci.cnt = 0;
+                    ci.detected.cnt = 0;
                 }
                 
-                of << ci.cnt << ";" << ci.ofs.x << ";" << ci.ofs.y << ";" << Common::rad2deg<float>(ci.angle, 10) << ";";
+                /*
+                 * Write also results to CSV file for later analyzes
+                 */
+                of << ci.detected.cnt << ";" << ci.detected.ofs.x << ";" << ci.detected.ofs.y << ";" << Common::rad2deg<float>(ci.detected.angle, 10) << ";";
                 ++i;
             }
             
+            /*
+             * Once we have measured values calculated, we can add them to list.
+             */
             _corrector.push_back(cs);
             ++n;
             
             of << std::endl;
         }
+    }
+    
+    
+    void Corrector::_preprocessAbsolute()
+    {
+        std::cout << "\tAbsolute data ...\n";
+        
+        std::ofstream of;
+        of.open ("corrector_abs.csv");
+        
+        /*
+         * Absolute value is accumulated from measured values.
+         */
+        CorrectionItem accs[__FLR_CNT - FLR_FAST];
+        
+        /*
+         * We have list of measured values so we will use it and update
+         * all absolute from measured items.
+         */
+        for (auto& cs : _corrector)
+        {
+            for (unsigned i { FLR_FAST }; i < __FLR_CNT; ++i)
+            {
+                auto& it  = cs.items[i];
+                auto& acc = accs[    i];
+                
+                switch (i)
+                {
+                    case FLR_FAST:
+                        /*
+                         * Fast filter measures difference between every frame, so we shall
+                         * update accumulator by the same way.
+                         */
+                        it.absolute = acc;
+                        acc        += it.detected;
+
+                        /*
+                         * Write results to CSV
+                         */
+                        of << it.absolute.ofs.x    << ";" << it.absolute.ofs.y    << ";"
+                           << it.absolute.center.x << ";" << it.absolute.center.y << ";"
+                           << it.absolute.angle    << ";";
+                        break;
+                        
+                    case FLR_SLOW_A:
+                    case FLR_SLOW_B:
+                    case FLR_STATIC_A:
+                    case FLR_STATIC_B:
+                        break;
+                }
+            }
+            
+            of << std::endl;
+        }
+        
+        
+        of << std::endl;
     }
     
     

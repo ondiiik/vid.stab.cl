@@ -84,10 +84,40 @@ namespace Gimbal
 {
     struct CorrectionItem
     {
+        CorrectionItem()
+            :
+            center {      },
+            ofs    {      },
+            angle  { 0.0F },
+            cnt    { 0    }
+        {
+        
+        }
+        
+        
+        CorrectionItem& operator+=(const CorrectionItem& aSrc)
+        {
+            ofs    += aSrc.ofs;
+            angle  += aSrc.angle;
+            center  = aSrc.center;
+            cnt     = aSrc.cnt;
+            
+            return *this;
+        }
+        
+        
         Common::Vect<float> center;
         Common::Vect<float> ofs;
         float               angle;
         unsigned            cnt;
+    };
+    
+    
+    struct CorrectionItemsSet
+    {
+        CorrectionItem detected;
+        CorrectionItem absolute;
+        CorrectionItem relative;
     };
     
     
@@ -100,7 +130,7 @@ namespace Gimbal
         
         }
         
-        CorrectionItem items[__FLR_CNT - FLR_FAST];
+        CorrectionItemsSet items[__FLR_CNT - FLR_FAST];
     };
     
     
@@ -133,9 +163,15 @@ namespace Gimbal
         
         
         /**
-         * @brief   Preprocess detected data
+         * @brief   Pre-process relative detected data
          */
-        void _preprocess();
+        void _preprocessMeasured();
+        
+        
+        /**
+         * @brief   Pre-process absolute detected data
+         */
+        void _preprocessAbsolute();
         
         
         /**
